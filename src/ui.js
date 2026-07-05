@@ -83,22 +83,26 @@ export function createUi() {
   }
 
   function setHearts(count) {
-    let text = "";
+    let hearts = "";
     for (let i = 0; i < count; i++) {
-      text += "♥ ";
+      hearts += "♥ ";
     }
-    el("hearts").textContent = text.trim();
+    el("hearts").innerHTML =
+      '<span class="hp-label">' + t("hpLabel") + "</span> " + hearts.trim();
   }
 
   function setDodges(count) {
-    let text = "";
-    for (let i = 0; i < count; i++) {
-      text += "◆ ";
-    }
-    el("dodges").textContent = (t("dodgeLabel") + " " + text).trim();
     if (count === 0) {
-      el("dodges").textContent = "";
+      el("dodges").innerHTML = "";
+      return;
     }
+    let diamonds = "";
+    for (let i = 0; i < count; i++) {
+      diamonds += "◆ ";
+    }
+    el("dodges").innerHTML =
+      '<span class="dodge-label">' + t("dodgeLabel") + "</span> " + diamonds.trim() +
+      ' <span class="key-hint"><kbd>Q</kbd><kbd>D</kbd></span>';
   }
 
   function setGunState(text) {
@@ -120,7 +124,7 @@ export function createUi() {
   }
 
   function setGlare(value) {
-    el("glare").style.opacity = String(value * 0.95);
+    el("glare").style.opacity = String(value);
   }
 
   function setGlarePos(xPercent, yPercent) {

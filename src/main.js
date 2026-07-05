@@ -38,12 +38,19 @@ el("version-tag").textContent = "v" + pkg.version.split(".").slice(0, 2).join(".
 
 function renderFlag() {
   if (getLang() === "fr") {
-    el("btn-lang").innerHTML = FLAG_FR;
-  } else {
     el("btn-lang").innerHTML = FLAG_EN;
+  } else {
+    el("btn-lang").innerHTML = FLAG_FR;
   }
 }
 renderFlag();
+
+function buildOpponentCards() {
+  ui.opponentCards(PERSONAS, function (persona) {
+    bootAudio();
+    startAiDuel(persona);
+  });
+}
 
 el("btn-lang").addEventListener("click", function () {
   if (getLang() === "fr") {
@@ -51,7 +58,9 @@ el("btn-lang").addEventListener("click", function () {
   } else {
     setLang("fr");
   }
-  location.reload();
+  applyStatic();
+  renderFlag();
+  buildOpponentCards();
 });
 
 const musicSlider = el("vol-music");
@@ -65,18 +74,46 @@ sfxSlider.addEventListener("input", function () {
   audio.setSfxVolume(Number(sfxSlider.value) / 100);
 });
 
+let audioBooted = false;
 function bootAudio() {
+  if (audioBooted) {
+    return;
+  }
+  audioBooted = true;
   audio.ensure();
   music.start();
 }
-document.addEventListener("pointerdown", bootAudio, { once: true });
-document.addEventListener("keydown", bootAudio, { once: true });
+document.addEventListener("pointerdown", bootAudio, { once: true, capture: true });
+document.addEventListener("touchstart", bootAudio, { once: true, capture: true, passive: true });
+document.addEventListener("mousedown", bootAudio, { once: true, capture: true });
+document.addEventListener("click", bootAudio, { once: true, capture: true });
+document.addEventListener("keydown", bootAudio, { once: true, capture: true });
+
+function attemptAutoAudio() {
+  if (audioBooted) {
+    return;
+  }
+  audio.ensure();
+  const ctx = audio.ctx;
+  if (ctx.state === "running") {
+    bootAudio();
+    return;
+  }
+  ctx.resume().then(function () {
+    if (ctx.state === "running") {
+      bootAudio();
+    }
+  }).catch(function () {});
+}
+attemptAutoAudio();
+window.addEventListener("focus", attemptAutoAudio);
+document.addEventListener("visibilitychange", attemptAutoAudio);
 
 function backToMenu() {
   activeDuel = null;
   cowboy.reset();
   viewmodel.holster();
-  arena.applyModifier({ id: "noon", distance: 14, sway: 0 });
+  arena.applyModifier({ id: "noon", sway: 0 }, 19);
   ui.hudVisible(false);
   ui.showScreen("screen-title");
 }
@@ -156,14 +193,17 @@ function startSearch() {
 }
 
 el("btn-ai").addEventListener("click", function () {
+  bootAudio();
   ui.showScreen("screen-opponents");
 });
 
-ui.opponentCards(PERSONAS, function (persona) {
-  startAiDuel(persona);
-});
+buildOpponentCards();
+if (isTouch) {
+  document.body.classList.add("touch");
+}
 
 el("btn-online").addEventListener("click", function () {
+  bootAudio();
   if (!netAvailable()) {
     ui.showScreen("screen-search");
     ui.searchTick(0, true);
@@ -183,6 +223,7 @@ el("btn-search-cancel").addEventListener("click", function () {
 });
 
 el("btn-help").addEventListener("click", function () {
+  bootAudio();
   ui.showScreen("screen-help");
 });
 

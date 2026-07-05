@@ -216,10 +216,16 @@ export function createArena(container) {
 
   let windy = false;
   let elapsed = 0;
+  let isFoggy = false;
+  let fogFarNormal = 22;
+  let fogFarThick = 22;
+  let fogPulseAmount = 0;
 
-  function applyModifier(mod) {
+  function applyModifier(mod, distanceMeters) {
     windy = mod.sway > 0;
-    opponentAnchor.position.z = 7 - mod.distance;
+    opponentAnchor.position.z = 7 - distanceMeters;
+    isFoggy = mod.id === "fog";
+    fogPulseAmount = 0;
     if (mod.id === "dusk") {
       scene.background = new THREE.Color(0x121a30);
       scene.fog = new THREE.Fog(0x121a30, 30, 120);
@@ -230,7 +236,9 @@ export function createArena(container) {
       moonDisc.visible = true;
     } else if (mod.id === "fog") {
       scene.background = new THREE.Color(0xd8cdb4);
-      scene.fog = new THREE.Fog(0xd8cdb4, 3, mod.distance + 10);
+      fogFarNormal = Math.max(distanceMeters + 10, 22);
+      fogFarThick = Math.max(distanceMeters * 0.4, 6);
+      scene.fog = new THREE.Fog(0xd8cdb4, 3, fogFarNormal);
       hemi.intensity = 0.7;
       sun.intensity = 0.8;
       moon.intensity = 0;
@@ -245,6 +253,19 @@ export function createArena(container) {
       sunDisc.visible = true;
       moonDisc.visible = false;
     }
+  }
+
+  function setFogPulse(active, dt) {
+    if (!isFoggy) {
+      return;
+    }
+    let target = 0;
+    if (active) {
+      target = 1;
+    }
+    fogPulseAmount += (target - fogPulseAmount) * Math.min(1, dt * 3);
+    const far = fogFarNormal + (fogFarThick - fogFarNormal) * fogPulseAmount;
+    scene.fog.far = far;
   }
 
   function update(dt) {
@@ -296,6 +317,7 @@ export function createArena(container) {
     opponentAnchor: opponentAnchor,
     sunDisc: sunDisc,
     applyModifier: applyModifier,
+    setFogPulse: setFogPulse,
     update: update
   };
 }

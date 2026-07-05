@@ -59,6 +59,7 @@ export class AiOpponent {
     this.wounded = false;
     this.accBoost = 1;
     this.modifier = null;
+    this.distance = null;
     this.done = false;
   }
 
@@ -71,7 +72,7 @@ export class AiOpponent {
 
   aimTime() {
     let t = rangeFrom(this.rng, this.persona.aim[0], this.persona.aim[1]);
-    t += this.modifier.aimPenalty;
+    t += this.modifier.aimPenalty + this.distance.aimPenalty;
     if (this.wounded) {
       t += 120;
     }
@@ -84,7 +85,7 @@ export class AiOpponent {
     if (this.perks.has("eye")) {
       accHead *= 1.25;
     }
-    let factor = this.modifier.accuracyFactor * this.accBoost;
+    let factor = this.modifier.accuracyFactor * this.distance.accuracyFactor * this.accBoost;
     if (this.wounded) {
       factor *= 0.8;
     }
@@ -117,6 +118,7 @@ export class AiOpponent {
 
   startRound(ctx) {
     this.modifier = ctx.modifier;
+    this.distance = ctx.distance;
     this.queue = [];
     this.plannedShot = null;
     this.wounded = false;
