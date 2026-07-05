@@ -45,13 +45,21 @@ function renderFlag() {
 }
 renderFlag();
 
+function buildOpponentCards() {
+  ui.opponentCards(PERSONAS, function (persona) {
+    startAiDuel(persona);
+  });
+}
+
 el("btn-lang").addEventListener("click", function () {
   if (getLang() === "fr") {
     setLang("en");
   } else {
     setLang("fr");
   }
-  location.reload();
+  applyStatic();
+  renderFlag();
+  buildOpponentCards();
 });
 
 const musicSlider = el("vol-music");
@@ -159,9 +167,10 @@ el("btn-ai").addEventListener("click", function () {
   ui.showScreen("screen-opponents");
 });
 
-ui.opponentCards(PERSONAS, function (persona) {
-  startAiDuel(persona);
-});
+buildOpponentCards();
+if (isTouch) {
+  document.body.classList.add("touch");
+}
 
 el("btn-online").addEventListener("click", function () {
   if (!netAvailable()) {

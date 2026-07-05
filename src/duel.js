@@ -313,17 +313,17 @@ export class Duel {
 
   startIntro() {
     this.audio.reveal();
-    this.ui.setBig(t(this.round.modifier.nameKey), "gold", 1700);
+    this.ui.setBig(t(this.round.modifier.nameKey), "gold", 2400);
     this.ui.setSub(t(this.round.modifier.descKey));
     this.state = "intro";
-    this.introUntil = performance.now() + 1900;
+    this.introUntil = performance.now() + 2100;
   }
 
   fireSignal(now) {
     this.state = "active";
     this.round.signalTime = now;
     this.audio.bell();
-    this.ui.setBig(t("fire"), "fire", 900);
+    this.ui.setBig(t("fire"), "fire", 1300);
     this.ui.setSub("");
     this.ui.crosshair(true);
     this.viewmodel.draw();
@@ -495,7 +495,7 @@ export class Duel {
     this.viewmodel.draw();
     this.viewmodel.shoot();
     this.audio.gunshot();
-    this.ui.setBig(t("earlyDraw"), "fire", 1400);
+    this.ui.setBig(t("earlyDraw"), "fire", 1900);
     this.ui.setSub(t("earlyDrawSub"));
     this.round.resolved = true;
     if (this.net !== null) {
@@ -517,7 +517,7 @@ export class Duel {
     this.round.oppDeathShotT = shotT;
     this.cowboy.playDeath(this.arena.scene);
     this.audio.thud();
-    this.ui.setBig(t("down"), "gold", 1600);
+    this.ui.setBig(t("down"), "gold", 2100);
     if (this.ai !== null && this.ai !== undefined) {
       this.ai.stop();
     }
@@ -533,7 +533,7 @@ export class Duel {
     this.round.deathAnimT = 0;
     this.ui.hitFlash();
     this.audio.thud();
-    this.ui.setBig(t("youFell"), "fire", 1600);
+    this.ui.setBig(t("youFell"), "fire", 2100);
     this.ui.crosshair(false);
     if (this.net !== null) {
       this.net.send("death", { shotT: killerShotT });
@@ -738,7 +738,7 @@ export class Duel {
         this.cowboy.playDraw();
         this.cowboy.playShoot();
         this.audio.distantShot();
-        this.ui.setBig(t("oppEarly"), "gold", 1500);
+        this.ui.setBig(t("oppEarly"), "gold", 2000);
         const self = this;
         setTimeout(function () {
           self.endRound("you", t("reasonEarlyOpp", { name: self.opponentName }));
@@ -845,7 +845,7 @@ export class Duel {
     this.cowboy.playDraw();
     this.cowboy.playShoot();
     this.audio.distantShot();
-    this.ui.setBig(t("oppEarly"), "gold", 1500);
+    this.ui.setBig(t("oppEarly"), "gold", 2000);
     this.ai.stop();
     const self = this;
     setTimeout(function () {
