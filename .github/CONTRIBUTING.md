@@ -1,6 +1,6 @@
 # Guide de contribution (Contributing)
 
-Merci de l'intérêt que vous portez à High Noon ! 🤠
+Merci de l'intérêt que vous portez à High noon ! 🤠
 
 Comme il s'agit principalement d'un projet personnel, les contributions majeures (nouvelles mécaniques, gros refactoring) ne sont pas forcément recherchées pour le moment. Cependant, toute aide est la bienvenue !
 
