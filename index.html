@@ -10,6 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./src/style.css" />
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 </head>
 <body>
   <div id="game"></div>
@@ -42,12 +43,23 @@
       <span class="vol">🔊<input id="vol-sfx" type="range" min="0" max="100" /></span>
       <button id="btn-lang" aria-label="Language"></button>
     </div>
+    <div id="profile-chip" class="hidden">
+      <img id="chip-head" alt="" />
+      <span id="chip-pseudo"></span>
+      <span id="chip-elo"></span>
+      <span id="chip-coins"></span>
+    </div>
     <h1 class="logo">HIGH NOON</h1>
     <p class="tagline" data-i18n="tagline"></p>
     <div class="menu">
       <button id="btn-online" class="btn" data-i18n="btnOnline"></button>
+      <button id="btn-ranked" class="btn" data-i18n="btnRanked"></button>
       <button id="btn-ai" class="btn" data-i18n="btnAi"></button>
-      <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
+      <div class="btn-row">
+        <button id="btn-shop" class="btn btn-small" data-i18n="btnShop"></button>
+        <button id="btn-board" class="btn btn-small" data-i18n="btnBoard"></button>
+        <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
+      </div>
     </div>
     <p class="footer-note"><span data-i18n="footer"></span> <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
     <p id="version-tag"></p>
@@ -65,8 +77,36 @@
     <button id="btn-help-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
+  <div id="screen-account" class="screen hidden">
+    <h2 data-i18n="accountTitle"></h2>
+    <p class="screen-hint" data-i18n="accountHint"></p>
+    <input id="pseudo-input" type="text" maxlength="16" autocomplete="off" />
+    <p id="pseudo-error" class="error-text hidden"></p>
+    <div class="menu">
+      <button id="btn-pseudo-ok" class="btn" data-i18n="accountCreate"></button>
+      <button id="btn-pseudo-cancel" class="btn btn-small" data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="screen-shop" class="screen hidden">
+    <h2 data-i18n="shopTitle"></h2>
+    <p id="shop-coins"></p>
+    <div id="shop-cards" class="cards"></div>
+    <div class="menu">
+      <button id="btn-shop-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
+      <button id="btn-shop-back" class="btn btn-small" data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="screen-board" class="screen hidden">
+    <h2 data-i18n="boardTitle"></h2>
+    <p id="board-status" class="screen-hint hidden"></p>
+    <div id="board-list"></div>
+    <button id="btn-board-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
   <div id="screen-search" class="screen hidden">
-    <h2 data-i18n="searchTitle"></h2>
+    <h2 id="search-title" data-i18n="searchTitle"></h2>
     <p id="search-timer" class="search-timer">0 s</p>
     <p id="search-hint" class="hidden" data-i18n="searchHint"></p>
     <div class="menu">
