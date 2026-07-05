@@ -1,0 +1,300 @@
+import * as THREE from "three";
+
+function groundTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#c9995c";
+  ctx.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2600; i++) {
+    const x = Math.random() * 256;
+    const y = Math.random() * 256;
+    const shade = 140 + Math.floor(Math.random() * 80);
+    ctx.fillStyle = "rgb(" + shade + "," + Math.floor(shade * 0.72) + "," + Math.floor(shade * 0.42) + ")";
+    ctx.fillRect(x, y, 2, 2);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(40, 40);
+  return tex;
+}
+
+function makeBuilding(width, height, depth, color, withAwning) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
+  body.position.y = height / 2;
+  body.castShadow = true;
+  body.receiveShadow = true;
+  group.add(body);
+  const facadeMat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 1 });
+  const facade = new THREE.Mesh(new THREE.BoxGeometry(width * 0.92, height * 0.5, 0.1), facadeMat);
+  facade.position.set(0, height * 0.72, depth / 2 + 0.06);
+  group.add(facade);
+  if (withAwning) {
+    const awningMat = new THREE.MeshStandardMaterial({ color: 0x6b3f1d, roughness: 1 });
+    const awning = new THREE.Mesh(new THREE.BoxGeometry(width * 0.9, 0.12, 1.6), awningMat);
+    awning.position.set(0, height * 0.42, depth / 2 + 0.9);
+    awning.castShadow = true;
+    group.add(awning);
+    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, height * 0.42, 6);
+    const postMat = new THREE.MeshStandardMaterial({ color: 0x4a3018, roughness: 1 });
+    const offsets = [-width * 0.4, width * 0.4];
+    for (const ox of offsets) {
+      const post = new THREE.Mesh(postGeo, postMat);
+      post.position.set(ox, height * 0.21, depth / 2 + 1.5);
+      group.add(post);
+    }
+  }
+  return group;
+}
+
+function makeCactus(scale) {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({ color: 0x3f7a3a, roughness: 0.9 });
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 2.4, 8), mat);
+  trunk.position.y = 1.2;
+  trunk.castShadow = true;
+  group.add(trunk);
+  const armGeo = new THREE.CylinderGeometry(0.14, 0.16, 1, 8);
+  const arm1 = new THREE.Mesh(armGeo, mat);
+  arm1.position.set(0.45, 1.5, 0);
+  arm1.rotation.z = -0.5;
+  group.add(arm1);
+  const arm2 = new THREE.Mesh(armGeo, mat);
+  arm2.position.set(-0.42, 1.1, 0);
+  arm2.rotation.z = 0.6;
+  group.add(arm2);
+  group.scale.setScalar(scale);
+  return group;
+}
+
+function makeBarrel() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0x5c3d1e, roughness: 0.95 });
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.32, 0.9, 10), mat);
+  barrel.position.y = 0.45;
+  barrel.castShadow = true;
+  return barrel;
+}
+
+function makeWaterTower() {
+  const group = new THREE.Group();
+  const woodMat = new THREE.MeshStandardMaterial({ color: 0x4f3419, roughness: 1 });
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 2.6, 12), woodMat);
+  tank.position.y = 7;
+  tank.castShadow = true;
+  group.add(tank);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(2.1, 1.2, 12), woodMat);
+  roof.position.y = 8.9;
+  group.add(roof);
+  const legGeo = new THREE.CylinderGeometry(0.12, 0.14, 5.8, 6);
+  const positions = [
+    [1.2, 1.2],
+    [-1.2, 1.2],
+    [1.2, -1.2],
+    [-1.2, -1.2]
+  ];
+  for (const p of positions) {
+    const leg = new THREE.Mesh(legGeo, woodMat);
+    leg.position.set(p[0], 2.9, p[1]);
+    group.add(leg);
+  }
+  return group;
+}
+
+function makeTumbleweed() {
+  const geo = new THREE.IcosahedronGeometry(0.4, 1);
+  const edges = new THREE.EdgesGeometry(geo);
+  const mat = new THREE.LineBasicMaterial({ color: 0x8a6f3d });
+  const weed = new THREE.LineSegments(edges, mat);
+  weed.visible = false;
+  return weed;
+}
+
+export function createArena(container) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  container.appendChild(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x9fd9ff);
+  scene.fog = new THREE.Fog(0xe8d3a8, 60, 220);
+
+  const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 400);
+  const playerRig = new THREE.Group();
+  playerRig.position.set(0, 1.6, 7);
+  playerRig.add(camera);
+  scene.add(playerRig);
+
+  const hemi = new THREE.HemisphereLight(0xffe8c0, 0x8a6a45, 0.9);
+  scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xfff2d8, 2.2);
+  sun.position.set(24, 34, 12);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -30;
+  sun.shadow.camera.right = 30;
+  sun.shadow.camera.top = 30;
+  sun.shadow.camera.bottom = -30;
+  scene.add(sun);
+  const moon = new THREE.DirectionalLight(0x8fb4ff, 0);
+  moon.position.set(-18, 28, -10);
+  scene.add(moon);
+
+  const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshStandardMaterial({ map: groundTexture(), roughness: 1 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const sunDisc = new THREE.Mesh(
+    new THREE.CircleGeometry(9, 24),
+    new THREE.MeshBasicMaterial({ color: 0xfff3c0, fog: false })
+  );
+  sunDisc.position.set(60, 70, -160);
+  sunDisc.lookAt(0, 1.6, 7);
+  scene.add(sunDisc);
+
+  const moonDisc = new THREE.Mesh(
+    new THREE.CircleGeometry(5, 24),
+    new THREE.MeshBasicMaterial({ color: 0xdfe8ff, fog: false })
+  );
+  moonDisc.position.set(-70, 60, -150);
+  moonDisc.lookAt(0, 1.6, 7);
+  moonDisc.visible = false;
+  scene.add(moonDisc);
+
+  const buildingColors = [0x8a5a2e, 0x74522f, 0x9c6b38, 0x6b4a26, 0x84603a];
+  for (let i = 0; i < 6; i++) {
+    const left = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[i % buildingColors.length], i % 2 === 0);
+    left.position.set(-9.5, 0, -26 + i * 10);
+    left.rotation.y = Math.PI / 2;
+    scene.add(left);
+    const right = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[(i + 2) % buildingColors.length], i % 2 === 1);
+    right.position.set(9.5, 0, -22 + i * 10);
+    right.rotation.y = -Math.PI / 2;
+    scene.add(right);
+  }
+
+  const cactusSpots = [
+    [-16, -40], [18, -36], [-20, 14], [22, 20], [-15, 30], [17, -55]
+  ];
+  for (const spot of cactusSpots) {
+    const cactus = makeCactus(0.8 + Math.random() * 0.6);
+    cactus.position.set(spot[0], 0, spot[1]);
+    scene.add(cactus);
+  }
+
+  const barrelSpots = [
+    [-6.2, -3], [-6.4, -1.8], [6.3, 2], [6.1, -9]
+  ];
+  for (const spot of barrelSpots) {
+    const barrel = makeBarrel();
+    barrel.position.set(spot[0], 0, spot[1]);
+    scene.add(barrel);
+  }
+
+  const tower = makeWaterTower();
+  tower.position.set(14, 0, -34);
+  scene.add(tower);
+
+  const opponentAnchor = new THREE.Group();
+  opponentAnchor.position.set(0, 0, -7);
+  scene.add(opponentAnchor);
+
+  const weed = makeTumbleweed();
+  scene.add(weed);
+  const weedState = { active: false, nextAt: 2 + Math.random() * 6, x: 0, z: 0, dir: 1 };
+
+  let windy = false;
+  let elapsed = 0;
+
+  function applyModifier(mod) {
+    windy = mod.sway > 0;
+    opponentAnchor.position.z = 7 - mod.distance;
+    if (mod.id === "dusk") {
+      scene.background = new THREE.Color(0x121a30);
+      scene.fog = new THREE.Fog(0x121a30, 30, 120);
+      hemi.intensity = 0.18;
+      sun.intensity = 0;
+      moon.intensity = 0.5;
+      sunDisc.visible = false;
+      moonDisc.visible = true;
+    } else if (mod.id === "fog") {
+      scene.background = new THREE.Color(0xd8cdb4);
+      scene.fog = new THREE.Fog(0xd8cdb4, 3, mod.distance + 10);
+      hemi.intensity = 0.7;
+      sun.intensity = 0.8;
+      moon.intensity = 0;
+      sunDisc.visible = false;
+      moonDisc.visible = false;
+    } else {
+      scene.background = new THREE.Color(0x9fd9ff);
+      scene.fog = new THREE.Fog(0xe8d3a8, 60, 220);
+      hemi.intensity = 0.9;
+      sun.intensity = 2.2;
+      moon.intensity = 0;
+      sunDisc.visible = true;
+      moonDisc.visible = false;
+    }
+  }
+
+  function update(dt) {
+    elapsed += dt;
+    let interval = 8;
+    if (windy) {
+      interval = 2.5;
+    }
+    if (!weedState.active) {
+      weedState.nextAt -= dt;
+      if (weedState.nextAt <= 0) {
+        weedState.active = true;
+        weedState.dir = 1;
+        if (Math.random() < 0.5) {
+          weedState.dir = -1;
+        }
+        weedState.x = -14 * weedState.dir;
+        weedState.z = -2 - Math.random() * 10;
+        weed.visible = true;
+      }
+    } else {
+      let speed = 4;
+      if (windy) {
+        speed = 9;
+      }
+      weedState.x += speed * dt * weedState.dir;
+      weed.position.set(weedState.x, 0.4 + Math.abs(Math.sin(elapsed * 6)) * 0.15, weedState.z);
+      weed.rotation.z -= speed * dt * weedState.dir;
+      if (Math.abs(weedState.x) > 15) {
+        weedState.active = false;
+        weed.visible = false;
+        weedState.nextAt = interval * (0.5 + Math.random());
+      }
+    }
+  }
+
+  function resize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  }
+  window.addEventListener("resize", resize);
+
+  return {
+    renderer: renderer,
+    scene: scene,
+    camera: camera,
+    playerRig: playerRig,
+    opponentAnchor: opponentAnchor,
+    applyModifier: applyModifier,
+    update: update
+  };
+}
