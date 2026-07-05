@@ -8,7 +8,7 @@ export function netAvailable() {
 
 let client = null;
 
-function getClient() {
+export function getClient() {
   if (client === null) {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 20 } }
@@ -17,36 +17,76 @@ function getClient() {
   return client;
 }
 
-export function createMatchmaker() {
+export function createMatchmaker(options) {
   const supabase = getClient();
   const myId = crypto.randomUUID();
+  let ranked = false;
+  let myElo = 1000;
+  if (options && options.ranked) {
+    ranked = true;
+    myElo = options.elo;
+  }
+  let lobbyName = "hn-lobby";
+  if (ranked) {
+    lobbyName = "hn-lobby-ranked";
+  }
   let lobby = null;
   let cancelled = false;
   let pairing = false;
 
+  function lobbyEntries(state) {
+    const list = [];
+    for (const id of Object.keys(state)) {
+      let elo = 1000;
+      const metas = state[id];
+      if (metas.length > 0 && Number.isFinite(metas[0].elo)) {
+        elo = metas[0].elo;
+      }
+      list.push({ id: id, elo: elo });
+    }
+    list.sort(function (a, b) {
+      if (ranked && a.elo !== b.elo) {
+        return a.elo - b.elo;
+      }
+      if (a.id < b.id) {
+        return -1;
+      }
+      if (a.id > b.id) {
+        return 1;
+      }
+      return 0;
+    });
+    return list;
+  }
+
   function findPartner(state) {
-    const ids = Object.keys(state).sort();
-    if (ids.length < 2) {
+    const list = lobbyEntries(state);
+    if (list.length < 2) {
       return null;
     }
-    const myIndex = ids.indexOf(myId);
+    let myIndex = -1;
+    for (let i = 0; i < list.length; i++) {
+      if (list[i].id === myId) {
+        myIndex = i;
+      }
+    }
     if (myIndex === -1) {
       return null;
     }
     const pairStart = myIndex - (myIndex % 2);
-    if (pairStart + 1 >= ids.length) {
+    if (pairStart + 1 >= list.length) {
       return null;
     }
-    if (ids[pairStart] === myId) {
-      return { partner: ids[pairStart + 1], isHost: true };
+    if (list[pairStart].id === myId) {
+      return { partner: list[pairStart + 1].id, isHost: true };
     }
-    return { partner: ids[pairStart], isHost: false };
+    return { partner: list[pairStart].id, isHost: false };
   }
 
   function search(callbacks) {
     cancelled = false;
     pairing = false;
-    lobby = supabase.channel("hn-lobby", {
+    lobby = supabase.channel(lobbyName, {
       config: { presence: { key: myId } }
     });
     lobby.on("presence", { event: "sync" }, function () {
@@ -61,7 +101,7 @@ export function createMatchmaker() {
     });
     lobby.subscribe(function (status) {
       if (status === "SUBSCRIBED") {
-        lobby.track({ at: Date.now() });
+        lobby.track({ at: Date.now(), elo: myElo });
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         callbacks.onError();
       }

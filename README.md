@@ -4,7 +4,7 @@
 
 **High Noon** est un duel de western 1v1 en 3D à la première personne, jouable dans le navigateur. Attends la cloche, dégaine, vise et tire avant l'adversaire. En ligne contre un autre joueur, ou contre trois pistoleros contrôlés par l'IA.
 
-![Version](https://img.shields.io/badge/version-v1.0-blue)
+![Version](https://img.shields.io/badge/version-v1.1-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
 ![Supabase](https://img.shields.io/badge/supabase-realtime-3ECF8E)
 ![Licence](https://img.shields.io/badge/licence-MIT-lightgrey)
@@ -112,11 +112,51 @@ Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence, pu
 
 
 
+## 🏆 Mode classé
+
+En créant un pseudo (compte anonyme Supabase, lié au compte CrazyGames quand le jeu tourne sur CrazyGames), on débloque le **duel classé** : matchmaking par proximité d'Elo, pseudo et tenue visibles par l'adversaire, et **classement** des 20 meilleurs pistoleros (tête du skin, pseudo, points Elo). Chaque match rapporte des pièces - le classé paie bien plus que l'IA.
+
+| Résultat | Pièces | Elo (K=32) |
+|--|--|--|
+| 🏆 Victoire classée | +40 🪙 | monte |
+| 💀 Défaite classée | +10 🪙 | descend |
+| 🤖 Victoire contre l'IA | +8 🪙 | - |
+| 🤖 Défaite contre l'IA | +2 🪙 | - |
+
+L'Elo, les pièces et les achats sont gérés côté serveur par des fonctions Postgres (RLS + `security definer`), jamais par le client.
+
+
+
+## 🤠 Boutique de tenues
+
+Les pièces s'échangent contre des tenues qui recolorent le pistolero (chapeau, chemise, pantalon, bandana), visibles en ligne et sur le classement. Sur CrazyGames, une pub récompensée offre +25 🪙.
+
+| Tenue | Prix |
+|--|--|
+| 🤎 Le Vagabond | offert |
+| ⭐ Le Shérif | 150 🪙 |
+| 🖤 Le Bandit | 200 🪙 |
+| 🌵 L'Étranger | 250 🪙 |
+| 💙 Le Cavalier | 350 🪙 |
+| 🪦 Le Croque-mort | 500 🪙 |
+| 👻 Le Fantôme | 650 🪙 |
+| ✨ Le Doré | 900 🪙 |
+
+
+
+## 🎪 CrazyGames
+
+Le jeu intègre le **SDK CrazyGames v3** : événements de cycle de jeu (`gameplayStart` / `gameplayStop`), pubs interstitielles entre les matchs, pub récompensée dans la boutique, liaison du compte au profil CrazyGames et sauvegarde de session via le module data (le compte suit le joueur d'un appareil à l'autre). Hors CrazyGames, le SDK se désactive tout seul et le jeu fonctionne normalement.
+
+
+
 ## 🛠️ Stack technique
 
 - **Three.js** : rendu 3D, modèles low-poly 100% générés (aucun asset externe)
 - **Web Audio API** : sons et musique d'ambiance entièrement synthétisés (cloche, coups de feu, ricochets, sifflements)
 - **Supabase Realtime** : matchmaking et réseau du duel en ligne
+- **Supabase Auth + Postgres** : comptes anonymes, Elo, pièces, boutique et classement (RLS)
+- **SDK CrazyGames** : pubs, liaison de compte et cycle de jeu sur CrazyGames
 - **Vite** : build et serveur de développement
 
 
@@ -141,7 +181,10 @@ high-noon/
 │   ├── main.js        # Point d'entrée, menus, i18n, audio
 │   ├── duel.js         # Machine à états du duel (signal, tir, esquive, manches)
 │   ├── ai.js           # Personnalités et comportement de l'IA
-│   ├── net.js          # Matchmaking et protocole réseau (Supabase Realtime)
+│   ├── net.js          # Matchmaking (casual + classé) et protocole réseau
+│   ├── account.js      # Comptes, profil, Elo, pièces, classement (Supabase)
+│   ├── skins.js        # Catalogue de tenues et portraits générés
+│   ├── sdk.js          # Intégration du SDK CrazyGames
 │   ├── scene.js        # Arène 3D, éclairages, modificateurs de manche
 │   ├── cowboy.js        # Personnage adverse et ses animations
 │   ├── viewmodel.js    # Revolver en vue subjective
@@ -153,6 +196,7 @@ high-noon/
 │   ├── modifiers.js    # Modificateurs de manche
 │   └── rng.js          # Générateur pseudo-aléatoire à seed partagée
 ├── docs/               # Logo et captures d'écran du README
+├── supabase/           # Schéma SQL (profils, skins, fonctions Elo/pièces)
 ├── LICENSE             # Licence du projet (MIT)
 └── package.json
 ```

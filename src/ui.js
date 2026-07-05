@@ -9,6 +9,9 @@ export function createUi() {
     "screen-title",
     "screen-opponents",
     "screen-help",
+    "screen-account",
+    "screen-shop",
+    "screen-board",
     "screen-search",
     "screen-roundend",
     "screen-perk",
@@ -124,13 +127,16 @@ export function createUi() {
   }
 
   function setGlare(value) {
-    el("glare").style.opacity = String(value);
+    const node = el("glare");
+    node.style.opacity = String(value);
+    node.style.setProperty("--gi", String(value));
   }
 
-  function setGlarePos(xPercent, yPercent) {
+  function setGlarePos(xPercent, yPercent, rotDeg) {
     const node = el("glare");
     node.style.setProperty("--gx", xPercent + "%");
     node.style.setProperty("--gy", yPercent + "%");
+    node.style.setProperty("--gr", rotDeg + "deg");
   }
 
   function hitFlash() {

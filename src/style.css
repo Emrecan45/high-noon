@@ -467,10 +467,26 @@ body.touch #gunstate {
 #glare {
   --gx: 70%;
   --gy: 20%;
+  --gi: 0;
+  --gr: 0deg;
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at var(--gx) var(--gy), #ffffff 0%, #ffffff 14%, rgba(255, 253, 244, 0.99) 32%, rgba(255, 248, 226, 0.97) 52%, rgba(255, 240, 202, 0.94) 72%, rgba(255, 230, 176, 0.91) 88%, rgba(252, 219, 150, 0.88) 100%);
+    radial-gradient(circle at var(--gx) var(--gy),
+      #ffffff 0%,
+      #ffffff calc(4% + 12% * var(--gi)),
+      rgba(255, 251, 238, 0.97) calc(11% + 22% * var(--gi)),
+      rgba(255, 243, 210, 0.82) calc(24% + 32% * var(--gi)),
+      rgba(255, 231, 176, 0.55) calc(46% + 34% * var(--gi)),
+      rgba(250, 213, 145, 0.32) 100%),
+    repeating-conic-gradient(from var(--gr) at var(--gx) var(--gy),
+      rgba(255, 255, 255, 0.85) 0deg,
+      rgba(255, 252, 236, 0.35) 6deg,
+      rgba(255, 255, 255, 0) 14deg,
+      rgba(255, 254, 244, 0.65) 23deg,
+      rgba(255, 255, 255, 0) 34deg,
+      rgba(255, 255, 255, 0.5) 41deg,
+      rgba(255, 255, 255, 0) 52deg);
   opacity: 0;
   pointer-events: none;
 }
@@ -643,5 +659,174 @@ body.touch #gunstate {
 
   .card {
     width: 42vw;
+  }
+}
+
+#profile-chip {
+  position: absolute;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(16px, env(safe-area-inset-left));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  background: rgba(26, 16, 7, 0.75);
+  border: 2px solid #7a4c15;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+#profile-chip img {
+  width: 32px;
+  height: 32px;
+  image-rendering: pixelated;
+}
+
+#chip-pseudo {
+  color: #e8b64c;
+}
+
+#chip-elo {
+  color: #a8c9e0;
+}
+
+#chip-coins {
+  color: #ffd977;
+}
+
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-row .btn-small {
+  min-width: 0;
+}
+
+.screen-hint {
+  color: #cdb491;
+  font-size: 15px;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+#pseudo-input {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: 20px;
+  text-align: center;
+  color: #f3e4c2;
+  background: rgba(20, 12, 6, 0.85);
+  border: 3px solid #7a4c15;
+  border-radius: 6px;
+  padding: 10px 16px;
+  width: min(320px, 80vw);
+  outline: none;
+}
+
+#pseudo-input:focus {
+  border-color: #e8b64c;
+}
+
+.error-text {
+  color: #ff7a5c;
+  font-size: 15px;
+}
+
+#shop-coins {
+  font-size: 20px;
+  color: #ffd977;
+}
+
+.card .skin-portrait {
+  width: 72px;
+  height: 72px;
+  image-rendering: pixelated;
+}
+
+.card .skin-price {
+  font-size: 15px;
+  color: #ffd977;
+}
+
+.card.equipped {
+  border-color: #e8b64c;
+  box-shadow: 0 0 16px rgba(232, 182, 76, 0.35);
+}
+
+.card.locked {
+  opacity: 0.82;
+}
+
+#board-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(480px, 92vw);
+  max-height: 52vh;
+  overflow-y: auto;
+}
+
+.board-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: rgba(30, 19, 9, 0.8);
+  border: 2px solid #4a3018;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.board-row.me {
+  border-color: #e8b64c;
+}
+
+.board-row img {
+  width: 36px;
+  height: 36px;
+  image-rendering: pixelated;
+}
+
+.board-rank {
+  width: 30px;
+  color: #9a7c52;
+  font-size: 15px;
+}
+
+.board-pseudo {
+  flex: 1;
+  color: #f3e4c2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.board-elo {
+  color: #e8b64c;
+}
+
+@media (max-height: 640px) {
+  #profile-chip {
+    top: 8px;
+    left: 10px;
+    font-size: 12px;
+    gap: 6px;
+    padding: 4px 8px;
+  }
+
+  #profile-chip img {
+    width: 22px;
+    height: 22px;
+  }
+
+  .card .skin-portrait {
+    width: 48px;
+    height: 48px;
+  }
+
+  #board-list {
+    max-height: 46vh;
   }
 }
