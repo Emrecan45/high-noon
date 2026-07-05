@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>High Noon - Duel au soleil</title>
+  <meta name="description" content="High Noon : duel de western 1v1 en 3D. Dégainez plus vite que votre adversaire, en ligne ou contre l'IA." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='0.9em' font-size='90'%3E%F0%9F%A4%A0%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <div id="game"></div>
+
+  <div id="hud" class="hidden">
+    <div id="score">
+      <span id="score-you">0</span>
+      <span class="score-sep">-</span>
+      <span id="score-opp">0</span>
+    </div>
+    <div id="round-label"></div>
+    <div id="bigmsg" class="hidden"></div>
+    <div id="submsg" class="hidden"></div>
+    <div id="crosshair" class="hidden"></div>
+    <div id="vitals">
+      <div id="hearts"></div>
+      <div id="dodges"></div>
+      <div id="gunstate"></div>
+    </div>
+    <div id="hitflash"></div>
+    <div id="touch-controls" class="hidden">
+      <button id="btn-dodge-l" class="touch-btn">◀</button>
+      <button id="btn-dodge-r" class="touch-btn">▶</button>
+      <button id="btn-fire" class="touch-btn">FEU</button>
+    </div>
+  </div>
+
+  <div id="screen-title" class="screen">
+    <h1 class="logo">HIGH NOON</h1>
+    <p class="tagline">Le duel au soleil - 1v1</p>
+    <div class="menu">
+      <button id="btn-online" class="btn">DUEL EN LIGNE</button>
+      <button id="btn-ai" class="btn">DÉFIER L'IA</button>
+      <button id="btn-help" class="btn btn-small">COMMENT JOUER</button>
+    </div>
+    <p class="footer-note">Un jeu de <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
+  </div>
+
+  <div id="screen-opponents" class="screen hidden">
+    <h2>Choisis ton adversaire</h2>
+    <div id="opponent-cards" class="cards"></div>
+    <button id="btn-opp-back" class="btn btn-small">RETOUR</button>
+  </div>
+
+  <div id="screen-help" class="screen hidden">
+    <h2>Comment jouer</h2>
+    <div class="help-text">
+      <p><strong>Attends le signal.</strong> Tirer avant la cloche est un tir anticipé : manche perdue.</p>
+      <p><strong>Au signal, dégaine.</strong> Vise ton adversaire à la souris et clique pour tirer. Une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent).</p>
+      <p><strong>Rater coûte cher.</strong> Après un tir manqué, il faut recharger avant de retirer.</p>
+      <p><strong>Esquive.</strong> Une fois par manche, appuie sur Q ou D (ou A/E) pour plonger sur le côté. Si l'adversaire tire pendant ta roulade, il te rate. Mais s'il attend la fin de ta roulade, tu es à sa merci.</p>
+      <p><strong>Manches à modificateurs.</strong> Nuit, brume, longue portée, rafales : chaque manche change les conditions. Premier à 3 manches gagnées.</p>
+      <p><strong>Remontada.</strong> Le perdant d'une manche choisit un avantage pour le reste du duel.</p>
+    </div>
+    <button id="btn-help-back" class="btn btn-small">RETOUR</button>
+  </div>
+
+  <div id="screen-search" class="screen hidden">
+    <h2>Recherche d'un adversaire…</h2>
+    <p id="search-timer" class="search-timer">0 s</p>
+    <p id="search-hint" class="hidden">Personne à l'horizon. Un pistolero local veut se battre.</p>
+    <div class="menu">
+      <button id="btn-search-ai" class="btn hidden">AFFRONTER L'IA</button>
+      <button id="btn-search-cancel" class="btn btn-small">ANNULER</button>
+    </div>
+  </div>
+
+  <div id="screen-roundend" class="screen overlay hidden">
+    <h2 id="roundend-title"></h2>
+    <p id="roundend-detail"></p>
+    <div id="roundend-times"></div>
+    <button id="btn-roundend-next" class="btn">CONTINUER</button>
+  </div>
+
+  <div id="screen-perk" class="screen overlay hidden">
+    <h2>Tu as perdu la manche… choisis un avantage</h2>
+    <div id="perk-cards" class="cards"></div>
+  </div>
+
+  <div id="screen-matchend" class="screen overlay hidden">
+    <h2 id="matchend-title"></h2>
+    <p id="matchend-detail"></p>
+    <div class="menu">
+      <button id="btn-rematch" class="btn">REVANCHE</button>
+      <button id="btn-menu" class="btn btn-small">MENU</button>
+    </div>
+  </div>
+
+  <div id="lock-prompt" class="screen overlay hidden">
+    <h2>Clique pour dégainer la souris</h2>
+    <p>Le duel reprend quand ta souris est verrouillée.</p>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
