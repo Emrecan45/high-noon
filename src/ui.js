@@ -1,3 +1,5 @@
+import { t } from "./i18n.js";
+
 function el(id) {
   return document.getElementById(id);
 }
@@ -93,7 +95,7 @@ export function createUi() {
     for (let i = 0; i < count; i++) {
       text += "◆ ";
     }
-    el("dodges").textContent = ("ESQUIVE " + text).trim();
+    el("dodges").textContent = (t("dodgeLabel") + " " + text).trim();
     if (count === 0) {
       el("dodges").textContent = "";
     }
@@ -118,7 +120,13 @@ export function createUi() {
   }
 
   function setGlare(value) {
-    el("glare").style.opacity = String(value * 0.85);
+    el("glare").style.opacity = String(value * 0.95);
+  }
+
+  function setGlarePos(xPercent, yPercent) {
+    const node = el("glare");
+    node.style.setProperty("--gx", xPercent + "%");
+    node.style.setProperty("--gy", yPercent + "%");
   }
 
   function hitFlash() {
@@ -137,15 +145,18 @@ export function createUi() {
     }
   }
 
-  function roundEnd(title, detail, times, cb) {
+  function roundEnd(title, detail, times, cb, onQuit) {
     el("roundend-title").textContent = title;
     el("roundend-detail").textContent = detail;
     el("roundend-times").innerHTML = times;
     showScreen("screen-roundend");
-    const btn = el("btn-roundend-next");
-    btn.onclick = function () {
+    el("btn-roundend-next").onclick = function () {
       hideScreens();
       cb();
+    };
+    el("btn-roundend-quit").onclick = function () {
+      hideScreens();
+      onQuit();
     };
   }
 
@@ -157,8 +168,8 @@ export function createUi() {
       card.className = "card";
       card.innerHTML =
         '<div class="card-icon">' + perk.icon + "</div>" +
-        '<div class="card-name">' + perk.name + "</div>" +
-        '<div class="card-desc">' + perk.desc + "</div>";
+        '<div class="card-name">' + t(perk.nameKey) + "</div>" +
+        '<div class="card-desc">' + t(perk.descKey) + "</div>";
       card.onclick = function () {
         hideScreens();
         cb(perk.id);
@@ -190,7 +201,7 @@ export function createUi() {
       card.innerHTML =
         '<div class="card-icon">' + persona.icon + "</div>" +
         '<div class="card-name">' + persona.name + "</div>" +
-        '<div class="card-desc">' + persona.desc + "</div>";
+        '<div class="card-desc">' + t(persona.descKey) + "</div>";
       card.onclick = function () {
         cb(persona);
       };
@@ -223,6 +234,7 @@ export function createUi() {
     crosshair: crosshair,
     moveCrosshair: moveCrosshair,
     setGlare: setGlare,
+    setGlarePos: setGlarePos,
     hitFlash: hitFlash,
     touchControls: touchControls,
     roundEnd: roundEnd,

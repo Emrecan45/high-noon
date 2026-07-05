@@ -1,6 +1,6 @@
 # Code de conduite (Code of conduct)
 
-En tant que contributeurs et mainteneurs de High Noon, nous nous engageons à faire de la participation à ce projet une expérience exempte de harcèlement pour tout le monde.
+En tant que contributeurs et mainteneurs de High noon, nous nous engageons à faire de la participation à ce projet une expérience exempte de harcèlement pour tout le monde.
 
 ## Nos standards
 
