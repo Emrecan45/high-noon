@@ -47,6 +47,58 @@ html, body {
   background: rgba(15, 9, 4, 0.82);
 }
 
+.screen.overlay.opaque {
+  background: rgba(12, 7, 3, 0.97);
+}
+
+#topbar {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+#topbar .vol {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 18px;
+}
+
+#topbar input[type="range"] {
+  width: 90px;
+  accent-color: #e8b64c;
+}
+
+#btn-lang {
+  background: none;
+  border: 2px solid #7a4c15;
+  border-radius: 4px;
+  padding: 3px 5px;
+  cursor: pointer;
+  line-height: 0;
+}
+
+#btn-lang:hover {
+  border-color: #e8b64c;
+}
+
+#btn-lang svg {
+  width: 30px;
+  height: 20px;
+  display: block;
+}
+
+#version-tag {
+  position: absolute;
+  bottom: 14px;
+  right: 18px;
+  font-size: 13px;
+  color: #9a7c52;
+}
+
 .logo {
   font-family: "Rye", "Special Elite", serif;
   font-size: clamp(46px, 11vw, 110px);
@@ -219,13 +271,15 @@ h2 {
 
 #bigmsg {
   position: absolute;
-  top: 32%;
+  top: 17%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(34px, 8vw, 76px);
+  font-size: clamp(30px, 6.5vw, 62px);
   color: #f3e4c2;
-  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.6), 0 8px 30px rgba(0, 0, 0, 0.9);
+  text-shadow:
+    2px 0 0 #14100a, -2px 0 0 #14100a, 0 2px 0 #14100a, 0 -2px 0 #14100a,
+    0 4px 0 rgba(0, 0, 0, 0.6), 0 8px 30px rgba(0, 0, 0, 0.9);
   letter-spacing: 4px;
   text-align: center;
   white-space: nowrap;
@@ -247,47 +301,40 @@ h2 {
 
 #submsg {
   position: absolute;
-  top: 44%;
+  bottom: 74px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 18px;
-  color: #cdb491;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  font-size: 17px;
+  color: #f0dcb4;
+  background: rgba(15, 9, 4, 0.6);
+  padding: 6px 16px;
+  border-radius: 8px;
   text-align: center;
+  white-space: nowrap;
 }
 
 #crosshair {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 7px;
-  height: 7px;
+  width: 26px;
+  height: 26px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #ffffff;
+  border: 2px solid #ffffff;
   mix-blend-mode: difference;
 }
 
-#crosshair::before, #crosshair::after {
+#crosshair::after {
   content: "";
   position: absolute;
-  background: #ffffff;
-}
-
-#crosshair::before {
-  left: 50%;
-  top: -12px;
-  width: 2px;
-  height: 8px;
-  transform: translateX(-50%);
-}
-
-#crosshair::after {
   top: 50%;
-  left: -12px;
-  width: 8px;
-  height: 2px;
-  transform: translateY(-50%);
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #ffffff;
 }
 
 #vitals {
@@ -333,9 +380,13 @@ h2 {
 }
 
 #glare {
+  --gx: 70%;
+  --gy: 20%;
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 30%, rgba(255, 252, 235, 0.95) 0%, rgba(255, 248, 220, 0.7) 45%, rgba(255, 244, 210, 0.45) 100%);
+  background:
+    radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 248, 1) 0%, rgba(255, 252, 230, 0.9) 10%, rgba(255, 248, 214, 0.6) 26%, rgba(255, 244, 200, 0.25) 48%, rgba(255, 244, 200, 0) 70%),
+    radial-gradient(circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 100%);
   opacity: 0;
   pointer-events: none;
 }

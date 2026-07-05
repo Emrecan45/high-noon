@@ -1,14 +1,52 @@
+function storedVolume(key, fallback) {
+  const raw = localStorage.getItem(key);
+  if (raw === null) {
+    return fallback;
+  }
+  const value = Number(raw);
+  if (Number.isNaN(value)) {
+    return fallback;
+  }
+  return Math.min(1, Math.max(0, value));
+}
+
 export class AudioEngine {
   constructor() {
     this.ctx = null;
+    this.sfxGain = null;
+    this.musicGain = null;
+    this.sfxVolume = storedVolume("hn-sfx-vol", 0.9);
+    this.musicVolume = storedVolume("hn-music-vol", 0.45);
   }
 
   ensure() {
     if (this.ctx === null) {
       this.ctx = new AudioContext();
+      this.sfxGain = this.ctx.createGain();
+      this.sfxGain.gain.value = this.sfxVolume;
+      this.sfxGain.connect(this.ctx.destination);
+      this.musicGain = this.ctx.createGain();
+      this.musicGain.gain.value = this.musicVolume;
+      this.musicGain.connect(this.ctx.destination);
     }
     if (this.ctx.state === "suspended") {
       this.ctx.resume();
+    }
+  }
+
+  setSfxVolume(value) {
+    this.sfxVolume = value;
+    localStorage.setItem("hn-sfx-vol", String(value));
+    if (this.sfxGain !== null) {
+      this.sfxGain.gain.value = value;
+    }
+  }
+
+  setMusicVolume(value) {
+    this.musicVolume = value;
+    localStorage.setItem("hn-music-vol", String(value));
+    if (this.musicGain !== null) {
+      this.musicGain.gain.value = value;
     }
   }
 
@@ -21,7 +59,7 @@ export class AudioEngine {
     g.gain.setValueAtTime(0.0001, start);
     g.gain.exponentialRampToValueAtTime(peak, start + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0001, start + duration);
-    g.connect(this.ctx.destination);
+    g.connect(this.sfxGain);
     return g;
   }
 
@@ -175,6 +213,43 @@ export class AudioEngine {
     knock.connect(kg);
     knock.start(t);
     knock.stop(t + 0.18);
+  }
+
+  reveal() {
+    this.ensure();
+    const t = this.now();
+    const notes = [110, 103.8];
+    for (let i = 0; i < notes.length; i++) {
+      const start = t + i * 0.24;
+      const osc = this.ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = notes[i];
+      const g = this.envGain(start, 0.35, 0.4);
+      osc.connect(g);
+      osc.start(start);
+      osc.stop(start + 0.45);
+    }
+    const rattle = this.ctx.createBufferSource();
+    rattle.buffer = this.noiseBuffer(0.7);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.value = 5200;
+    filter.Q.value = 2;
+    const rg = this.ctx.createGain();
+    rg.gain.value = 0.0001;
+    rg.connect(this.sfxGain);
+    const lfo = this.ctx.createOscillator();
+    lfo.type = "square";
+    lfo.frequency.value = 15;
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = 0.05;
+    lfo.connect(lfoGain);
+    lfoGain.connect(rg.gain);
+    rattle.connect(filter);
+    filter.connect(rg);
+    rattle.start(t);
+    lfo.start(t);
+    lfo.stop(t + 0.7);
   }
 
   thud() {
