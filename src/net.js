@@ -85,7 +85,8 @@ export function createMatchmaker() {
       }
     });
 
-    let eventHandler = function () {};
+    let eventHandler = null;
+    let pendingEvents = [];
     let leftHandler = function () {};
     let started = false;
     let seed = null;
@@ -116,6 +117,11 @@ export function createMatchmaker() {
           },
           onEvent: function (handler) {
             eventHandler = handler;
+            const backlog = pendingEvents;
+            pendingEvents = [];
+            for (const evt of backlog) {
+              handler(evt[0], evt[1]);
+            }
           },
           onLeft: function (handler) {
             leftHandler = handler;
@@ -151,7 +157,11 @@ export function createMatchmaker() {
         }
         return;
       }
-      eventHandler(kind, data);
+      if (eventHandler === null) {
+        pendingEvents.push([kind, data]);
+      } else {
+        eventHandler(kind, data);
+      }
     });
 
     room.on("presence", { event: "sync" }, function () {
