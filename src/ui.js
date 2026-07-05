@@ -111,6 +111,16 @@ export function createUi() {
     }
   }
 
+  function moveCrosshair(nx, ny) {
+    const node = el("crosshair");
+    node.style.left = ((0.5 + nx / 2) * 100) + "%";
+    node.style.top = ((0.5 - ny / 2) * 100) + "%";
+  }
+
+  function setGlare(value) {
+    el("glare").style.opacity = String(value * 0.85);
+  }
+
   function hitFlash() {
     const node = el("hitflash");
     node.classList.add("active");
@@ -211,6 +221,8 @@ export function createUi() {
     setDodges: setDodges,
     setGunState: setGunState,
     crosshair: crosshair,
+    moveCrosshair: moveCrosshair,
+    setGlare: setGlare,
     hitFlash: hitFlash,
     touchControls: touchControls,
     roundEnd: roundEnd,
