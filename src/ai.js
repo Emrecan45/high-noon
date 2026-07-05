@@ -1,11 +1,13 @@
 import { rangeFrom } from "./rng.js";
 
+export const AI_USABLE_PERKS = ["hands", "step", "eye", "vest"];
+
 export const PERSONAS = [
   {
     id: "nervous",
     icon: "🤠",
     name: "Billy la Gâchette",
-    desc: "Dégaine très vite mais craque sous la pression. Tir anticipé fréquent.",
+    descKey: "persona.nervous.desc",
     reaction: [175, 265],
     aim: [140, 280],
     accHead: 0.2,
@@ -18,7 +20,7 @@ export const PERSONAS = [
     id: "rapido",
     icon: "🌵",
     name: "El Rápido",
-    desc: "Le plus rapide de l'Ouest. Vise la tête, rate parfois tout.",
+    descKey: "persona.rapido.desc",
     reaction: [145, 205],
     aim: [110, 215],
     accHead: 0.3,
@@ -31,7 +33,7 @@ export const PERSONAS = [
     id: "patient",
     icon: "🥃",
     name: "Doc Silence",
-    desc: "Lent au signal, mais ne rate jamais une faute. Punit les esquives.",
+    descKey: "persona.patient.desc",
     reaction: [255, 345],
     aim: [150, 260],
     accHead: 0.34,

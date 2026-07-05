@@ -1,8 +1,8 @@
 export const MODIFIERS = [
   {
     id: "noon",
-    name: "PLEIN SOLEIL",
-    desc: "Conditions parfaites. Que le plus rapide gagne.",
+    nameKey: "mod.noon.name",
+    descKey: "mod.noon.desc",
     distance: 14,
     accuracyFactor: 1,
     aimPenalty: 0,
@@ -10,8 +10,8 @@ export const MODIFIERS = [
   },
   {
     id: "dusk",
-    name: "CRÉPUSCULE",
-    desc: "La nuit tombe, on ne distingue que les silhouettes.",
+    nameKey: "mod.dusk.name",
+    descKey: "mod.dusk.desc",
     distance: 14,
     accuracyFactor: 0.82,
     aimPenalty: 90,
@@ -19,8 +19,8 @@ export const MODIFIERS = [
   },
   {
     id: "fog",
-    name: "BRUME",
-    desc: "Un brouillard épais noie la rue.",
+    nameKey: "mod.fog.name",
+    descKey: "mod.fog.desc",
     distance: 12,
     accuracyFactor: 0.8,
     aimPenalty: 110,
@@ -28,8 +28,8 @@ export const MODIFIERS = [
   },
   {
     id: "range",
-    name: "LONGUE PORTÉE",
-    desc: "Vingt-six mètres séparent les duellistes.",
+    nameKey: "mod.range.name",
+    descKey: "mod.range.desc",
     distance: 26,
     accuracyFactor: 0.78,
     aimPenalty: 140,
@@ -37,8 +37,8 @@ export const MODIFIERS = [
   },
   {
     id: "wind",
-    name: "RAFALES",
-    desc: "Le vent secoue les bras et fait valser la poussière.",
+    nameKey: "mod.wind.name",
+    descKey: "mod.wind.desc",
     distance: 14,
     accuracyFactor: 0.85,
     aimPenalty: 80,

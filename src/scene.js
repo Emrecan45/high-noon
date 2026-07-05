@@ -294,6 +294,7 @@ export function createArena(container) {
     camera: camera,
     playerRig: playerRig,
     opponentAnchor: opponentAnchor,
+    sunDisc: sunDisc,
     applyModifier: applyModifier,
     update: update
   };
