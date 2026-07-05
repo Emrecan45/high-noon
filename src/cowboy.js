@@ -97,7 +97,7 @@ export function createCowboy() {
 
   head.userData.part = "head";
   hat.traverse(function (child) {
-    child.userData.part = "head";
+    child.userData.part = "hat";
   });
   torso.userData.part = "body";
   belt.userData.part = "body";
@@ -174,16 +174,32 @@ export function createCowboy() {
     anim.wounded = true;
   }
 
-  function playDeath(sceneRef) {
-    anim.death = { t: 0 };
+  function flyHat(sceneRef, velocity) {
+    if (anim.hatFlying) {
+      return;
+    }
     anim.hatFlying = true;
     const worldPos = new THREE.Vector3();
     hat.getWorldPosition(worldPos);
     torsoPivot.remove(hat);
     sceneRef.add(hat);
     hat.position.copy(worldPos);
-    anim.hatVel.set((Math.random() - 0.5) * 2, 3.2, -1.6);
+    anim.hatVel.copy(velocity);
     anim.hatSpin.set(Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3);
+  }
+
+  function playDeath(sceneRef) {
+    anim.death = { t: 0 };
+    flyHat(sceneRef, new THREE.Vector3((Math.random() - 0.5) * 2, 3.2, -1.6));
+  }
+
+  function playHatShot(sceneRef) {
+    flyHat(sceneRef, new THREE.Vector3((Math.random() - 0.5) * 3, 4.5, -2.5));
+    playFlinch();
+  }
+
+  function isHatGone() {
+    return anim.hatFlying;
   }
 
   function isDown() {
@@ -276,6 +292,8 @@ export function createCowboy() {
     playDodge: playDodge,
     playFlinch: playFlinch,
     playDeath: playDeath,
+    playHatShot: playHatShot,
+    isHatGone: isHatGone,
     setWounded: setWounded,
     isDown: isDown,
     update: update
