@@ -139,6 +139,44 @@ export class AudioEngine {
     src.start(t);
   }
 
+  crow() {
+    this.ensure();
+    const t = this.now();
+    for (let i = 0; i < 2; i++) {
+      const start = t + i * 0.22;
+      const osc = this.ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(950, start);
+      osc.frequency.exponentialRampToValueAtTime(480, start + 0.16);
+      const g = this.envGain(start, 0.09, 0.18);
+      osc.connect(g);
+      osc.start(start);
+      osc.stop(start + 0.2);
+    }
+  }
+
+  bang() {
+    this.ensure();
+    const t = this.now();
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer(0.25);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 700;
+    const g = this.envGain(t, 0.3, 0.25);
+    src.connect(filter);
+    filter.connect(g);
+    src.start(t);
+    const knock = this.ctx.createOscillator();
+    knock.type = "triangle";
+    knock.frequency.setValueAtTime(180, t);
+    knock.frequency.exponentialRampToValueAtTime(70, t + 0.12);
+    const kg = this.envGain(t, 0.25, 0.15);
+    knock.connect(kg);
+    knock.start(t);
+    knock.stop(t + 0.18);
+  }
+
   thud() {
     this.ensure();
     const t = this.now();
