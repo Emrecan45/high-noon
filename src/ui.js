@@ -91,14 +91,17 @@ export function createUi() {
   }
 
   function setDodges(count) {
-    let text = "";
-    for (let i = 0; i < count; i++) {
-      text += "◆ ";
-    }
-    el("dodges").textContent = (t("dodgeLabel") + " " + text).trim();
     if (count === 0) {
-      el("dodges").textContent = "";
+      el("dodges").innerHTML = "";
+      return;
     }
+    let diamonds = "";
+    for (let i = 0; i < count; i++) {
+      diamonds += "◆ ";
+    }
+    el("dodges").innerHTML =
+      '<span class="dodge-label">' + t("dodgeLabel") + "</span> " + diamonds.trim() +
+      ' <span class="key-hint"><kbd>Q</kbd><kbd>D</kbd></span>';
   }
 
   function setGunState(text) {

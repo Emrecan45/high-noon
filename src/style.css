@@ -337,33 +337,74 @@ h2 {
   background: #ffffff;
 }
 
-#vitals {
+#hearts {
   position: absolute;
-  bottom: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 26px;
-  align-items: center;
-  font-size: 22px;
+  left: 26px;
+  bottom: 20px;
+  color: #ff5040;
+  letter-spacing: 5px;
+  font-size: 27px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
-#hearts {
-  color: #ff5040;
-  letter-spacing: 4px;
+#dodges {
+  position: absolute;
+  right: 26px;
+  bottom: 24px;
+  color: #7fd0ff;
+  letter-spacing: 3px;
+  font-size: 19px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-#dodges {
-  color: #7fd0ff;
-  letter-spacing: 4px;
-  font-size: 18px;
+#dodges .dodge-label {
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #a8c9e0;
+}
+
+.key-hint {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.key-hint kbd {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: 12px;
+  line-height: 1;
+  color: #dfe9f2;
+  background: rgba(20, 14, 8, 0.75);
+  border: 1px solid rgba(127, 208, 255, 0.55);
+  border-bottom-width: 3px;
+  border-radius: 4px;
+  padding: 4px 7px;
+}
+
+body.touch .key-hint {
+  display: none;
+}
+
+body.touch #hearts {
+  bottom: 152px;
+}
+
+body.touch #dodges {
+  bottom: 152px;
 }
 
 #gunstate {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
   color: #e8b64c;
   font-size: 15px;
   letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
 #hitflash {
