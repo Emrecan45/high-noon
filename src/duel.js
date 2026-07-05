@@ -11,6 +11,9 @@ const COCK_DELAY = 550;
 const DODGE_DURATION = 750;
 const DODGE_RECOVERY = 350;
 const ROUND_TIMEOUT = 12000;
+const SWAY_BASE = 0.016;
+const DRAW_WOBBLE_MS = 700;
+const DRAW_WOBBLE_AMP = 0.055;
 
 export class Duel {
   constructor(deps) {
@@ -34,6 +37,10 @@ export class Duel {
     this.aimYaw = 0;
     this.aimPitch = -0.04;
     this.shake = 0;
+    this.swayX = 0;
+    this.swayY = 0;
+    this.drawWobbleUntil = 0;
+    this.glare = 0;
     this.locked = false;
     this.oppReadyRound = -1;
     this.oppRematch = false;
@@ -200,10 +207,21 @@ export class Duel {
     const rng = createRng(roundSeed(this.matchSeed, this.roundIndex));
     const modifier = pickModifier(rng, this.roundIndex);
     const signalDelay = 1800 + rng() * 3200;
+    const distractions = [];
+    const distractionCount = Math.floor(rng() * 3);
+    for (let i = 0; i < distractionCount; i++) {
+      const at = 600 + rng() * (signalDelay - 1200);
+      let kind = "crow";
+      if (rng() < 0.5) {
+        kind = "bang";
+      }
+      distractions.push({ at: at, kind: kind, done: false });
+    }
 
     this.round = {
       modifier: modifier,
       signalDelay: signalDelay,
+      distractions: distractions,
       signalTime: 0,
       playerHp: MAX_HP,
       oppHp: MAX_HP,
@@ -229,6 +247,9 @@ export class Duel {
     this.viewmodel.holster();
     this.aimYaw = 0;
     this.aimPitch = -0.04;
+    this.glare = 0;
+    this.drawWobbleUntil = 0;
+    this.ui.setGlare(0);
 
     this.ui.setRoundLabel("MANCHE " + (this.roundIndex + 1) + " · " + modifier.name);
     this.ui.setHearts(this.round.playerHp);
@@ -258,6 +279,11 @@ export class Duel {
     this.ui.setSub("");
     this.ui.crosshair(true);
     this.viewmodel.draw();
+    this.aimPitch += 0.08 + Math.random() * 0.09;
+    this.aimYaw += (Math.random() - 0.5) * 0.18;
+    this.aimYaw = Math.max(-0.8, Math.min(0.8, this.aimYaw));
+    this.aimPitch = Math.max(-0.5, Math.min(0.45, this.aimPitch));
+    this.drawWobbleUntil = now + DRAW_WOBBLE_MS;
   }
 
   tSignal(now) {
@@ -305,7 +331,12 @@ export class Duel {
 
     if (this.net !== null) {
       this.net.send("shot", { t: t, part: part });
-      if (part === null) {
+      if (part === "hat") {
+        this.cowboy.playHatShot(this.arena.scene);
+        this.audio.ricochet();
+        this.ui.setSub("Tu lui as fait voler le chapeau !");
+        this.startReload(now, this.reloadDuration());
+      } else if (part === null) {
         this.startReload(now, this.reloadDuration());
       } else {
         this.startReload(now, COCK_DELAY);
@@ -316,6 +347,12 @@ export class Duel {
 
     if (part === null) {
       this.ui.setSub("Raté !");
+      this.startReload(now, this.reloadDuration());
+      this.ai.onPlayerMiss(t);
+    } else if (part === "hat") {
+      this.cowboy.playHatShot(this.arena.scene);
+      this.audio.ricochet();
+      this.ui.setSub("Tu lui as fait voler le chapeau !");
       this.startReload(now, this.reloadDuration());
       this.ai.onPlayerMiss(t);
     } else if (part === "head") {
@@ -336,10 +373,16 @@ export class Duel {
 
   castShot() {
     const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), this.arena.camera);
+    raycaster.setFromCamera(new THREE.Vector2(this.swayX, this.swayY), this.arena.camera);
     const hits = raycaster.intersectObjects(this.cowboy.hitMeshes, false);
-    if (hits.length > 0) {
-      const part = hits[0].object.userData.part;
+    for (const hit of hits) {
+      const part = hit.object.userData.part;
+      if (part === "hat") {
+        if (this.cowboy.isHatGone()) {
+          continue;
+        }
+        return "hat";
+      }
       if (part === "head" || part === "body") {
         return part;
       }
@@ -348,7 +391,7 @@ export class Duel {
     if (this.playerPerks.has("eye")) {
       const headPos = new THREE.Vector3();
       this.cowboy.head.getWorldPosition(headPos);
-      const sphere = new THREE.Sphere(headPos, 0.42);
+      const sphere = new THREE.Sphere(headPos, 0.34);
       const point = new THREE.Vector3();
       if (raycaster.ray.intersectSphere(sphere, point) !== null) {
         return "head";
@@ -685,6 +728,11 @@ export class Duel {
       this.audio.ricochet();
       return;
     }
+    if (payload.part === "hat") {
+      this.audio.ricochet();
+      this.ui.setSub("Il t'a fait voler le chapeau !");
+      return;
+    }
     if (this.round.playerDead || this.round.resolved) {
       return;
     }
@@ -829,7 +877,19 @@ export class Duel {
       if (!this.isTouch && !this.locked) {
         this.waitStart += dt * 1000;
       }
-      if (!this.round.resolved && now - this.waitStart >= this.round.signalDelay) {
+      const waited = now - this.waitStart;
+      for (const distraction of this.round.distractions) {
+        if (!distraction.done && waited >= distraction.at) {
+          distraction.done = true;
+          if (distraction.kind === "crow") {
+            this.audio.crow();
+          } else {
+            this.audio.bang();
+            this.shake = 0.6;
+          }
+        }
+      }
+      if (!this.round.resolved && waited >= this.round.signalDelay) {
         this.fireSignal(now);
       }
       this.handleAiEvents(now);
@@ -850,20 +910,38 @@ export class Duel {
       }
     }
 
+    this.updateGlare(now, dt);
     this.updateCamera(now, dt);
+  }
+
+  updateGlare(now, dt) {
+    if (this.round === null) {
+      return;
+    }
+    const sunny = this.round.modifier.id !== "dusk" && this.round.modifier.id !== "fog";
+    if (this.state === "waiting" && sunny && !this.round.resolved && this.aimPitch > -0.15) {
+      this.glare = Math.min(1, this.glare + dt / 1.1);
+    } else {
+      this.glare = Math.max(0, this.glare - dt / 0.7);
+    }
+    this.ui.setGlare(this.glare);
   }
 
   updateCamera(now, dt) {
     const camera = this.arena.camera;
     const rig = this.arena.playerRig;
 
-    let swayYaw = 0;
-    let swayPitch = 0;
-    if (this.round !== null && this.round.modifier.sway > 0 && (this.state === "active" || this.state === "waiting")) {
-      const t = now / 1000;
-      swayYaw = (Math.sin(t * 1.9) + Math.sin(t * 3.1) * 0.5) * 0.006;
-      swayPitch = (Math.cos(t * 2.3) + Math.sin(t * 1.3) * 0.5) * 0.004;
+    let amp = SWAY_BASE;
+    if (this.round !== null && this.round.modifier.sway > 0) {
+      amp *= 2.6;
     }
+    if (now < this.drawWobbleUntil) {
+      amp += ((this.drawWobbleUntil - now) / DRAW_WOBBLE_MS) * DRAW_WOBBLE_AMP;
+    }
+    const t = now / 1000;
+    this.swayX = (Math.sin(t * 1.15) + Math.sin(t * 2.4 + 1.7) * 0.6) * amp;
+    this.swayY = (Math.cos(t * 1.75) + Math.sin(t * 2.9 + 0.5) * 0.5) * amp * 0.75;
+    this.ui.moveCrosshair(this.swayX, this.swayY);
 
     let shakeYaw = 0;
     let shakePitch = 0;
@@ -874,8 +952,8 @@ export class Duel {
     }
 
     camera.rotation.order = "YXZ";
-    camera.rotation.y = this.aimYaw + swayYaw + shakeYaw;
-    camera.rotation.x = this.aimPitch + swayPitch + shakePitch;
+    camera.rotation.y = this.aimYaw + shakeYaw;
+    camera.rotation.x = this.aimPitch + shakePitch;
 
     let targetX = 0;
     if (this.round !== null && this.round.dodgeStart > 0) {

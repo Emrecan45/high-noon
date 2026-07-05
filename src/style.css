@@ -260,18 +260,18 @@ h2 {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: #f3e4c2;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.9), 0 0 2px #000;
+  background: #ffffff;
+  mix-blend-mode: difference;
 }
 
 #crosshair::before, #crosshair::after {
   content: "";
   position: absolute;
-  background: rgba(243, 228, 194, 0.85);
+  background: #ffffff;
 }
 
 #crosshair::before {
@@ -330,6 +330,14 @@ h2 {
 #hitflash.active {
   opacity: 1;
   transition: opacity 0.05s;
+}
+
+#glare {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 30%, rgba(255, 252, 235, 0.95) 0%, rgba(255, 248, 220, 0.7) 45%, rgba(255, 244, 210, 0.45) 100%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 #touch-controls {
