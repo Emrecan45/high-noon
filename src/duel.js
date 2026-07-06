@@ -5,6 +5,7 @@ import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
 import { skinById } from "./skins.js";
+import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
 
 const WIN_SCORE = 3;
@@ -43,6 +44,7 @@ export class Duel {
     }
     this.onResult = deps.onResult;
     this.oppElo = 1000;
+    this.oppId = null;
     this.opponentName = t("theOpponent");
     if (this.mode === "ai") {
       this.opponentName = this.ai.name.toUpperCase();
@@ -60,6 +62,7 @@ export class Duel {
     this.glare = 0;
     this.dodgeSwayAmount = 0;
     this.locked = false;
+    this.killcamUntil = 0;
     this.syncRetry = null;
     this.oppReadyRound = -1;
     this.oppRematch = false;
@@ -77,6 +80,11 @@ export class Duel {
     this.round = null;
     this.lastModifierId = null;
     this.resultReported = false;
+    this.matchStats = {
+      shots: 0,
+      hits: 0,
+      heads: 0
+    };
   }
 
   reportResult(won) {
@@ -85,8 +93,33 @@ export class Duel {
     }
     this.resultReported = true;
     if (this.onResult) {
-      this.onResult(won, this.oppElo);
+      this.onResult(won, this.oppElo, this.matchStats, this.oppId);
     }
+  }
+
+  startKillcam(now) {
+    if (this.killcamUntil > now) {
+      return;
+    }
+    this.killcamUntil = now + 2300;
+    this.audio.muffle(true);
+    document.body.classList.add("killcam");
+  }
+
+  endKillcam() {
+    if (this.killcamUntil === 0) {
+      return;
+    }
+    this.killcamUntil = 0;
+    this.audio.muffle(false);
+    document.body.classList.remove("killcam");
+  }
+
+  timeScale(now) {
+    if (this.killcamUntil > now) {
+      return 0.3;
+    }
+    return 1;
   }
 
   addListener(target, type, handler) {
@@ -184,13 +217,16 @@ export class Duel {
       });
       if (this.myProfile !== null) {
         this.net.send("hello", {
+          id: this.myProfile.id,
           pseudo: this.myProfile.pseudo,
           skin: this.myProfile.skin,
           elo: this.myProfile.elo
         });
       }
+      this.ui.setOppTag("");
     } else {
       this.net = null;
+      this.ui.setOppTag(this.opponentName);
     }
 
     gameplayStart();
@@ -441,6 +477,15 @@ export class Duel {
     this.shake = 1;
 
     const part = this.castShot();
+    this.matchStats.shots += 1;
+    if (part === "head") {
+      this.matchStats.heads += 1;
+      this.matchStats.hits += 1;
+    } else if (part === "body") {
+      this.matchStats.hits += 1;
+    } else if (part === null) {
+      this.spawnMissImpact();
+    }
 
     if (this.net !== null) {
       this.net.send("shot", { t: shotT, part: part });
@@ -482,6 +527,25 @@ export class Duel {
         this.startReload(now, COCK_DELAY);
       }
     }
+  }
+
+  spawnMissImpact() {
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(this.swayX, this.swayY), this.arena.camera);
+    const hit = this.arena.castEnvironment(raycaster);
+    if (hit !== null) {
+      this.arena.spawnImpact(hit.point, hit.kind);
+    }
+  }
+
+  spawnNearImpact() {
+    const rig = this.arena.playerRig;
+    let side = 1 + Math.random() * 1.5;
+    if (Math.random() < 0.5) {
+      side = -side;
+    }
+    const point = new THREE.Vector3(rig.position.x + side, 0.02, rig.position.z - 1 - Math.random() * 2.5);
+    this.arena.spawnImpact(point, "dust");
   }
 
   castShot() {
@@ -580,10 +644,11 @@ export class Duel {
     this.round.oppDeathShotT = shotT;
     this.cowboy.playDeath(this.arena.scene);
     this.audio.thud();
-    this.ui.setBig(t("down"), "gold", 2100);
+    this.ui.setBig(t("down"), "gold", 2600);
     if (this.ai !== null && this.ai !== undefined) {
       this.ai.stop();
     }
+    this.startKillcam(performance.now());
     this.scheduleResolve();
   }
 
@@ -596,19 +661,24 @@ export class Duel {
     this.round.deathAnimT = 0;
     this.ui.hitFlash();
     this.audio.thud();
-    this.ui.setBig(t("youFell"), "fire", 2100);
+    this.ui.setBig(t("youFell"), "fire", 2600);
     this.ui.crosshair(false);
     if (this.net !== null) {
       this.net.send("death", { shotT: killerShotT });
     } else {
       this.ai.stop();
     }
+    this.startKillcam(performance.now());
     this.scheduleResolve();
   }
 
   scheduleResolve() {
     if (this.round.resolveAt === null) {
-      this.round.resolveAt = performance.now() + 1500;
+      let delay = 1500;
+      if (this.killcamUntil > performance.now()) {
+        delay = 2700;
+      }
+      this.round.resolveAt = performance.now() + delay;
     }
     this.round.resolved = true;
   }
@@ -657,14 +727,6 @@ export class Duel {
     }
     this.ui.setScore(this.scoreYou, this.scoreOpp);
 
-    let times = "";
-    if (this.round.playerFirstShotT !== null) {
-      times += "<span>" + t("yourShot") + " : <strong>" + this.round.playerFirstShotT + " ms</strong></span>";
-    }
-    if (this.round.oppShotT !== null) {
-      times += "<span>" + t("oppShot") + " : <strong>" + this.round.oppShotT + " ms</strong></span>";
-    }
-
     if (this.scoreYou >= WIN_SCORE || this.scoreOpp >= WIN_SCORE) {
       this.showMatchEnd();
       return;
@@ -678,7 +740,7 @@ export class Duel {
     }
 
     const self = this;
-    this.ui.roundEnd(title, reason, times, function () {
+    this.ui.roundEnd(title, reason, "", function () {
       self.afterRoundPanel(winner);
     }, function () {
       self.exit();
@@ -801,7 +863,12 @@ export class Duel {
       if (Number.isFinite(payload.elo)) {
         this.oppElo = payload.elo;
       }
+      this.oppId = null;
+      if (typeof payload.id === "string" && payload.id.length > 10) {
+        this.oppId = payload.id;
+      }
       this.cowboy.setSkin(skinById(payload.skin).colors);
+      this.ui.setOppTag(this.opponentName + " · " + t(eloTitleKey(this.oppElo)).toUpperCase());
     } else if (type === "ready") {
       this.oppReadyRound = Math.max(this.oppReadyRound, payload.round);
       this.checkSync();
@@ -853,6 +920,7 @@ export class Duel {
     }
     if (payload.part === null) {
       this.audio.ricochet();
+      this.spawnNearImpact();
       return;
     }
     if (payload.part === "hat") {
@@ -946,6 +1014,7 @@ export class Duel {
     }
     if (evt.result === "miss") {
       this.audio.ricochet();
+      this.spawnNearImpact();
       return;
     }
     if (this.round.playerDead) {
@@ -992,6 +1061,10 @@ export class Duel {
   update(now, dt) {
     if (this.disposed) {
       return;
+    }
+
+    if (this.killcamUntil > 0 && now >= this.killcamUntil) {
+      this.endKillcam();
     }
 
     if (this.state === "intro") {
@@ -1187,6 +1260,7 @@ export class Duel {
 
   dispose() {
     this.disposed = true;
+    this.endKillcam();
     gameplayStop();
     this.stopSyncRetry();
     for (const entry of this.listeners) {
