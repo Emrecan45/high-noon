@@ -10,6 +10,14 @@ create table public.profiles (
   skin text not null default 'drifter',
   cg_username text,
   last_ad_at timestamptz,
+  shots_fired integer not null default 0,
+  shots_hit integer not null default 0,
+  headshots integer not null default 0,
+  win_streak integer not null default 0,
+  best_streak integer not null default 0,
+  last_opp uuid,
+  last_opp_at timestamptz,
+  same_opp_count integer not null default 0,
   created_at timestamptz not null default now(),
   constraint pseudo_format check (pseudo ~ '^[A-Za-z0-9_ .-]{3,16}$')
 );
@@ -152,7 +160,7 @@ begin
 end;
 $$;
 
-create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_elo integer)
+create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_elo integer, p_opp_id uuid)
 returns json
 language plpgsql
 security definer
@@ -168,12 +176,18 @@ declare
   gained integer;
   new_elo integer;
   new_coins integer;
+  prev_opp uuid;
+  prev_at timestamptz;
+  same_count integer;
+  track boolean;
 begin
   uid := auth.uid();
   if uid is null then
     raise exception 'not authenticated';
   end if;
-  select elo into my_elo from profiles where id = uid;
+  select elo, last_opp, last_opp_at, same_opp_count
+  into my_elo, prev_opp, prev_at, same_count
+  from profiles where id = uid;
   if my_elo is null then
     raise exception 'no profile';
   end if;
@@ -198,16 +212,66 @@ begin
       gained := 2;
     end if;
   end if;
+  track := p_ranked and p_opp_id is not null;
+  if track then
+    if prev_opp = p_opp_id and prev_at > now() - interval '24 hours' then
+      same_count := same_count + 1;
+    else
+      same_count := 1;
+    end if;
+    if same_count = 2 then
+      delta := delta / 2;
+      gained := greatest(2, gained / 2);
+    elsif same_count >= 3 then
+      delta := 0;
+      gained := 2;
+    end if;
+  end if;
   update profiles set
     elo = greatest(0, elo + delta),
     coins = coins + gained,
     wins = wins + (case when p_won then 1 else 0 end),
     losses = losses + (case when p_won then 0 else 1 end),
     ranked_wins = ranked_wins + (case when p_won and p_ranked then 1 else 0 end),
-    ranked_losses = ranked_losses + (case when not p_won and p_ranked then 1 else 0 end)
+    ranked_losses = ranked_losses + (case when not p_won and p_ranked then 1 else 0 end),
+    last_opp = case when track then p_opp_id else last_opp end,
+    last_opp_at = case when track then now() else last_opp_at end,
+    same_opp_count = case when track then same_count else same_opp_count end
   where id = uid
   returning elo, coins into new_elo, new_coins;
   return json_build_object('elo', new_elo, 'coins', new_coins, 'elo_delta', delta, 'coins_delta', gained);
+end;
+$$;
+
+create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_elo integer)
+returns json
+language sql
+security definer
+set search_path = public
+as $$
+  select public.report_result(p_won, p_ranked, p_opp_elo, null::uuid);
+$$;
+
+create or replace function public.record_stats(p_shots integer, p_hits integer, p_heads integer, p_won boolean)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+begin
+  uid := auth.uid();
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  update profiles set
+    shots_fired = shots_fired + greatest(0, least(200, p_shots)),
+    shots_hit = shots_hit + greatest(0, least(200, p_hits)),
+    headshots = headshots + greatest(0, least(200, p_heads)),
+    win_streak = case when p_won then win_streak + 1 else 0 end,
+    best_streak = greatest(best_streak, case when p_won then win_streak + 1 else 0 end)
+  where id = uid;
 end;
 $$;
 
@@ -243,4 +307,6 @@ grant execute on function public.set_cg_username(text) to authenticated;
 grant execute on function public.equip_skin(text) to authenticated;
 grant execute on function public.buy_skin(text) to authenticated;
 grant execute on function public.report_result(boolean, boolean, integer) to authenticated;
+grant execute on function public.report_result(boolean, boolean, integer, uuid) to authenticated;
+grant execute on function public.record_stats(integer, integer, integer, boolean) to authenticated;
 grant execute on function public.reward_ad() to authenticated;

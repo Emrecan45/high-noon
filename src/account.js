@@ -228,7 +228,7 @@ export async function equipSkin(skinId) {
   return true;
 }
 
-export async function reportResult(won, ranked, oppElo) {
+export async function reportResult(won, ranked, oppElo, oppId) {
   if (profile === null) {
     return null;
   }
@@ -236,7 +236,8 @@ export async function reportResult(won, ranked, oppElo) {
   const { data, error } = await supabase.rpc("report_result", {
     p_won: won,
     p_ranked: ranked,
-    p_opp_elo: oppElo
+    p_opp_elo: oppElo,
+    p_opp_id: oppId
   });
   if (error !== null) {
     return null;
@@ -244,6 +245,35 @@ export async function reportResult(won, ranked, oppElo) {
   profile.elo = data.elo;
   profile.coins = data.coins;
   return data;
+}
+
+export async function recordStats(stats, won) {
+  if (profile === null) {
+    return;
+  }
+  const supabase = getClient();
+  const { error } = await supabase.rpc("record_stats", {
+    p_shots: stats.shots,
+    p_hits: stats.hits,
+    p_heads: stats.heads,
+    p_won: won
+  });
+  if (error !== null) {
+    return;
+  }
+  if (Number.isFinite(profile.shots_fired)) {
+    profile.shots_fired += stats.shots;
+    profile.shots_hit += stats.hits;
+    profile.headshots += stats.heads;
+    if (won) {
+      profile.win_streak += 1;
+    } else {
+      profile.win_streak = 0;
+    }
+    if (profile.win_streak > profile.best_streak) {
+      profile.best_streak = profile.win_streak;
+    }
+  }
 }
 
 export async function claimAdReward() {
