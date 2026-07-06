@@ -2,9 +2,9 @@
 
 ![High Noon](docs/logo.png)
 
-**High Noon** est un duel de western 1v1 en 3D à la première personne, jouable dans le navigateur. Attends la cloche, dégaine, vise et tire avant l'adversaire. En ligne contre un autre joueur, ou contre trois pistoleros contrôlés par l'IA.
+**High Noon** est un duel de western 1v1 en 3D à la première personne, jouable dans le navigateur. Attends la cloche, dégaine, vise et tire avant l'adversaire. En duel classé contre un autre joueur, contre un ami par lien d'invitation, ou contre trois pistoleros contrôlés par l'IA.
 
-![Version](https://img.shields.io/badge/version-v1.0-blue)
+![Version](https://img.shields.io/badge/version-v1.1-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
 ![Supabase](https://img.shields.io/badge/supabase-realtime-3ECF8E)
 ![Licence](https://img.shields.io/badge/licence-MIT-lightgrey)
@@ -108,7 +108,47 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 
 ## 🌍 Multijoueur en ligne
 
-Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence, puis échange direct d'événements de duel entre les deux joueurs. Le netcode est insensible à la latence - chaque client mesure localement son propre temps de réaction par rapport au signal, et seuls des événements discrets (tir, esquive, blessure) sont échangés ; le joueur touché reste autoritaire sur ses propres esquives et dégâts. Si aucun adversaire n'est trouvé, l'IA prend le relais.
+Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence (les deux premiers duellistes disponibles s'affrontent), puis échange direct d'événements de duel entre les deux joueurs. Le netcode est insensible à la latence - chaque client mesure localement son propre temps de réaction par rapport au signal, et seuls des événements discrets (tir, esquive, blessure) sont échangés ; le joueur touché reste autoritaire sur ses propres esquives et dégâts.
+
+**Duel entre amis** : le bouton « Défier un ami » ouvre un salon privé avec un lien d'invitation à partager - le duel démarre dès que l'ami arrive. Sur CrazyGames, l'invitation passe par le bouton officiel de la plateforme (InstantMultiplayer pour les groupes).
+
+
+
+## 🏆 Mode classé
+
+Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase - la carte joueur en haut à gauche de l'accueil permet de se renommer. En **duel classé**, pseudo et tenue sont visibles par l'adversaire, l'Elo évolue à chaque match et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, points Elo). Chaque match rapporte des pièces - le classé paie bien plus que l'IA.
+
+| Résultat | Pièces | Elo (K=32) |
+|--|--|--|
+| 🏆 Victoire classée | +40 🪙 | monte |
+| 💀 Défaite classée | +10 🪙 | descend |
+| 🤖 Victoire contre l'IA | +8 🪙 | - |
+| 🤖 Défaite contre l'IA | +2 🪙 | - |
+
+L'Elo, les pièces et les achats sont gérés côté serveur par des fonctions Postgres (RLS + `security definer`), jamais par le client.
+
+
+
+## 🤠 Tenues & inventaire
+
+Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre l'inventaire : renommage du pistolero et tenues à débloquer. Les pièces s'échangent contre des tenues qui recolorent le pistolero (chapeau, chemise, pantalon, bandana), visibles en ligne et sur le classement. Sur CrazyGames, une pub récompensée offre +25 🪙.
+
+| Tenue | Prix |
+|--|--|
+| 🤎 Le Vagabond | offert |
+| ⭐ Le Shérif | 150 🪙 |
+| 🖤 Le Bandit | 200 🪙 |
+| 🌵 L'Étranger | 250 🪙 |
+| 💙 Le Cavalier | 350 🪙 |
+| 🪦 Le Croque-mort | 500 🪙 |
+| 👻 Le Fantôme | 650 🪙 |
+| ✨ Le Doré | 900 🪙 |
+
+
+
+## 🎪 CrazyGames
+
+Le jeu intègre le **SDK CrazyGames v3** : événements de cycle de jeu (`gameplayStart` / `gameplayStop`), pubs interstitielles entre les matchs, pub récompensée dans l'inventaire, connexion automatique au compte CrazyGames (pseudo repris, session sauvegardée via le module data pour suivre le joueur d'un appareil à l'autre) et duels entre amis via le bouton d'invitation officiel et InstantMultiplayer. Hors CrazyGames, le SDK se désactive tout seul et le jeu fonctionne normalement.
 
 
 
@@ -117,6 +157,8 @@ Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence, pu
 - **Three.js** : rendu 3D, modèles low-poly 100% générés (aucun asset externe)
 - **Web Audio API** : sons et musique d'ambiance entièrement synthétisés (cloche, coups de feu, ricochets, sifflements)
 - **Supabase Realtime** : matchmaking et réseau du duel en ligne
+- **Supabase Auth + Postgres** : comptes anonymes, Elo, pièces, boutique et classement (RLS)
+- **SDK CrazyGames** : pubs, liaison de compte et cycle de jeu sur CrazyGames
 - **Vite** : build et serveur de développement
 
 
@@ -130,6 +172,8 @@ npm install
 npm run dev
 ```
 
+Le duel en ligne, les comptes et le classé demandent un projet [Supabase](https://supabase.com) : renseigner l'URL et la clé publishable dans `src/config.js`, exécuter `supabase/schema.sql` dans le SQL Editor et activer les anonymous sign-ins. Sans ça, le jeu reste jouable contre l'IA.
+
 
 
 ## 📁 Structure du projet
@@ -141,7 +185,10 @@ high-noon/
 │   ├── main.js        # Point d'entrée, menus, i18n, audio
 │   ├── duel.js         # Machine à états du duel (signal, tir, esquive, manches)
 │   ├── ai.js           # Personnalités et comportement de l'IA
-│   ├── net.js          # Matchmaking et protocole réseau (Supabase Realtime)
+│   ├── net.js          # Matchmaking (casual + classé) et protocole réseau
+│   ├── account.js      # Comptes, profil, Elo, pièces, classement (Supabase)
+│   ├── skins.js        # Catalogue de tenues et portraits générés
+│   ├── sdk.js          # Intégration du SDK CrazyGames
 │   ├── scene.js        # Arène 3D, éclairages, modificateurs de manche
 │   ├── cowboy.js        # Personnage adverse et ses animations
 │   ├── viewmodel.js    # Revolver en vue subjective
@@ -153,6 +200,7 @@ high-noon/
 │   ├── modifiers.js    # Modificateurs de manche
 │   └── rng.js          # Générateur pseudo-aléatoire à seed partagée
 ├── docs/               # Logo et captures d'écran du README
+├── supabase/           # Schéma SQL (profils, skins, fonctions Elo/pièces)
 ├── LICENSE             # Licence du projet (MIT)
 └── package.json
 ```

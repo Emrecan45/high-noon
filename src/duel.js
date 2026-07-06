@@ -4,6 +4,8 @@ import { pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
+import { skinById } from "./skins.js";
+import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
 
 const WIN_SCORE = 3;
 const BASE_RELOAD = 1300;
@@ -31,6 +33,16 @@ export class Duel {
     this.matchSeed = deps.matchSeed;
     this.onExit = deps.onExit;
     this.isTouch = deps.isTouch;
+    this.ranked = false;
+    if (deps.ranked) {
+      this.ranked = true;
+    }
+    this.myProfile = null;
+    if (deps.profile) {
+      this.myProfile = deps.profile;
+    }
+    this.onResult = deps.onResult;
+    this.oppElo = 1000;
     this.opponentName = t("theOpponent");
     if (this.mode === "ai") {
       this.opponentName = this.ai.name.toUpperCase();
@@ -61,10 +73,20 @@ export class Duel {
     this.roundIndex = 0;
     this.playerPerks = new Set();
     this.oppPerkIds = new Set();
-    this.bestReaction = null;
     this.state = "idle";
     this.round = null;
     this.lastModifierId = null;
+    this.resultReported = false;
+  }
+
+  reportResult(won) {
+    if (this.resultReported) {
+      return;
+    }
+    this.resultReported = true;
+    if (this.onResult) {
+      this.onResult(won, this.oppElo);
+    }
   }
 
   addListener(target, type, handler) {
@@ -160,10 +182,18 @@ export class Duel {
       this.net.onLeft(function () {
         self.onOpponentLeft();
       });
+      if (this.myProfile !== null) {
+        this.net.send("hello", {
+          pseudo: this.myProfile.pseudo,
+          skin: this.myProfile.skin,
+          elo: this.myProfile.elo
+        });
+      }
     } else {
       this.net = null;
     }
 
+    gameplayStart();
     this.beginRoundSync();
   }
 
@@ -405,9 +435,6 @@ export class Duel {
     const shotT = Math.round(this.tSignal(now));
     if (this.round.playerFirstShotT === null) {
       this.round.playerFirstShotT = shotT;
-      if (this.bestReaction === null || shotT < this.bestReaction) {
-        this.bestReaction = shotT;
-      }
     }
     this.viewmodel.shoot();
     this.audio.gunshot();
@@ -706,16 +733,17 @@ export class Duel {
     const score = this.scoreYou + " - " + this.scoreOpp;
     let title = t("defeat");
     let detail = t("defeatDetail", { name: this.opponentName, score: score });
-    if (this.scoreYou > this.scoreOpp) {
+    const won = this.scoreYou > this.scoreOpp;
+    if (won) {
       title = t("victory");
       detail = t("victoryDetail", { score: score });
       this.audio.victory();
+      happyTime();
     } else {
       this.audio.defeat();
     }
-    if (this.bestReaction !== null) {
-      detail += t("bestReflex", { ms: this.bestReaction });
-    }
+    gameplayStop();
+    this.reportResult(won);
     if (document.pointerLockElement !== null && !this.isTouch) {
       document.exitPointerLock();
     }
@@ -735,6 +763,7 @@ export class Duel {
       if (!this.isTouch) {
         this.ui.showScreen("lock-prompt");
       }
+      gameplayStart();
       this.beginRoundSync();
       return;
     }
@@ -756,6 +785,7 @@ export class Duel {
       if (!this.isTouch) {
         this.ui.showScreen("lock-prompt");
       }
+      gameplayStart();
       this.beginRoundSync();
     }
   }
@@ -765,7 +795,14 @@ export class Duel {
       return;
     }
     const now = performance.now();
-    if (type === "ready") {
+    if (type === "hello") {
+      this.opponentName = String(payload.pseudo).toUpperCase();
+      this.oppElo = 1000;
+      if (Number.isFinite(payload.elo)) {
+        this.oppElo = payload.elo;
+      }
+      this.cowboy.setSkin(skinById(payload.skin).colors);
+    } else if (type === "ready") {
       this.oppReadyRound = Math.max(this.oppReadyRound, payload.round);
       this.checkSync();
     } else if (type === "misfire") {
@@ -939,6 +976,8 @@ export class Duel {
       return;
     }
     this.state = "matchend";
+    gameplayStop();
+    this.reportResult(true);
     const self = this;
     if (document.pointerLockElement !== null && !this.isTouch) {
       document.exitPointerLock();
@@ -1064,7 +1103,7 @@ export class Duel {
         if (off > 1) {
           intensity *= Math.max(0, 1 - (off - 1) / 0.5);
         }
-        this.ui.setGlarePos((0.5 + sunPos.x / 2) * 100, (0.5 - sunPos.y / 2) * 100);
+        this.ui.setGlarePos((0.5 + sunPos.x / 2) * 100, (0.5 - sunPos.y / 2) * 100, (now * 0.012) % 360);
       }
     }
     this.glare += (intensity - this.glare) * Math.min(1, dt * 8);
@@ -1141,12 +1180,14 @@ export class Duel {
   }
 
   exit() {
+    this.reportResult(false);
     this.dispose();
     this.onExit();
   }
 
   dispose() {
     this.disposed = true;
+    gameplayStop();
     this.stopSyncRetry();
     for (const entry of this.listeners) {
       entry[0].removeEventListener(entry[1], entry[2]);

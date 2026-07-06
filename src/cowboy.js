@@ -4,8 +4,8 @@ function mat(color) {
   return new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
 }
 
-function box(w, h, d, color) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+function box(w, h, d, material) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
   mesh.castShadow = true;
   return mesh;
 }
@@ -14,14 +14,18 @@ export function createCowboy() {
   const group = new THREE.Group();
   const hitMeshes = [];
 
-  const skin = 0xc98f5e;
-  const shirt = 0x7a2f24;
-  const pants = 0x30425c;
-  const leather = 0x4a3018;
+  const mats = {
+    skin: mat(0xc98f5e),
+    shirt: mat(0x7a2f24),
+    pants: mat(0x30425c),
+    hat: mat(0x4a3018),
+    bandana: mat(0xc9a227)
+  };
+  const leather = mat(0x4a3018);
 
-  const legL = box(0.17, 0.82, 0.2, pants);
+  const legL = box(0.17, 0.82, 0.2, mats.pants);
   legL.position.set(-0.12, 0.41, 0);
-  const legR = box(0.17, 0.82, 0.2, pants);
+  const legR = box(0.17, 0.82, 0.2, mats.pants);
   legR.position.set(0.12, 0.41, 0);
   group.add(legL);
   group.add(legR);
@@ -36,22 +40,22 @@ export function createCowboy() {
   torsoPivot.position.y = 0.82;
   group.add(torsoPivot);
 
-  const torso = box(0.52, 0.62, 0.28, shirt);
+  const torso = box(0.52, 0.62, 0.28, mats.shirt);
   torso.position.y = 0.31;
   torsoPivot.add(torso);
   const belt = box(0.54, 0.08, 0.3, leather);
   belt.position.y = 0.02;
   torsoPivot.add(belt);
-  const bandana = box(0.2, 0.1, 0.2, 0xc9a227);
+  const bandana = box(0.2, 0.1, 0.2, mats.bandana);
   bandana.position.y = 0.64;
   torsoPivot.add(bandana);
 
-  const head = box(0.26, 0.26, 0.26, skin);
+  const head = box(0.26, 0.26, 0.26, mats.skin);
   head.position.y = 0.82;
   torsoPivot.add(head);
   const hat = new THREE.Group();
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.035, 12), mat(leather));
-  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), mat(leather));
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.035, 12), mats.hat);
+  const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.18, 12), mats.hat);
   crown.position.y = 0.1;
   brim.castShadow = true;
   crown.castShadow = true;
@@ -60,21 +64,21 @@ export function createCowboy() {
   hat.position.y = 0.98;
   torsoPivot.add(hat);
 
-  const armL = box(0.13, 0.6, 0.13, shirt);
+  const armL = box(0.13, 0.6, 0.13, mats.shirt);
   armL.position.set(-0.34, 0.32, 0);
   torsoPivot.add(armL);
 
   const armPivot = new THREE.Group();
   armPivot.position.set(0.34, 0.6, 0);
   torsoPivot.add(armPivot);
-  const armR = box(0.13, 0.58, 0.13, shirt);
+  const armR = box(0.13, 0.58, 0.13, mats.shirt);
   armR.position.y = -0.29;
   armPivot.add(armR);
-  const hand = box(0.1, 0.1, 0.1, skin);
+  const hand = box(0.1, 0.1, 0.1, mats.skin);
   hand.position.y = -0.62;
   armPivot.add(hand);
   const gun = new THREE.Group();
-  const gunBody = box(0.05, 0.12, 0.16, 0x2c2c30);
+  const gunBody = box(0.05, 0.12, 0.16, mat(0x2c2c30));
   const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.3, 8), mat(0x3a3a40));
   gunBarrel.rotation.x = Math.PI / 2;
   gunBarrel.position.set(0, 0.03, 0.2);
@@ -121,6 +125,14 @@ export function createCowboy() {
     hatVel: new THREE.Vector3(),
     hatSpin: new THREE.Vector3()
   };
+
+  function setSkin(colors) {
+    mats.skin.color.setHex(colors.skin);
+    mats.shirt.color.setHex(colors.shirt);
+    mats.pants.color.setHex(colors.pants);
+    mats.hat.color.setHex(colors.hat);
+    mats.bandana.color.setHex(colors.bandana);
+  }
 
   function reset() {
     anim.armTarget = 0;
@@ -284,6 +296,7 @@ export function createCowboy() {
     group: group,
     head: head,
     hitMeshes: hitMeshes,
+    setSkin: setSkin,
     reset: reset,
     playDraw: playDraw,
     playHolster: playHolster,

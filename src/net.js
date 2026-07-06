@@ -8,7 +8,7 @@ export function netAvailable() {
 
 let client = null;
 
-function getClient() {
+export function getClient() {
   if (client === null) {
     client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       realtime: { params: { eventsPerSecond: 20 } }
@@ -46,7 +46,7 @@ export function createMatchmaker() {
   function search(callbacks) {
     cancelled = false;
     pairing = false;
-    lobby = supabase.channel("hn-lobby", {
+    lobby = supabase.channel("hn-lobby-ranked", {
       config: { presence: { key: myId } }
     });
     lobby.on("presence", { event: "sync" }, function () {
@@ -223,6 +223,159 @@ export function createMatchmaker() {
 
   return {
     search: search,
+    cancel: cancel
+  };
+}
+
+export function createPrivateRoom(code, callbacks) {
+  const supabase = getClient();
+  const myId = crypto.randomUUID();
+  const room = supabase.channel("hn-priv-" + code, {
+    config: {
+      broadcast: { self: false },
+      presence: { key: myId }
+    }
+  });
+
+  let cancelled = false;
+  let started = false;
+  let isHost = false;
+  let seed = null;
+  let eventHandler = null;
+  let pendingEvents = [];
+  let leftHandler = function () {};
+  let seedAsker = null;
+
+  function stopSeedAsker() {
+    if (seedAsker !== null) {
+      clearInterval(seedAsker);
+      seedAsker = null;
+    }
+  }
+
+  function sendSeed() {
+    room.send({
+      type: "broadcast",
+      event: "duel",
+      payload: { kind: "seed", data: { value: seed } }
+    });
+  }
+
+  function tryStart() {
+    if (started || cancelled || seed === null) {
+      return;
+    }
+    const present = Object.keys(room.presenceState());
+    if (present.length < 2) {
+      return;
+    }
+    started = true;
+    stopSeedAsker();
+    callbacks.onMatched({
+      seed: seed,
+      isHost: isHost,
+      send: function (type, payload) {
+        room.send({
+          type: "broadcast",
+          event: "duel",
+          payload: { kind: type, data: payload }
+        });
+      },
+      onEvent: function (handler) {
+        eventHandler = handler;
+        const backlog = pendingEvents;
+        pendingEvents = [];
+        for (const evt of backlog) {
+          handler(evt[0], evt[1]);
+        }
+      },
+      onLeft: function (handler) {
+        leftHandler = handler;
+      },
+      leave: function () {
+        supabase.removeChannel(room);
+      }
+    });
+  }
+
+  room.on("broadcast", { event: "duel" }, function (msg) {
+    const kind = msg.payload.kind;
+    const data = msg.payload.data;
+    if (kind === "seed") {
+      if (!isHost && seed === null) {
+        seed = data.value;
+        tryStart();
+      }
+      return;
+    }
+    if (kind === "need-seed") {
+      if (isHost && seed !== null) {
+        sendSeed();
+      }
+      return;
+    }
+    if (eventHandler === null) {
+      pendingEvents.push([kind, data]);
+    } else {
+      eventHandler(kind, data);
+    }
+  });
+
+  room.on("presence", { event: "sync" }, function () {
+    if (cancelled) {
+      return;
+    }
+    const ids = Object.keys(room.presenceState()).sort();
+    if (started) {
+      if (ids.length < 2) {
+        leftHandler();
+      }
+      return;
+    }
+    if (ids.length < 2 || ids.indexOf(myId) === -1) {
+      return;
+    }
+    isHost = ids[0] === myId;
+    if (isHost) {
+      if (seed === null) {
+        seed = randomSeed();
+      }
+      sendSeed();
+      tryStart();
+    } else if (seed === null && seedAsker === null) {
+      seedAsker = setInterval(function () {
+        if (seed !== null || started || cancelled) {
+          stopSeedAsker();
+          return;
+        }
+        room.send({
+          type: "broadcast",
+          event: "duel",
+          payload: { kind: "need-seed", data: {} }
+        });
+      }, 700);
+    }
+  });
+
+  room.subscribe(function (status) {
+    if (status === "SUBSCRIBED") {
+      room.track({ at: Date.now() });
+    } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      if (!started && !cancelled) {
+        callbacks.onError();
+      }
+    }
+  });
+
+  function cancel() {
+    cancelled = true;
+    stopSeedAsker();
+    if (!started) {
+      supabase.removeChannel(room);
+    }
+  }
+
+  return {
     cancel: cancel
   };
 }
