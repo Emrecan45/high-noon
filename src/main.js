@@ -1,3 +1,4 @@
+import * as THREE from "three";
 import { createArena } from "./scene.js";
 import { createCowboy } from "./cowboy.js";
 import { createViewmodel } from "./viewmodel.js";
@@ -7,17 +8,15 @@ import { createMusic } from "./music.js";
 import { AiOpponent, PERSONAS } from "./ai.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
-import { netAvailable, createMatchmaker, createPrivateRoom } from "./net.js";
+import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, listenChallenges, sendChallenge } from "./net.js";
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, buySkin, equipSkin, reportResult, claimAdReward, fetchLeaderboard } from "./account.js";
+import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
 import { SKINS, skinById, portraitDataUrl } from "./skins.js";
+import { ACCESSORIES, accessoryById, accessoryIconDataUrl } from "./accessories.js";
+import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
+import { eloTitleKey } from "./titles.js";
 import pkg from "../package.json";
-
-const FLAG_FR =
-  '<svg viewBox="0 0 30 20"><rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#ffffff"/><rect x="20" width="10" height="20" fill="#ef4135"/></svg>';
-const FLAG_EN =
-  '<svg viewBox="0 0 30 20"><rect width="30" height="20" fill="#012169"/><path d="M0 0 L30 20 M30 0 L0 20" stroke="#ffffff" stroke-width="4"/><path d="M0 0 L30 20 M30 0 L0 20" stroke="#c8102e" stroke-width="2"/><path d="M15 0 V20 M0 10 H30" stroke="#ffffff" stroke-width="7"/><path d="M15 0 V20 M0 10 H30" stroke="#c8102e" stroke-width="4"/></svg>';
 
 const PSEUDO_RE = /^[A-Za-z0-9_ .-]{3,16}$/;
 
@@ -35,8 +34,13 @@ let matchmaker = null;
 let searchInterval = null;
 let friendRoom = null;
 let friendCode = null;
-let shopMsgTimer = null;
 let copyTimer = null;
+let socialReady = false;
+let friendsCache = [];
+let toastTimer = null;
+let wheelAngle = 0;
+let spinning = false;
+let viewer = null;
 
 function el(id) {
   return document.getElementById(id);
@@ -45,15 +49,6 @@ function el(id) {
 applyStatic();
 el("version-tag").textContent = "v" + pkg.version.split(".").slice(0, 2).join(".");
 
-function renderFlag() {
-  if (getLang() === "fr") {
-    el("btn-lang").innerHTML = FLAG_EN;
-  } else {
-    el("btn-lang").innerHTML = FLAG_FR;
-  }
-}
-renderFlag();
-
 function buildOpponentCards() {
   ui.opponentCards(PERSONAS, function (persona) {
     bootAudio();
@@ -61,16 +56,15 @@ function buildOpponentCards() {
   });
 }
 
-el("btn-lang").addEventListener("click", function () {
-  if (getLang() === "fr") {
-    setLang("en");
-  } else {
-    setLang("fr");
-  }
+const langSelect = el("lang-select");
+langSelect.value = getLang();
+langSelect.addEventListener("change", function () {
+  setLang(langSelect.value);
   applyStatic();
-  renderFlag();
   buildOpponentCards();
   renderProfileChip();
+  renderFriends();
+  drawWheel();
 });
 
 const musicSlider = el("vol-music");
@@ -131,21 +125,78 @@ function adMuteOff() {
   }
 }
 
+function showToast(text, onAccept) {
+  const toast = el("toast");
+  el("toast-text").textContent = text;
+  if (onAccept) {
+    el("toast-accept").classList.remove("hidden");
+    el("toast-decline").classList.remove("hidden");
+    el("toast-accept").onclick = function () {
+      hideToast();
+      onAccept();
+    };
+    el("toast-decline").onclick = hideToast;
+  } else {
+    el("toast-accept").classList.add("hidden");
+    el("toast-decline").classList.add("hidden");
+  }
+  toast.classList.remove("hidden");
+  if (toastTimer !== null) {
+    clearTimeout(toastTimer);
+  }
+  toastTimer = setTimeout(hideToast, 15000);
+}
+
+function hideToast() {
+  el("toast").classList.add("hidden");
+  if (toastTimer !== null) {
+    clearTimeout(toastTimer);
+    toastTimer = null;
+  }
+}
+
 function renderProfileChip() {
   const profile = getProfile();
   const chip = el("profile-chip");
   if (profile !== null) {
-    el("chip-head").src = portraitDataUrl(profile.skin, 64);
+    el("chip-head").src = portraitDataUrl(profile.skin, 128);
     el("chip-pseudo").textContent = profile.pseudo;
-    el("chip-elo").textContent = "ELO " + profile.elo;
-    el("chip-coins").textContent = profile.coins + " 🪙";
+    el("chip-elo").textContent = t(eloTitleKey(profile.elo));
   } else {
-    el("chip-head").src = portraitDataUrl("drifter", 64);
+    el("chip-head").src = portraitDataUrl("drifter", 128);
     el("chip-pseudo").textContent = localPseudo();
     el("chip-elo").textContent = "";
-    el("chip-coins").textContent = "";
   }
   chip.classList.remove("hidden");
+  refreshCoins();
+}
+
+function refreshCoins() {
+  const profile = getProfile();
+  const badge = el("coins-badge");
+  if (profile === null || activeDuel !== null) {
+    badge.classList.add("hidden");
+    return;
+  }
+  el("coins-value").textContent = String(profile.coins);
+  badge.classList.remove("hidden");
+}
+
+async function accountReady() {
+  if (!netAvailable()) {
+    return null;
+  }
+  if (getProfile() === null) {
+    el("profile-chip").classList.add("loading");
+    el("profile-chip").classList.remove("hidden");
+  }
+  const profile = await ensureAccount();
+  el("profile-chip").classList.remove("loading");
+  if (profile !== null) {
+    renderProfileChip();
+    initSocial();
+  }
+  return profile;
 }
 
 function showPseudoMsg(kind) {
@@ -164,28 +215,214 @@ function showPseudoMsg(kind) {
   node.classList.remove("hidden");
 }
 
-async function openProfile() {
-  bootAudio();
-  if (!netAvailable()) {
-    alert(t("connectError"));
+function mountViewer(containerId) {
+  const container = el(containerId);
+  if (viewer === null) {
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    const scene = new THREE.Scene();
+    const cam = new THREE.PerspectiveCamera(38, 1, 0.1, 20);
+    cam.position.set(0, 1.15, 3.3);
+    cam.lookAt(0, 0.92, 0);
+    const hemi = new THREE.HemisphereLight(0xffe8c0, 0x5a4326, 1.2);
+    scene.add(hemi);
+    const dir = new THREE.DirectionalLight(0xfff2d8, 1.8);
+    dir.position.set(2, 4, 3);
+    scene.add(dir);
+    const model = createCowboy();
+    if (model.gun) {
+      model.gun.rotation.x = Math.PI / 2;
+      model.gun.position.set(0.02, -0.66, 0);
+    }
+    scene.add(model.group);
+    viewer = { renderer: renderer, scene: scene, cam: cam, model: model, host: null };
+  }
+  if (viewer.host !== container) {
+    container.appendChild(viewer.renderer.domElement);
+    viewer.host = container;
+  }
+  const w = Math.max(1, container.clientWidth);
+  const h = Math.max(1, container.clientHeight);
+  viewer.renderer.setSize(w, h);
+  viewer.cam.aspect = w / h;
+  viewer.cam.updateProjectionMatrix();
+  return viewer;
+}
+
+function updateViewer(dt) {
+  if (viewer === null || viewer.host === null) {
     return;
   }
-  const profile = await ensureAccount();
+  const profileOpen = !el("screen-profile").classList.contains("hidden");
+  const invOpen = !el("screen-inventory").classList.contains("hidden");
+  if (!profileOpen && !invOpen) {
+    return;
+  }
+  viewer.model.group.rotation.y += dt * 0.9;
+  viewer.model.update(dt);
+  viewer.renderer.render(viewer.scene, viewer.cam);
+}
+
+function refreshViewerModel() {
+  const profile = getProfile();
+  if (viewer === null || profile === null) {
+    return;
+  }
+  viewer.model.setSkin(skinById(profile.skin).colors);
+  viewer.model.setAccessories(profile.accessories);
+  viewer.model.setWeapon(weaponById(profile.weapon).colors);
+}
+
+function statRow(container, label, value) {
+  const labelNode = document.createElement("span");
+  labelNode.textContent = label;
+  const valueNode = document.createElement("span");
+  valueNode.className = "stat-value";
+  valueNode.textContent = value;
+  container.appendChild(labelNode);
+  container.appendChild(valueNode);
+}
+
+function renderStatsBlock() {
+  const profile = getProfile();
+  const block = el("stats-block");
+  block.innerHTML = "";
+  statRow(block, t("statsTitle"), t(eloTitleKey(profile.elo)));
+  statRow(block, t("statsMatches"), t("statsMatchesValue", { w: profile.wins, l: profile.losses }));
+  let accuracy = "-";
+  let headPct = "-";
+  let streak = "-";
+  if (Number.isFinite(profile.shots_fired)) {
+    if (profile.shots_fired > 0) {
+      accuracy = Math.round((profile.shots_hit / profile.shots_fired) * 100) + "%";
+    }
+    if (profile.shots_hit > 0) {
+      headPct = Math.round((profile.headshots / profile.shots_hit) * 100) + "%";
+    }
+    streak = t("statsStreakValue", { cur: profile.win_streak, best: profile.best_streak });
+  }
+  statRow(block, t("statsAccuracy"), accuracy);
+  statRow(block, t("statsHead"), headPct);
+  statRow(block, t("statsStreak"), streak);
+}
+
+function invItem(iconUrl, name, equipped, locked, onClick) {
+  const item = document.createElement("div");
+  item.className = "inv-item";
+  if (equipped) {
+    item.classList.add("equipped");
+  }
+  if (locked) {
+    item.classList.add("locked");
+  }
+  const img = document.createElement("img");
+  img.src = iconUrl;
+  const label = document.createElement("div");
+  label.className = "inv-name";
+  label.textContent = name;
+  item.appendChild(img);
+  item.appendChild(label);
+  if (!locked) {
+    item.onclick = onClick;
+  }
+  return item;
+}
+
+function equippedAccList() {
+  const profile = getProfile();
+  if (Array.isArray(profile.accessories)) {
+    return profile.accessories.slice();
+  }
+  return [];
+}
+
+function renderInventory() {
+  const profile = getProfile();
+  const owned = ownedSkins();
+  const ownedAcc = ownedAccessories();
+  const ownedWp = ownedWeaponsSet();
+  const skinsRow = el("inv-skins");
+  skinsRow.innerHTML = "";
+  for (const skin of SKINS) {
+    const isOwned = owned.has(skin.id);
+    const isEquipped = profile.skin === skin.id;
+    skinsRow.appendChild(invItem(portraitDataUrl(skin.id, 88), t(skin.nameKey), isEquipped, !isOwned, async function () {
+      if (isEquipped) {
+        return;
+      }
+      await equipSkin(skin.id);
+      renderProfileChip();
+      renderInventory();
+      refreshViewerModel();
+    }));
+  }
+  const weaponRow = el("inv-weapons");
+  weaponRow.innerHTML = "";
+  for (const weapon of WEAPONS) {
+    const isOwned = ownedWp.has(weapon.id);
+    const isEquipped = profile.weapon === weapon.id;
+    weaponRow.appendChild(invItem(weaponIconDataUrl(weapon.id, 88), t(weapon.nameKey), isEquipped, !isOwned, async function () {
+      if (isEquipped) {
+        return;
+      }
+      await equipWeapon(weapon.id);
+      renderInventory();
+      refreshViewerModel();
+    }));
+  }
+  const accRow = el("inv-acc");
+  accRow.innerHTML = "";
+  const equipped = equippedAccList();
+  for (const acc of ACCESSORIES) {
+    const isOwned = ownedAcc.has(acc.id);
+    const isEquipped = equipped.indexOf(acc.id) !== -1;
+    accRow.appendChild(invItem(accessoryIconDataUrl(acc.id, 88), t(acc.nameKey), isEquipped, !isOwned, async function () {
+      let next = equippedAccList();
+      if (isEquipped) {
+        next = next.filter(function (id) {
+          return id !== acc.id;
+        });
+      } else {
+        next = next.filter(function (id) {
+          const other = accessoryById(id);
+          return other === null || other.slot !== acc.slot;
+        });
+        next.push(acc.id);
+      }
+      await equipAccessories(next);
+      renderInventory();
+      refreshViewerModel();
+    }));
+  }
+}
+
+async function openProfile() {
+  bootAudio();
+  const profile = await accountReady();
   if (profile === null) {
     alert(t("connectError"));
     return;
   }
-  renderProfileChip();
   el("pseudo-input").value = profile.pseudo;
   el("pseudo-error").classList.add("hidden");
-  renderShop();
-  if (isCrazyGames()) {
-    el("btn-shop-ad").classList.remove("hidden");
-  }
+  renderStatsBlock();
   ui.showScreen("screen-profile");
+  mountViewer("profile-view");
+  refreshViewerModel();
+}
+
+function openInventory() {
+  renderInventory();
+  ui.showScreen("screen-inventory");
+  mountViewer("inv-view");
+  refreshViewerModel();
 }
 
 el("profile-chip").addEventListener("click", openProfile);
+el("btn-customize").addEventListener("click", openInventory);
+el("btn-inv-back").addEventListener("click", function () {
+  ui.showScreen("screen-profile");
+  mountViewer("profile-view");
+});
 
 el("btn-pseudo-save").addEventListener("click", async function () {
   const pseudo = el("pseudo-input").value.trim();
@@ -208,162 +445,403 @@ el("btn-profile-back").addEventListener("click", function () {
   ui.showScreen("screen-title");
 });
 
-function setShopMsg(text) {
-  const node = el("shop-coins");
-  if (shopMsgTimer !== null) {
-    clearTimeout(shopMsgTimer);
+const wheelItems = [];
+for (const skin of SKINS) {
+  if (skin.id !== "drifter") {
+    wheelItems.push({ kind: "skin", ref: skin.id, nameKey: skin.nameKey, icon: portraitDataUrl(skin.id, 64) });
   }
-  node.textContent = text;
-  shopMsgTimer = setTimeout(function () {
-    shopMsgTimer = null;
-    renderShopCoins();
-  }, 2200);
+}
+for (const weapon of WEAPONS) {
+  if (weapon.id !== "iron") {
+    wheelItems.push({ kind: "weapon", ref: weapon.id, nameKey: weapon.nameKey, icon: weaponIconDataUrl(weapon.id, 64) });
+  }
+}
+for (const acc of ACCESSORIES) {
+  wheelItems.push({ kind: "accessory", ref: acc.id, nameKey: acc.nameKey, icon: accessoryIconDataUrl(acc.id, 64) });
+}
+const wheelImages = [];
+let wheelImagesLoaded = 0;
+for (const item of wheelItems) {
+  const img = new Image();
+  img.onload = function () {
+    wheelImagesLoaded += 1;
+    if (wheelImagesLoaded === wheelItems.length) {
+      drawWheel();
+    }
+  };
+  img.src = item.icon;
+  wheelImages.push(img);
 }
 
-function renderShopCoins() {
-  const profile = getProfile();
-  el("shop-coins").textContent = t("shopCoins", { n: profile.coins });
-}
-
-function renderShop() {
-  const profile = getProfile();
-  const owned = ownedSkins();
-  renderShopCoins();
-  const container = el("shop-cards");
-  container.innerHTML = "";
-  for (const skin of SKINS) {
-    const card = document.createElement("div");
-    card.className = "card";
-    const isOwned = owned.has(skin.id);
-    const isEquipped = profile.skin === skin.id;
-    if (isEquipped) {
-      card.classList.add("equipped");
-    } else if (!isOwned) {
-      card.classList.add("locked");
+function drawWheel() {
+  const canvas = el("wheel-canvas");
+  const ctx = canvas.getContext("2d");
+  const size = canvas.width;
+  const center = size / 2;
+  const radius = center - 4;
+  const seg = (Math.PI * 2) / wheelItems.length;
+  ctx.clearRect(0, 0, size, size);
+  for (let i = 0; i < wheelItems.length; i++) {
+    const start = i * seg;
+    ctx.beginPath();
+    ctx.moveTo(center, center);
+    ctx.arc(center, center, radius, start, start + seg);
+    ctx.closePath();
+    if (i % 2 === 0) {
+      ctx.fillStyle = "#3a2412";
+    } else {
+      ctx.fillStyle = "#241608";
     }
-    let status = skin.price + " 🪙";
-    if (isEquipped) {
-      status = t("skinEquipped");
-    } else if (isOwned) {
-      status = t("skinOwned");
-    }
-    const img = document.createElement("img");
-    img.className = "skin-portrait";
-    img.src = portraitDataUrl(skin.id, 144);
-    const name = document.createElement("div");
-    name.className = "card-name";
-    name.textContent = t(skin.nameKey);
-    const price = document.createElement("div");
-    price.className = "skin-price";
-    price.textContent = status;
-    card.appendChild(img);
-    card.appendChild(name);
-    card.appendChild(price);
-    card.onclick = async function () {
-      if (isEquipped) {
-        return;
-      }
-      if (isOwned) {
-        await equipSkin(skin.id);
+    if (wheelItems[i].kind === "skin") {
+      if (i % 2 === 0) {
+        ctx.fillStyle = "#4a2c10";
       } else {
-        if (profile.coins < skin.price) {
-          return;
-        }
-        const bought = await buySkin(skin.id);
-        if (bought) {
-          await equipSkin(skin.id);
-        }
+        ctx.fillStyle = "#3a2008";
       }
-      renderProfileChip();
-      renderShop();
-    };
-    container.appendChild(card);
+    }
+    ctx.fill();
+    ctx.strokeStyle = "#7a4c15";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    const mid = start + seg / 2;
+    const ix = center + Math.cos(mid) * radius * 0.68;
+    const iy = center + Math.sin(mid) * radius * 0.68;
+    ctx.save();
+    ctx.translate(ix, iy);
+    ctx.rotate(mid + Math.PI / 2);
+    ctx.drawImage(wheelImages[i], -20, -20, 40, 40);
+    ctx.restore();
   }
+  ctx.beginPath();
+  ctx.arc(center, center, 26, 0, Math.PI * 2);
+  ctx.fillStyle = "#e8b64c";
+  ctx.fill();
+  ctx.strokeStyle = "#7a4c15";
+  ctx.lineWidth = 4;
+  ctx.stroke();
 }
 
-el("btn-shop-ad").addEventListener("click", function () {
-  el("btn-shop-ad").disabled = true;
-  requestRewardedAd({
-    onStart: adMuteOn,
-    onFinish: function () {
-      adMuteOff();
-      el("btn-shop-ad").disabled = false;
-      claimAdReward().then(function () {
-        renderProfileChip();
-        renderShop();
-      });
-    },
-    onError: function () {
-      adMuteOff();
-      el("btn-shop-ad").disabled = false;
-      setShopMsg(t("shopAdFail"));
+function openShop() {
+  bootAudio();
+  accountReady().then(function (profile) {
+    if (profile === null) {
+      alert(t("connectError"));
+      return;
     }
+    refreshCoins();
+    el("wheel-result").classList.add("hidden");
+    drawWheel();
+    ui.showScreen("screen-shop");
+  });
+}
+
+el("btn-shop").addEventListener("click", openShop);
+
+el("btn-shop-back").addEventListener("click", function () {
+  ui.showScreen("screen-title");
+});
+
+el("btn-spin").addEventListener("click", async function () {
+  if (spinning) {
+    return;
+  }
+  const resultNode = el("wheel-result");
+  const result = await spinWheel();
+  if (!result.ok) {
+    if (result.reason === "poor") {
+      resultNode.textContent = t("wheelPoor");
+    } else {
+      resultNode.textContent = t("accountError");
+    }
+    resultNode.classList.remove("hidden");
+    return;
+  }
+  spinning = true;
+  el("btn-spin").disabled = true;
+  resultNode.classList.add("hidden");
+  let index = 0;
+  for (let i = 0; i < wheelItems.length; i++) {
+    if (wheelItems[i].kind === result.kind && wheelItems[i].ref === result.ref) {
+      index = i;
+    }
+  }
+  const segDeg = 360 / wheelItems.length;
+  const centerDeg = index * segDeg + segDeg / 2;
+  const current = ((wheelAngle % 360) + 360) % 360;
+  const targetMod = ((270 - centerDeg) % 360 + 360) % 360;
+  let delta = targetMod - current;
+  if (delta <= 0) {
+    delta += 360;
+  }
+  wheelAngle += 4 * 360 + delta;
+  el("wheel-canvas").style.transform = "rotate(" + wheelAngle + "deg)";
+  setTimeout(function () {
+    spinning = false;
+    el("btn-spin").disabled = false;
+    refreshCoins();
+    let nameKey = "";
+    for (const item of wheelItems) {
+      if (item.kind === result.kind && item.ref === result.ref) {
+        nameKey = item.nameKey;
+      }
+    }
+    if (result.duplicate) {
+      resultNode.textContent = t("wheelDup", { item: t(nameKey) });
+    } else {
+      resultNode.textContent = t("wheelNew", { item: t(nameKey) });
+    }
+    resultNode.classList.remove("hidden");
+  }, 3600);
+});
+
+el("btn-home-ad").addEventListener("click", function () {
+  bootAudio();
+  accountReady().then(function (profile) {
+    if (profile === null) {
+      return;
+    }
+    el("btn-home-ad").disabled = true;
+    requestRewardedAd({
+      onStart: adMuteOn,
+      onFinish: function () {
+        adMuteOff();
+        el("btn-home-ad").disabled = false;
+        claimAdReward().then(renderProfileChip);
+      },
+      onError: function () {
+        adMuteOff();
+        el("btn-home-ad").disabled = false;
+        showToast(t("shopAdFail"), null);
+      }
+    });
   });
 });
 
-function renderBoard(rows) {
-  const list = el("board-list");
-  const status = el("board-status");
-  list.innerHTML = "";
-  if (rows === null) {
-    status.textContent = t("boardError");
-    status.classList.remove("hidden");
-    return;
-  }
-  if (rows.length === 0) {
-    status.textContent = t("boardEmpty");
-    status.classList.remove("hidden");
-    return;
-  }
-  status.classList.add("hidden");
+function initSocial() {
   const profile = getProfile();
-  for (let i = 0; i < rows.length; i++) {
-    const entry = rows[i];
-    const row = document.createElement("div");
-    row.className = "board-row";
-    if (profile !== null && entry.pseudo === profile.pseudo) {
-      row.classList.add("me");
+  if (socialReady || profile === null) {
+    return;
+  }
+  socialReady = true;
+  goOnline(profile.id, renderFriends);
+  listenChallenges(profile.id, onChallenge);
+  refreshFriends();
+  setInterval(refreshFriends, 30000);
+}
+
+async function refreshFriends() {
+  if (getProfile() === null) {
+    return;
+  }
+  if (isCrazyGames()) {
+    el("friend-add").classList.add("hidden");
+    const cg = await cgFriendsResolved();
+    if (cg !== null) {
+      friendsCache = cg;
     }
-    const rank = document.createElement("span");
-    rank.className = "board-rank";
-    rank.textContent = "#" + (i + 1);
-    const img = document.createElement("img");
-    img.src = portraitDataUrl(entry.skin, 72);
-    const pseudo = document.createElement("span");
-    pseudo.className = "board-pseudo";
-    pseudo.textContent = entry.pseudo;
-    const elo = document.createElement("span");
-    elo.className = "board-elo";
-    elo.textContent = entry.elo;
-    row.appendChild(rank);
-    row.appendChild(img);
-    row.appendChild(pseudo);
-    row.appendChild(elo);
+  } else {
+    el("friend-add").classList.remove("hidden");
+    const rows = await listFriends();
+    if (rows !== null) {
+      friendsCache = rows;
+    }
+  }
+  renderFriends();
+}
+
+function friendAvatar(entry) {
+  const img = document.createElement("img");
+  img.src = portraitDataUrl(entry.skin, 60);
+  if (entry.cg && entry.avatar) {
+    const cgImg = new Image();
+    cgImg.onload = function () {
+      img.src = entry.avatar;
+    };
+    cgImg.src = entry.avatar;
+  }
+  return img;
+}
+
+function friendButton(label, ghost, onClick) {
+  const btn = document.createElement("button");
+  btn.className = "friend-btn";
+  if (ghost) {
+    btn.classList.add("ghost");
+  }
+  btn.textContent = label;
+  btn.onclick = onClick;
+  return btn;
+}
+
+function setFriendsMsg(text) {
+  const node = el("friends-msg");
+  if (text === "") {
+    node.classList.add("hidden");
+  } else {
+    node.textContent = text;
+    node.classList.remove("hidden");
+  }
+}
+
+function renderFriends() {
+  const list = el("friends-list");
+  list.innerHTML = "";
+  if (friendsCache.length === 0) {
+    setFriendsMsg(t("friendsNone"));
+    return;
+  }
+  setFriendsMsg("");
+  for (const entry of friendsCache) {
+    const row = document.createElement("div");
+    row.className = "friend-row";
+    const main = document.createElement("div");
+    main.className = "friend-main";
+    const name = document.createElement("div");
+    name.className = "friend-name";
+    name.textContent = entry.pseudo;
+    const sub = document.createElement("div");
+    sub.className = "friend-sub";
+    main.appendChild(name);
+    main.appendChild(sub);
+    row.appendChild(friendAvatar(entry));
+    row.appendChild(main);
+    if (entry.cg) {
+      const online = entry.profileId !== null && isOnline(entry.profileId);
+      if (entry.elo !== null) {
+        let stateText = t("offline");
+        if (online) {
+          stateText = t("online");
+        }
+        sub.textContent = t(eloTitleKey(entry.elo)) + " · " + stateText;
+      } else {
+        sub.textContent = t("offline");
+      }
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      if (online) {
+        dot.classList.add("on");
+      }
+      row.appendChild(dot);
+      if (online) {
+        row.appendChild(friendButton(t("friendsChallenge"), false, function () {
+          challengeOnline(entry.profileId);
+        }));
+      } else {
+        row.appendChild(friendButton(t("friendsInvite"), false, function () {
+          inviteAnyFriend();
+        }));
+      }
+    } else if (entry.status === "pending") {
+      sub.textContent = t("friendsPending");
+      if (entry.incoming) {
+        row.appendChild(friendButton("✓", false, async function () {
+          await respondFriendRequest(entry.fid, true);
+          refreshFriends();
+        }));
+        row.appendChild(friendButton("✕", true, async function () {
+          await respondFriendRequest(entry.fid, false);
+          refreshFriends();
+        }));
+      } else {
+        row.appendChild(friendButton("✕", true, async function () {
+          await removeFriend(entry.fid);
+          refreshFriends();
+        }));
+      }
+    } else {
+      const online = isOnline(entry.id);
+      let stateText = t("offline");
+      if (online) {
+        stateText = t("online");
+      }
+      sub.textContent = t(eloTitleKey(entry.elo)) + " · " + stateText;
+      const dot = document.createElement("span");
+      dot.className = "dot";
+      if (online) {
+        dot.classList.add("on");
+      }
+      row.appendChild(dot);
+      const duelBtn = friendButton(t("friendsChallenge"), false, function () {
+        challengeOnline(entry.id);
+      });
+      duelBtn.disabled = !online;
+      row.appendChild(duelBtn);
+      row.appendChild(friendButton("✕", true, async function () {
+        await removeFriend(entry.fid);
+        refreshFriends();
+      }));
+    }
     list.appendChild(row);
   }
 }
 
-el("btn-board").addEventListener("click", function () {
+el("btn-friend-add").addEventListener("click", async function () {
   bootAudio();
-  if (!netAvailable()) {
-    alert(t("connectError"));
+  const pseudo = el("friend-input").value.trim();
+  if (pseudo.length < 3) {
     return;
   }
-  el("board-list").innerHTML = "";
-  el("board-status").textContent = "…";
-  el("board-status").classList.remove("hidden");
-  ui.showScreen("screen-board");
-  fetchLeaderboard().then(renderBoard);
+  const profile = await accountReady();
+  if (profile === null) {
+    setFriendsMsg(t("accountError"));
+    return;
+  }
+  const result = await sendFriendRequest(pseudo);
+  if (result.ok) {
+    el("friend-input").value = "";
+    setFriendsMsg(t("friendsSent"));
+    refreshFriends();
+  } else if (result.reason === "notfound") {
+    setFriendsMsg(t("friendsNotFound"));
+  } else if (result.reason === "already") {
+    setFriendsMsg(t("friendsAlready"));
+  } else {
+    setFriendsMsg(t("accountError"));
+  }
 });
 
-el("btn-board-back").addEventListener("click", function () {
-  ui.showScreen("screen-title");
+el("friends-toggle").addEventListener("click", function () {
+  el("friends-bar").classList.toggle("open");
 });
+
+function challengeOnline(profileId) {
+  const profile = getProfile();
+  if (profile === null || activeDuel !== null || profileId === null) {
+    return;
+  }
+  const code = makeFriendCode();
+  sendChallenge(profileId, { code: code, from: profile.pseudo });
+  openFriendRoom(code, true);
+  el("search-title").textContent = t("challengeSent");
+}
+
+function inviteAnyFriend() {
+  if (activeDuel !== null) {
+    return;
+  }
+  openFriendRoom(makeFriendCode(), true);
+}
+
+function onChallenge(payload) {
+  if (activeDuel !== null || friendRoom !== null) {
+    return;
+  }
+  const from = String(payload.from).slice(0, 16);
+  const code = payload.code;
+  ui.showScreen("screen-title");
+  showToast(t("challengeFrom", { name: from }), function () {
+    accountReady().then(function () {
+      openFriendRoom(code, false);
+    });
+  });
+}
 
 function backToMenu() {
   activeDuel = null;
   cowboy.reset();
   cowboy.setSkin(skinById("drifter").colors);
+  cowboy.setAccessories([]);
+  cowboy.setWeapon(weaponById("iron").colors);
   viewmodel.holster();
   arena.applyModifier({ id: "noon", sway: 0 }, 19);
   ui.hudVisible(false);
@@ -375,40 +853,56 @@ function backToMenu() {
 function duelProfile() {
   const profile = getProfile();
   if (profile === null) {
-    return { pseudo: localPseudo(), skin: "drifter", elo: 1000 };
+    return { id: null, pseudo: localPseudo(), skin: "drifter", acc: [], weapon: "iron", elo: 1000 };
   }
-  return { pseudo: profile.pseudo, skin: profile.skin, elo: profile.elo };
+  return { id: profile.id, pseudo: profile.pseudo, skin: profile.skin, acc: profile.accessories, weapon: profile.weapon, elo: profile.elo };
+}
+
+function applyMyWeapon() {
+  const profile = getProfile();
+  let weaponId = "iron";
+  if (profile !== null) {
+    weaponId = profile.weapon;
+  }
+  viewmodel.setWeapon(weaponById(weaponId).colors);
 }
 
 function handleResult(ranked) {
-  return function (won, oppElo) {
+  return function (won, oppElo, stats, oppId) {
     if (getProfile() === null || !netAvailable()) {
       return;
     }
-    reportResult(won, ranked, oppElo).then(function (result) {
+    recordStats(stats, won);
+    reportResult(won, ranked, oppElo, oppId).then(function (result) {
       if (result === null) {
         return;
       }
       renderProfileChip();
-      if (el("screen-matchend").classList.contains("hidden")) {
+      const reward = el("matchend-reward");
+      if (reward === null) {
         return;
       }
-      const detail = el("matchend-detail");
       if (ranked) {
         let deltaStr = String(result.elo_delta);
         if (result.elo_delta >= 0) {
           deltaStr = "+" + result.elo_delta;
         }
-        detail.textContent += t("resultRanked", { elo: result.elo, delta: deltaStr, coins: result.coins_delta });
+        reward.innerHTML =
+          '<div class="me-rank">' + t("mRank", { rank: result.elo, delta: deltaStr }) + "</div>" +
+          "<div>+" + result.coins_delta + " 🪙</div>";
       } else {
-        detail.textContent += t("resultCoins", { coins: result.coins_delta });
+        reward.textContent = "+" + result.coins_delta + " 🪙";
       }
+      reward.classList.remove("hidden");
     });
   };
 }
 
 function startAiDuel(persona) {
   cowboy.setSkin(skinById("drifter").colors);
+  cowboy.setAccessories([]);
+  cowboy.setWeapon(weaponById("iron").colors);
+  applyMyWeapon();
   const ai = new AiOpponent(persona, createRng(randomSeed()));
   activeDuel = new Duel({
     arena: arena,
@@ -427,9 +921,15 @@ function startAiDuel(persona) {
     onExit: backToMenu
   });
   activeDuel.start();
+  refreshCoins();
 }
 
-function startNetDuel(room, ranked) {
+function startNetDuel(room, ranked, friendly) {
+  applyMyWeapon();
+  let onResult = handleResult(ranked);
+  if (friendly) {
+    onResult = null;
+  }
   activeDuel = new Duel({
     arena: arena,
     ui: ui,
@@ -443,10 +943,11 @@ function startNetDuel(room, ranked) {
     isTouch: isTouch,
     ranked: ranked,
     profile: duelProfile(),
-    onResult: handleResult(ranked),
+    onResult: onResult,
     onExit: backToMenu
   });
   activeDuel.start();
+  refreshCoins();
 }
 
 function stopSearch() {
@@ -473,7 +974,12 @@ function startSearch() {
   ui.showScreen("screen-search");
   ui.searchTick(0);
   let seconds = 0;
-  matchmaker = createMatchmaker();
+  let myPid = null;
+  const searchProfile = getProfile();
+  if (searchProfile !== null) {
+    myPid = searchProfile.id;
+  }
+  matchmaker = createMatchmaker(myPid);
   searchInterval = setInterval(function () {
     seconds += 1;
     ui.searchTick(seconds);
@@ -481,7 +987,7 @@ function startSearch() {
   matchmaker.search({
     onMatched: function (room) {
       stopSearch();
-      startNetDuel(room, true);
+      startNetDuel(room, true, false);
     },
     onPairFailed: function () {},
     onError: function () {
@@ -526,20 +1032,25 @@ function openFriendRoom(rawCode, hosting) {
   el("search-timer").classList.add("hidden");
   ui.showScreen("screen-search");
   friendCode = code;
+  let roomPid = null;
+  const roomProfile = getProfile();
+  if (roomProfile !== null) {
+    roomPid = roomProfile.id;
+  }
   friendRoom = createPrivateRoom(code, {
     onMatched: function (room) {
       friendRoom = null;
       friendCode = null;
       hideInviteButton();
       stopSearch();
-      startNetDuel(room, false);
+      startNetDuel(room, false, true);
     },
     onError: function () {
       stopSearch();
       ui.showScreen("screen-title");
       alert(t("connectError"));
     }
-  });
+  }, roomPid);
 }
 
 el("btn-friend-copy").addEventListener("click", function () {
@@ -561,27 +1072,12 @@ el("btn-friend-copy").addEventListener("click", function () {
 
 el("btn-ranked").addEventListener("click", async function () {
   bootAudio();
-  if (!netAvailable()) {
-    alert(t("connectError"));
-    return;
-  }
-  const profile = await ensureAccount();
+  const profile = await accountReady();
   if (profile === null) {
     alert(t("connectError"));
     return;
   }
-  renderProfileChip();
   startSearch();
-});
-
-el("btn-friend").addEventListener("click", function () {
-  bootAudio();
-  if (!netAvailable()) {
-    alert(t("connectError"));
-    return;
-  }
-  ensureAccount().then(renderProfileChip);
-  openFriendRoom(makeFriendCode(), true);
 });
 
 el("btn-ai").addEventListener("click", function () {
@@ -596,6 +1092,72 @@ if (isTouch) {
 
 el("btn-search-cancel").addEventListener("click", function () {
   stopSearch();
+  ui.showScreen("screen-title");
+});
+
+function renderBoard(rows) {
+  const list = el("board-list");
+  const status = el("board-status");
+  list.innerHTML = "";
+  if (rows === null) {
+    status.textContent = t("boardError");
+    status.classList.remove("hidden");
+    return;
+  }
+  if (rows.length === 0) {
+    status.textContent = t("boardEmpty");
+    status.classList.remove("hidden");
+    return;
+  }
+  status.classList.add("hidden");
+  const profile = getProfile();
+  for (let i = 0; i < rows.length; i++) {
+    const entry = rows[i];
+    const row = document.createElement("div");
+    row.className = "board-row";
+    if (profile !== null && entry.pseudo === profile.pseudo) {
+      row.classList.add("me");
+    }
+    const rank = document.createElement("span");
+    rank.className = "board-rank";
+    rank.textContent = "#" + (i + 1);
+    const img = document.createElement("img");
+    img.src = portraitDataUrl(entry.skin, 72);
+    const nameWrap = document.createElement("span");
+    nameWrap.className = "board-name";
+    const pseudo = document.createElement("span");
+    pseudo.className = "board-pseudo";
+    pseudo.textContent = entry.pseudo;
+    const title = document.createElement("span");
+    title.className = "board-title";
+    title.textContent = t(eloTitleKey(entry.elo));
+    nameWrap.appendChild(pseudo);
+    nameWrap.appendChild(title);
+    const elo = document.createElement("span");
+    elo.className = "board-elo";
+    elo.textContent = entry.elo;
+    row.appendChild(rank);
+    row.appendChild(img);
+    row.appendChild(nameWrap);
+    row.appendChild(elo);
+    list.appendChild(row);
+  }
+}
+
+el("btn-board").addEventListener("click", function () {
+  bootAudio();
+  if (!netAvailable()) {
+    alert(t("connectError"));
+    return;
+  }
+  el("board-list").innerHTML = "";
+  el("board-status").textContent = "…";
+  el("board-status").classList.remove("hidden");
+  ui.showScreen("screen-board");
+  fetchLeaderboard().then(renderBoard);
+});
+
+el("btn-board-back").addEventListener("click", function () {
   ui.showScreen("screen-title");
 });
 
@@ -618,13 +1180,18 @@ function loop() {
   const now = performance.now();
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
-  arena.update(dt);
-  cowboy.update(dt);
-  viewmodel.update(dt);
+  let scaled = dt;
   if (activeDuel !== null) {
-    activeDuel.update(now, dt);
+    scaled = dt * activeDuel.timeScale(now);
+  }
+  arena.update(scaled);
+  cowboy.update(scaled);
+  viewmodel.update(scaled);
+  if (activeDuel !== null) {
+    activeDuel.update(now, scaled);
   }
   arena.renderer.render(arena.scene, arena.camera);
+  updateViewer(dt);
 }
 
 async function boot() {
@@ -633,6 +1200,14 @@ async function boot() {
   if (isCrazyGames()) {
     const footer = document.querySelector(".footer-note");
     footer.classList.add("hidden");
+    el("btn-home-ad").classList.remove("hidden");
+  }
+  if (netAvailable()) {
+    el("profile-chip").classList.remove("hidden");
+    el("profile-chip").classList.add("loading");
+    el("chip-pseudo").textContent = localPseudo();
+    el("chip-elo").textContent = "…";
+    el("chip-head").src = portraitDataUrl("drifter", 128);
   }
   try {
     await initAccount();
@@ -643,7 +1218,14 @@ async function boot() {
       await ensureAccount();
     }
   }
+  el("profile-chip").classList.remove("loading");
   renderProfileChip();
+  if (netAvailable()) {
+    el("friends-bar").classList.remove("hidden");
+    el("friends-toggle").classList.remove("hidden");
+    renderFriends();
+    initSocial();
+  }
   loadingStop();
   let joinCode = getInviteParam("roomId");
   if (joinCode === null) {
@@ -652,12 +1234,12 @@ async function boot() {
   }
   if (joinCode !== null && joinCode !== "" && netAvailable()) {
     history.replaceState({}, "", location.pathname);
-    ensureAccount().then(renderProfileChip);
+    accountReady();
     openFriendRoom(joinCode, false);
     return;
   }
   if (isInstantMultiplayer() && netAvailable()) {
-    ensureAccount().then(renderProfileChip);
+    accountReady();
     openFriendRoom(makeFriendCode(), true);
   }
 }

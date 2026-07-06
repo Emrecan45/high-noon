@@ -1,4 +1,5 @@
 node_modules
 dist
+crazygames-upload
 .DS_Store
 *.zip

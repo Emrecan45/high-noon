@@ -170,6 +170,24 @@ export async function getCgUser() {
   }
 }
 
+export async function getCgFriends() {
+  if (!onCg || !sdk.user.isUserAccountAvailable) {
+    return null;
+  }
+  try {
+    const result = await sdk.user.listFriends({ page: 0, size: 50 });
+    if (result && Array.isArray(result.data)) {
+      return result.data;
+    }
+    if (Array.isArray(result)) {
+      return result;
+    }
+    return [];
+  } catch (err) {
+    return null;
+  }
+}
+
 export function cgDataGet(key) {
   if (sdk === null) {
     return null;

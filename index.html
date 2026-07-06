@@ -22,6 +22,7 @@
       <span id="score-opp">0</span>
     </div>
     <div id="round-label"></div>
+    <div id="opp-tag"></div>
     <div id="bigmsg" class="hidden"></div>
     <div id="submsg" class="hidden"></div>
     <div id="crosshair" class="hidden"></div>
@@ -41,27 +42,49 @@
     <div id="topbar">
       <span class="vol">🎵<input id="vol-music" type="range" min="0" max="100" /></span>
       <span class="vol">🔊<input id="vol-sfx" type="range" min="0" max="100" /></span>
-      <button id="btn-lang" aria-label="Language"></button>
+      <select id="lang-select" aria-label="Language">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+        <option value="de">Deutsch</option>
+        <option value="pt">Português</option>
+        <option value="ru">Русский</option>
+        <option value="tr">Türkçe</option>
+      </select>
     </div>
     <div id="profile-chip" class="hidden">
       <img id="chip-head" alt="" />
-      <span id="chip-pseudo"></span>
-      <span id="chip-elo"></span>
-      <span id="chip-coins"></span>
+      <span class="chip-txt"><span id="chip-pseudo"></span><span id="chip-elo"></span></span>
     </div>
+    <div id="friends-bar" class="hidden">
+      <h3 data-i18n="friendsTitle"></h3>
+      <p id="friends-msg" class="hidden"></p>
+      <div id="friends-list"></div>
+      <div id="friend-add" class="friend-add">
+        <input id="friend-input" type="text" maxlength="16" autocomplete="off" data-i18n-ph="friendsAddPh" />
+        <button id="btn-friend-add" class="btn btn-small" data-i18n="friendsAdd"></button>
+      </div>
+    </div>
+    <button id="friends-toggle" class="hidden" aria-label="Friends">🤝</button>
     <h1 class="logo">HIGH NOON</h1>
     <p class="tagline" data-i18n="tagline"></p>
     <div class="menu">
       <button id="btn-ranked" class="btn" data-i18n="btnRanked"></button>
-      <button id="btn-friend" class="btn" data-i18n="btnFriend"></button>
       <button id="btn-ai" class="btn" data-i18n="btnAi"></button>
       <div class="btn-row">
+        <button id="btn-shop" class="btn btn-small" data-i18n="btnShop"></button>
         <button id="btn-board" class="btn btn-small" data-i18n="btnBoard"></button>
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
       </div>
+      <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
     </div>
     <p class="footer-note"><span data-i18n="footer"></span> <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
     <p id="version-tag"></p>
+  </div>
+
+  <div id="coins-badge" class="hidden">
+    <span id="coins-value">0</span>
+    <span class="coin-ico">🪙</span>
   </div>
 
   <div id="screen-opponents" class="screen hidden">
@@ -78,17 +101,54 @@
 
   <div id="screen-profile" class="screen hidden">
     <h2 data-i18n="profileTitle"></h2>
-    <div class="pseudo-row">
-      <input id="pseudo-input" type="text" maxlength="16" autocomplete="off" />
-      <button id="btn-pseudo-save" class="btn btn-small" data-i18n="pseudoSave"></button>
+    <div class="profile-layout">
+      <div class="profile-left">
+        <div id="profile-view"></div>
+        <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
+      </div>
+      <div class="profile-right">
+        <div class="pseudo-row">
+          <input id="pseudo-input" type="text" maxlength="16" autocomplete="off" />
+          <button id="btn-pseudo-save" class="btn btn-small" data-i18n="pseudoSave"></button>
+        </div>
+        <p id="pseudo-error" class="error-text hidden"></p>
+        <div id="stats-block" class="stats-grid"></div>
+      </div>
     </div>
-    <p id="pseudo-error" class="error-text hidden"></p>
-    <p id="shop-coins"></p>
-    <div id="shop-cards" class="cards"></div>
+    <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
+  <div id="screen-inventory" class="screen hidden">
+    <h2 data-i18n="invTitle"></h2>
+    <div id="inv-view"></div>
+    <div class="inv-scroll">
+      <div class="inv-label" data-i18n="invSkins"></div>
+      <div id="inv-skins" class="inv-row"></div>
+      <div class="inv-label" data-i18n="invWeapons"></div>
+      <div id="inv-weapons" class="inv-row"></div>
+      <div class="inv-label" data-i18n="invAcc"></div>
+      <div id="inv-acc" class="inv-row"></div>
+    </div>
+    <button id="btn-inv-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
+  <div id="screen-shop" class="screen hidden">
+    <h2 data-i18n="wheelTitle"></h2>
+    <div id="wheel-wrap">
+      <div id="wheel-pointer">▼</div>
+      <canvas id="wheel-canvas" width="380" height="380"></canvas>
+    </div>
+    <p id="wheel-result" class="hidden"></p>
     <div class="menu">
-      <button id="btn-shop-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
-      <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
+      <button id="btn-spin" class="btn" data-i18n="wheelSpin"></button>
+      <button id="btn-shop-back" class="btn btn-small" data-i18n="back"></button>
     </div>
+  </div>
+
+  <div id="toast" class="hidden">
+    <span id="toast-text"></span>
+    <button id="toast-accept" class="btn btn-small" data-i18n="accept"></button>
+    <button id="toast-decline" class="btn btn-small" data-i18n="decline"></button>
   </div>
 
   <div id="screen-board" class="screen hidden">

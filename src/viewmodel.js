@@ -8,24 +8,36 @@ export function createViewmodel(camera) {
   const group = new THREE.Group();
   camera.add(group);
 
+  const gunMats = {
+    body: mat(0x2c2c30),
+    metal: mat(0x3a3a40),
+    grip: mat(0x5c3a1e)
+  };
+
   const gun = new THREE.Group();
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.09, 0.22), mat(0x2c2c30));
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.09, 0.22), gunMats.body);
   gun.add(frame);
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 10), mat(0x3a3a40));
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 10), gunMats.metal);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(0, 0.025, -0.24);
   gun.add(barrel);
-  const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.07, 6), mat(0x44444c));
+  const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.07, 6), gunMats.metal);
   cylinder.rotation.x = Math.PI / 2;
   cylinder.position.set(0, 0.01, -0.06);
   gun.add(cylinder);
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.06), mat(0x5c3a1e));
+  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.06), gunMats.grip);
   grip.position.set(0, -0.085, 0.08);
   grip.rotation.x = 0.35;
   gun.add(grip);
-  const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.05, 0.02), mat(0x3a3a40));
+  const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.05, 0.02), gunMats.metal);
   hammer.position.set(0, 0.06, 0.1);
   gun.add(hammer);
+
+  function setWeapon(colors) {
+    gunMats.body.color.setHex(colors.body);
+    gunMats.metal.color.setHex(colors.metal);
+    gunMats.grip.color.setHex(colors.grip);
+  }
 
   const handMat = new THREE.MeshStandardMaterial({ color: 0xc98f5e, roughness: 0.9 });
   const handMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.11), handMat);
@@ -60,6 +72,39 @@ export function createViewmodel(camera) {
     flashUntil: 0
   };
 
+  const shells = [];
+  const shellGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.032, 6);
+  const shellMat = mat(0xd4a017);
+
+  function ejectShell() {
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+    shell.position.set(0.03, 0.02, -0.05);
+    group.add(shell);
+    shells.push({
+      mesh: shell,
+      vel: new THREE.Vector3(0.5 + Math.random() * 0.3, 0.45 + Math.random() * 0.2, 0.15 * (Math.random() - 0.3)),
+      spin: new THREE.Vector3(Math.random() * 14 - 7, Math.random() * 14 - 7, Math.random() * 14 - 7),
+      life: 0
+    });
+  }
+
+  function updateShells(dt) {
+    for (let i = shells.length - 1; i >= 0; i--) {
+      const shell = shells[i];
+      shell.life += dt;
+      if (shell.life > 1) {
+        group.remove(shell.mesh);
+        shells.splice(i, 1);
+        continue;
+      }
+      shell.vel.y -= 2.6 * dt;
+      shell.mesh.position.addScaledVector(shell.vel, dt);
+      shell.mesh.rotation.x += shell.spin.x * dt;
+      shell.mesh.rotation.y += shell.spin.y * dt;
+      shell.mesh.rotation.z += shell.spin.z * dt;
+    }
+  }
+
   function holster() {
     state.mode = "holstered";
   }
@@ -80,6 +125,9 @@ export function createViewmodel(camera) {
     state.mode = "reloading";
     state.reloadStart = state.time;
     state.reloadUntil = state.time + duration;
+    if (duration >= 0.7) {
+      ejectShell();
+    }
   }
 
   function isReady() {
@@ -88,6 +136,7 @@ export function createViewmodel(camera) {
 
   function update(dt) {
     state.time += dt;
+    updateShells(dt);
 
     if (state.mode === "holstered") {
       group.position.lerp(holsterPos, Math.min(1, dt * 10));
@@ -135,6 +184,7 @@ export function createViewmodel(camera) {
     shoot: shoot,
     reload: reload,
     isReady: isReady,
+    setWeapon: setWeapon,
     update: update
   };
 }

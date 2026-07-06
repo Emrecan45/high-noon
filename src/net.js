@@ -17,7 +17,15 @@ export function getClient() {
   return client;
 }
 
-export function createMatchmaker() {
+function metaPid(state, key) {
+  const metas = state[key];
+  if (metas && metas.length > 0 && typeof metas[0].pid === "string") {
+    return metas[0].pid;
+  }
+  return null;
+}
+
+export function createMatchmaker(myProfileId) {
   const supabase = getClient();
   const myId = crypto.randomUUID();
   let lobby = null;
@@ -25,7 +33,14 @@ export function createMatchmaker() {
   let pairing = false;
 
   function findPartner(state) {
-    const ids = Object.keys(state).sort();
+    const myPid = metaPid(state, myId);
+    const ids = [];
+    for (const key of Object.keys(state)) {
+      if (key === myId || myPid === null || metaPid(state, key) !== myPid) {
+        ids.push(key);
+      }
+    }
+    ids.sort();
     if (ids.length < 2) {
       return null;
     }
@@ -61,7 +76,7 @@ export function createMatchmaker() {
     });
     lobby.subscribe(function (status) {
       if (status === "SUBSCRIBED") {
-        lobby.track({ at: Date.now() });
+        lobby.track({ at: Date.now(), pid: myProfileId });
       } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
         callbacks.onError();
       }
@@ -227,7 +242,66 @@ export function createMatchmaker() {
   };
 }
 
-export function createPrivateRoom(code, callbacks) {
+let onlineChannel = null;
+let onlineIds = new Set();
+let onlineHandler = function () {};
+let personalChannel = null;
+
+export function goOnline(profileId, onSync) {
+  if (onlineChannel !== null) {
+    return;
+  }
+  const supabase = getClient();
+  onlineHandler = onSync;
+  onlineChannel = supabase.channel("hn-online", {
+    config: { presence: { key: profileId } }
+  });
+  onlineChannel.on("presence", { event: "sync" }, function () {
+    onlineIds = new Set(Object.keys(onlineChannel.presenceState()));
+    onlineHandler();
+  });
+  onlineChannel.subscribe(function (status) {
+    if (status === "SUBSCRIBED") {
+      onlineChannel.track({ at: Date.now() });
+    }
+  });
+}
+
+export function isOnline(profileId) {
+  return onlineIds.has(profileId);
+}
+
+export function listenChallenges(profileId, handler) {
+  if (personalChannel !== null) {
+    return;
+  }
+  const supabase = getClient();
+  personalChannel = supabase.channel("hn-user-" + profileId);
+  personalChannel.on("broadcast", { event: "challenge" }, function (msg) {
+    handler(msg.payload);
+  });
+  personalChannel.subscribe();
+}
+
+export function sendChallenge(profileId, payload) {
+  const supabase = getClient();
+  const channel = supabase.channel("hn-user-" + profileId);
+  channel.subscribe(function (status) {
+    if (status === "SUBSCRIBED") {
+      channel.send({
+        type: "broadcast",
+        event: "challenge",
+        payload: payload
+      }).then(function () {
+        setTimeout(function () {
+          supabase.removeChannel(channel);
+        }, 1500);
+      });
+    }
+  });
+}
+
+export function createPrivateRoom(code, callbacks, myProfileId) {
   const supabase = getClient();
   const myId = crypto.randomUUID();
   const room = supabase.channel("hn-priv-" + code, {
@@ -325,7 +399,8 @@ export function createPrivateRoom(code, callbacks) {
     if (cancelled) {
       return;
     }
-    const ids = Object.keys(room.presenceState()).sort();
+    const state = room.presenceState();
+    const ids = Object.keys(state).sort();
     if (started) {
       if (ids.length < 2) {
         leftHandler();
@@ -333,6 +408,14 @@ export function createPrivateRoom(code, callbacks) {
       return;
     }
     if (ids.length < 2 || ids.indexOf(myId) === -1) {
+      return;
+    }
+    const myPid = metaPid(state, myId);
+    let partnerId = ids[1];
+    if (ids[0] !== myId) {
+      partnerId = ids[0];
+    }
+    if (myPid !== null && metaPid(state, partnerId) === myPid) {
       return;
     }
     isHost = ids[0] === myId;
@@ -359,7 +442,7 @@ export function createPrivateRoom(code, callbacks) {
 
   room.subscribe(function (status) {
     if (status === "SUBSCRIBED") {
-      room.track({ at: Date.now() });
+      room.track({ at: Date.now(), pid: myProfileId });
     } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
       if (!started && !cancelled) {
         callbacks.onError();

@@ -77,9 +77,13 @@ export function createCowboy() {
   const hand = box(0.1, 0.1, 0.1, mats.skin);
   hand.position.y = -0.62;
   armPivot.add(hand);
+  const gunMats = {
+    body: mat(0x2c2c30),
+    metal: mat(0x3a3a40)
+  };
   const gun = new THREE.Group();
-  const gunBody = box(0.05, 0.12, 0.16, mat(0x2c2c30));
-  const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.3, 8), mat(0x3a3a40));
+  const gunBody = box(0.05, 0.12, 0.16, gunMats.body);
+  const gunBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.3, 8), gunMats.metal);
   gunBarrel.rotation.x = Math.PI / 2;
   gunBarrel.position.set(0, 0.03, 0.2);
   gun.add(gunBody);
@@ -132,6 +136,74 @@ export function createCowboy() {
     mats.pants.color.setHex(colors.pants);
     mats.hat.color.setHex(colors.hat);
     mats.bandana.color.setHex(colors.bandana);
+  }
+
+  const accParts = [];
+
+  function clearAccessories() {
+    for (const part of accParts) {
+      part.parent.remove(part);
+    }
+    accParts.length = 0;
+  }
+
+  function addAcc(parent, mesh) {
+    parent.add(mesh);
+    accParts.push(mesh);
+  }
+
+  function setWeapon(colors) {
+    gunMats.body.color.setHex(colors.body);
+    gunMats.metal.color.setHex(colors.metal);
+  }
+
+  function setAccessories(list) {
+    clearAccessories();
+    if (!Array.isArray(list)) {
+      return;
+    }
+    for (const id of list) {
+      if (id === "mustache") {
+        const part = box(0.16, 0.035, 0.03, mat(0x2a1c10));
+        part.position.set(0, 0.77, 0.14);
+        addAcc(torsoPivot, part);
+      } else if (id === "beard") {
+        const part = box(0.24, 0.1, 0.05, mat(0x3a2a18));
+        part.position.set(0, 0.72, 0.12);
+        addAcc(torsoPivot, part);
+      } else if (id === "cigar") {
+        const part = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 6), mat(0x5c3a1e));
+        part.rotation.x = Math.PI / 2;
+        part.rotation.z = 0.3;
+        part.position.set(0.06, 0.75, 0.17);
+        addAcc(torsoPivot, part);
+      } else if (id === "eyepatch") {
+        const part = box(0.07, 0.05, 0.02, mat(0x14100a));
+        part.position.set(0.06, 0.85, 0.135);
+        addAcc(torsoPivot, part);
+        const strap = box(0.27, 0.018, 0.02, mat(0x14100a));
+        strap.position.set(0, 0.87, 0.13);
+        addAcc(torsoPivot, strap);
+      } else if (id === "star") {
+        const part = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 5), mat(0xe8b64c));
+        part.rotation.x = Math.PI / 2;
+        part.position.set(-0.15, 0.45, 0.16);
+        addAcc(torsoPivot, part);
+      } else if (id === "poncho") {
+        const front = box(0.58, 0.4, 0.06, mat(0x2e6b4f));
+        front.position.set(0, 0.42, 0.16);
+        front.rotation.x = 0.08;
+        addAcc(torsoPivot, front);
+        const backPart = box(0.58, 0.4, 0.06, mat(0x2e6b4f));
+        backPart.position.set(0, 0.42, -0.16);
+        backPart.rotation.x = -0.08;
+        addAcc(torsoPivot, backPart);
+      } else if (id === "feather") {
+        const part = box(0.03, 0.16, 0.02, mat(0xc0392b));
+        part.position.set(0.13, 0.16, 0);
+        addAcc(hat, part);
+      }
+    }
   }
 
   function reset() {
@@ -295,8 +367,11 @@ export function createCowboy() {
   return {
     group: group,
     head: head,
+    gun: gun,
     hitMeshes: hitMeshes,
     setSkin: setSkin,
+    setWeapon: setWeapon,
+    setAccessories: setAccessories,
     reset: reset,
     playDraw: playDraw,
     playHolster: playHolster,

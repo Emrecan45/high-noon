@@ -1,3 +1,6 @@
+import * as THREE from "three";
+import { createCowboy } from "./cowboy.js";
+
 export const SKINS = [
   {
     id: "drifter",
@@ -58,42 +61,45 @@ export function skinById(id) {
   return SKINS[0];
 }
 
-function css(color) {
-  return "#" + color.toString(16).padStart(6, "0");
-}
+let portraitKit = null;
+const portraitCache = new Map();
 
-function shade(color, factor) {
-  const r = Math.min(255, Math.round(((color >> 16) & 255) * factor));
-  const g = Math.min(255, Math.round(((color >> 8) & 255) * factor));
-  const b = Math.min(255, Math.round((color & 255) * factor));
-  return (r << 16) | (g << 8) | b;
+function ensurePortraitKit() {
+  if (portraitKit !== null) {
+    return portraitKit;
+  }
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20);
+  camera.position.set(0.18, 1.66, 1.95);
+  camera.lookAt(0, 1.54, 0);
+  const hemi = new THREE.HemisphereLight(0xffe8c0, 0x4a3620, 1.35);
+  scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xfff2d8, 1.9);
+  dir.position.set(1.6, 3, 2.5);
+  scene.add(dir);
+  const model = createCowboy();
+  model.group.rotation.y = 0.4;
+  if (model.gun) {
+    model.gun.visible = false;
+  }
+  scene.add(model.group);
+  portraitKit = { renderer: renderer, scene: scene, camera: camera, model: model };
+  return portraitKit;
 }
 
 export function portraitDataUrl(skinId, size) {
-  const skin = skinById(skinId);
-  const c = skin.colors;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  const u = size / 96;
-
-  ctx.fillStyle = css(shade(c.shirt, 0.9));
-  ctx.fillRect(20 * u, 78 * u, 56 * u, 18 * u);
-  ctx.fillStyle = css(c.bandana);
-  ctx.fillRect(30 * u, 72 * u, 36 * u, 9 * u);
-  ctx.fillStyle = css(c.skin);
-  ctx.fillRect(30 * u, 38 * u, 36 * u, 36 * u);
-  ctx.fillStyle = css(shade(c.skin, 0.75));
-  ctx.fillRect(30 * u, 38 * u, 36 * u, 5 * u);
-  ctx.fillStyle = "#1c1208";
-  ctx.fillRect(38 * u, 52 * u, 5 * u, 6 * u);
-  ctx.fillRect(53 * u, 52 * u, 5 * u, 6 * u);
-  ctx.fillStyle = css(c.hat);
-  ctx.fillRect(16 * u, 32 * u, 64 * u, 8 * u);
-  ctx.fillRect(28 * u, 12 * u, 40 * u, 22 * u);
-  ctx.fillStyle = css(shade(c.hat, 1.5));
-  ctx.fillRect(28 * u, 28 * u, 40 * u, 4 * u);
-
-  return canvas.toDataURL();
+  const key = skinId + "@" + size;
+  const cached = portraitCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const kit = ensurePortraitKit();
+  kit.model.setSkin(skinById(skinId).colors);
+  kit.model.setAccessories([]);
+  kit.renderer.setSize(size, size, false);
+  kit.renderer.render(kit.scene, kit.camera);
+  const url = kit.renderer.domElement.toDataURL();
+  portraitCache.set(key, url);
+  return url;
 }

@@ -10,6 +10,8 @@ export function createUi() {
     "screen-opponents",
     "screen-help",
     "screen-profile",
+    "screen-inventory",
+    "screen-shop",
     "screen-board",
     "screen-search",
     "screen-roundend",
@@ -82,6 +84,10 @@ export function createUi() {
 
   function setRoundLabel(text) {
     el("round-label").textContent = text;
+  }
+
+  function setOppTag(text) {
+    el("opp-tag").textContent = text;
   }
 
   function setHearts(count) {
@@ -190,7 +196,24 @@ export function createUi() {
 
   function matchEnd(title, detail, onRematch, onMenu) {
     el("matchend-title").textContent = title;
-    el("matchend-detail").textContent = detail;
+    const node = el("matchend-detail");
+    node.innerHTML = "";
+    if (typeof detail === "string") {
+      node.textContent = detail;
+    } else {
+      const flavor = document.createElement("div");
+      flavor.className = "me-flavor";
+      flavor.textContent = detail.flavor;
+      const score = document.createElement("div");
+      score.className = "me-score";
+      score.textContent = detail.score;
+      const reward = document.createElement("div");
+      reward.className = "me-reward hidden";
+      reward.id = "matchend-reward";
+      node.appendChild(flavor);
+      node.appendChild(score);
+      node.appendChild(reward);
+    }
     showScreen("screen-matchend");
     el("btn-rematch").onclick = function () {
       hideScreens();
@@ -230,6 +253,7 @@ export function createUi() {
     setSub: setSub,
     setScore: setScore,
     setRoundLabel: setRoundLabel,
+    setOppTag: setOppTag,
     setHearts: setHearts,
     setDodges: setDodges,
     setGunState: setGunState,

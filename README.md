@@ -4,7 +4,7 @@
 
 **High Noon** est un duel de western 1v1 en 3D à la première personne, jouable dans le navigateur. Attends la cloche, dégaine, vise et tire avant l'adversaire. En duel classé contre un autre joueur, contre un ami par lien d'invitation, ou contre trois pistoleros contrôlés par l'IA.
 
-![Version](https://img.shields.io/badge/version-v1.1-blue)
+![Version](https://img.shields.io/badge/version-v1.2-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
 ![Supabase](https://img.shields.io/badge/supabase-realtime-3ECF8E)
 ![Licence](https://img.shields.io/badge/licence-MIT-lightgrey)
@@ -37,6 +37,8 @@ Aucune installation : le jeu tourne directement dans le navigateur, sur ordinate
 - **L'esquive** : 2 roulades par manche (touches Q/D ou A/E). On peut tirer pendant la roulade, mais le viseur tremble fort. Si l'adversaire tire pendant la roulade, il rate. S'il attend la fin, tu es à sa merci.
 - **Le soleil aveugle** : des éblouissements aléatoires peuvent te blinder avant le signal si tu regardes dans sa direction. Détourne les yeux pour t'en protéger.
 - **La brume cache** : par bancs, elle dissimule l'adversaire par intermittence puis se dissipe - pareil pour les deux joueurs en ligne.
+- **La kill cam** : le tir décisif passe au ralenti, l'écran vire sépia, le son s'étouffe et la caméra zoome sur le duelliste qui s'effondre.
+- **Le plomb laisse des traces** : éclats de bois sur les bâtiments, poussière au sol, douilles éjectées au rechargement.
 - **Premier à 3 manches gagnées.**
 
 
@@ -102,53 +104,52 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 | Esquiver à gauche | `Q` ou `A` (ou bouton ◀ sur tactile) |
 | Esquiver à droite | `D` ou `E` (ou bouton ▶ sur tactile) |
 
-> Interface bilingue (anglais par défaut, français d'un clic sur le drapeau), musique et effets sonores réglables depuis l'accueil.
+> Interface en 7 langues (anglais, français, espagnol, allemand, portugais, russe, turc), détectée automatiquement et changeable depuis l'accueil. Musique et effets sonores réglables.
 
 
 
 ## 🌍 Multijoueur en ligne
 
-Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence (les deux premiers duellistes disponibles s'affrontent), puis échange direct d'événements de duel entre les deux joueurs. Le netcode est insensible à la latence - chaque client mesure localement son propre temps de réaction par rapport au signal, et seuls des événements discrets (tir, esquive, blessure) sont échangés ; le joueur touché reste autoritaire sur ses propres esquives et dégâts.
+Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence (les deux premiers duellistes disponibles s'affrontent), puis échange direct d'événements de duel entre les deux joueurs. Le netcode est insensible à la latence - seuls des événements discrets (tir, esquive, blessure) sont échangés, chacun calé sur une graine de manche partagée ; le joueur touché reste autoritaire sur ses propres esquives et dégâts.
 
-**Duel entre amis** : le bouton « Défier un ami » ouvre un salon privé avec un lien d'invitation à partager - le duel démarre dès que l'ami arrive. Sur CrazyGames, l'invitation passe par le bouton officiel de la plateforme (InstantMultiplayer pour les groupes).
+**Duel entre amis** : le bouton « Défier un ami » ouvre un salon privé avec un lien d'invitation à partager - le duel démarre dès que l'ami arrive. Sur CrazyGames, l'invitation passe aussi par le bouton officiel de la plateforme (InstantMultiplayer pour les groupes). Les duels amicaux ne rapportent rien : ni rang, ni pièces - purement pour l'honneur. En 1v1, chaque manche n'est lancée que quand les deux joueurs sont prêts, souris verrouillée.
+
+Le signal du duel est **imposé par l'hôte** : quand les deux joueurs sont prêts, l'hôte déclenche le « FEU ! » et le diffuse, l'autre client le calque à l'instant près - fini les manches désynchronisées où l'un tire pendant que l'autre attend.
+
+**Le cercle d'amis** : une barre d'amis sur l'accueil (en haut à gauche, sous la carte joueur). Sur CrazyGames, elle liste directement tes **amis CrazyGames** (via `user.listFriends()`) avec leur avatar - un bouton DUEL si l'ami joue déjà et est en ligne, sinon INVITER via le système d'invitation CrazyGames. Hors CrazyGames, tu ajoutes des amis par pseudo. Un défi envoie une notification en temps réel qui s'affiche sur l'accueil de l'ami, et le duel démarre dès qu'il accepte.
 
 
 
 ## 🏆 Mode classé
 
-Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase - la carte joueur en haut à gauche de l'accueil permet de se renommer. En **duel classé**, pseudo et tenue sont visibles par l'adversaire, l'Elo évolue à chaque match et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, points Elo). Chaque match rapporte des pièces - le classé paie bien plus que l'IA.
+Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase - la carte joueur en haut à gauche de l'accueil permet de se renommer. En **duel classé**, pseudo, tenue et **rang** (Novice, Tireur, Desperado, Légende de l'Ouest, selon les points accumulés) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, rang, points). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
 
-| Résultat | Pièces | Elo (K=32) |
+Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points de rang et pièces divisés par deux au deuxième duel, plus aucun point de rang à partir du troisième.
+
+| Résultat | Pièces | Points de rang (K=32) |
 |--|--|--|
-| 🏆 Victoire classée | +40 🪙 | monte |
-| 💀 Défaite classée | +10 🪙 | descend |
+| 🏆 Victoire classée | +40 🪙 | montent |
+| 💀 Défaite classée | +10 🪙 | descendent |
 | 🤖 Victoire contre l'IA | +8 🪙 | - |
 | 🤖 Défaite contre l'IA | +2 🪙 | - |
 
-L'Elo, les pièces et les achats sont gérés côté serveur par des fonctions Postgres (RLS + `security definer`), jamais par le client.
+Le rang, les pièces et les achats sont gérés côté serveur par des fonctions Postgres (RLS + `security definer`), jamais par le client.
 
 
 
-## 🤠 Tenues & inventaire
+## 🤠 Profil, tenues & accessoires
 
-Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre l'inventaire : renommage du pistolero et tenues à débloquer. Les pièces s'échangent contre des tenues qui recolorent le pistolero (chapeau, chemise, pantalon, bandana), visibles en ligne et sur le classement. Sur CrazyGames, une pub récompensée offre +25 🪙.
+Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil : le pistolero en **3D** à gauche, à droite le renommage et les statistiques de carrière (duels, précision, tirs à la tête, série de victoires). Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
 
-| Tenue | Prix |
-|--|--|
-| 🤎 Le Vagabond | offert |
-| ⭐ Le Shérif | 150 🪙 |
-| 🖤 Le Bandit | 200 🪙 |
-| 🌵 L'Étranger | 250 🪙 |
-| 💙 Le Cavalier | 350 🪙 |
-| 🪦 Le Croque-mort | 500 🪙 |
-| 👻 Le Fantôme | 650 🪙 |
-| ✨ Le Doré | 900 🪙 |
+## 🎡 La roue du destin
+
+La boutique est une roue de la fortune : chaque tour coûte 50 🪙 et fait gagner une tenue, une arme ou un accessoire, tirés côté serveur selon leur rareté (les tenues et armes sont rares, les accessoires plus ou moins courants). Un doublon rembourse 25 🪙. Les pièces se gagnent en duel (le classé paie bien plus que l'IA) et, sur CrazyGames, avec une pub récompensée (+25 🪙) depuis l'accueil.
 
 
 
 ## 🎪 CrazyGames
 
-Le jeu intègre le **SDK CrazyGames v3** : événements de cycle de jeu (`gameplayStart` / `gameplayStop`), pubs interstitielles entre les matchs, pub récompensée dans l'inventaire, connexion automatique au compte CrazyGames (pseudo repris, session sauvegardée via le module data pour suivre le joueur d'un appareil à l'autre) et duels entre amis via le bouton d'invitation officiel et InstantMultiplayer. Hors CrazyGames, le SDK se désactive tout seul et le jeu fonctionne normalement.
+Le jeu intègre le **SDK CrazyGames v3** : événements de cycle de jeu (`gameplayStart` / `gameplayStop`), pubs interstitielles entre les matchs, pub récompensée depuis l'accueil, connexion automatique au compte CrazyGames (pseudo repris, session sauvegardée via le module data pour suivre le joueur d'un appareil à l'autre), **liste d'amis CrazyGames** (`user.listFriends()`) dans la barre d'amis, et duels via le bouton d'invitation officiel et InstantMultiplayer. Hors CrazyGames, le SDK se désactive tout seul et le jeu fonctionne normalement.
 
 
 
@@ -157,7 +158,7 @@ Le jeu intègre le **SDK CrazyGames v3** : événements de cycle de jeu (`gamepl
 - **Three.js** : rendu 3D, modèles low-poly 100% générés (aucun asset externe)
 - **Web Audio API** : sons et musique d'ambiance entièrement synthétisés (cloche, coups de feu, ricochets, sifflements)
 - **Supabase Realtime** : matchmaking et réseau du duel en ligne
-- **Supabase Auth + Postgres** : comptes anonymes, Elo, pièces, boutique et classement (RLS)
+- **Supabase Auth + Postgres** : comptes anonymes, rang, pièces, roue, amis et classement (RLS)
 - **SDK CrazyGames** : pubs, liaison de compte et cycle de jeu sur CrazyGames
 - **Vite** : build et serveur de développement
 
@@ -172,7 +173,7 @@ npm install
 npm run dev
 ```
 
-Le duel en ligne, les comptes et le classé demandent un projet [Supabase](https://supabase.com) : renseigner l'URL et la clé publishable dans `src/config.js`, exécuter `supabase/schema.sql` dans le SQL Editor et activer les anonymous sign-ins. Sans ça, le jeu reste jouable contre l'IA.
+Le duel en ligne, les comptes et le classé demandent un projet [Supabase](https://supabase.com) : renseigner l'URL et la clé publishable dans `src/config.js`, exécuter `db/schema.sql` dans le SQL Editor et activer les anonymous sign-ins. Sans ça, le jeu reste jouable contre l'IA.
 
 
 
@@ -186,7 +187,7 @@ high-noon/
 │   ├── duel.js         # Machine à états du duel (signal, tir, esquive, manches)
 │   ├── ai.js           # Personnalités et comportement de l'IA
 │   ├── net.js          # Matchmaking (casual + classé) et protocole réseau
-│   ├── account.js      # Comptes, profil, Elo, pièces, classement (Supabase)
+│   ├── account.js      # Comptes, profil, rang, pièces, amis (Supabase)
 │   ├── skins.js        # Catalogue de tenues et portraits générés
 │   ├── sdk.js          # Intégration du SDK CrazyGames
 │   ├── scene.js        # Arène 3D, éclairages, modificateurs de manche
@@ -195,12 +196,15 @@ high-noon/
 │   ├── audio.js        # Moteur audio (effets sonores synthétisés)
 │   ├── music.js        # Musique d'ambiance synthétisée
 │   ├── ui.js           # Écrans, HUD, textes
-│   ├── i18n.js         # Traductions français / anglais
+│   ├── i18n.js         # Traductions (EN, FR, ES, DE, PT, RU, TR)
+│   ├── titles.js       # Rangs selon les points
+│   ├── accessories.js  # Catalogue d'accessoires et icônes générées
+│   ├── weapons.js      # Catalogue d'armes et icônes générées
 │   ├── perks.js        # Avantages de remontada
 │   ├── modifiers.js    # Modificateurs de manche
 │   └── rng.js          # Générateur pseudo-aléatoire à seed partagée
 ├── docs/               # Logo et captures d'écran du README
-├── supabase/           # Schéma SQL (profils, skins, fonctions Elo/pièces)
+├── db/                 # Schéma SQL (profils, skins, accessoires, rang, amis)
 ├── LICENSE             # Licence du projet (MIT)
 └── package.json
 ```

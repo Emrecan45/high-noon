@@ -1,8 +1,10 @@
 import { getClient, netAvailable } from "./net.js";
-import { cgDataGet, cgDataSet, getCgUser, isCrazyGames } from "./sdk.js";
+import { cgDataGet, cgDataSet, getCgUser, getCgFriends, isCrazyGames } from "./sdk.js";
 
 let profile = null;
 let owned = new Set();
+let ownedAcc = new Set();
+let ownedWeapons = new Set();
 let ensurePromise = null;
 
 export function localPseudo() {
@@ -86,6 +88,14 @@ export function ownedSkins() {
   return owned;
 }
 
+export function ownedAccessories() {
+  return ownedAcc;
+}
+
+export function ownedWeaponsSet() {
+  return ownedWeapons;
+}
+
 async function fetchProfile() {
   const supabase = getClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -103,6 +113,20 @@ async function fetchProfile() {
   if (skinRows !== null) {
     for (const row of skinRows) {
       owned.add(row.skin_id);
+    }
+  }
+  const { data: accRows } = await supabase.from("profile_accessories").select("accessory_id").eq("profile_id", uid);
+  ownedAcc = new Set();
+  if (accRows !== null) {
+    for (const row of accRows) {
+      ownedAcc.add(row.accessory_id);
+    }
+  }
+  const { data: weaponRows } = await supabase.from("profile_weapons").select("weapon_id").eq("profile_id", uid);
+  ownedWeapons = new Set();
+  if (weaponRows !== null) {
+    for (const row of weaponRows) {
+      ownedWeapons.add(row.weapon_id);
     }
   }
 }
@@ -153,6 +177,8 @@ export async function createProfile(pseudo) {
   }
   profile = data;
   owned = new Set(["drifter"]);
+  ownedAcc = new Set();
+  ownedWeapons = new Set(["iron"]);
   return { ok: true };
 }
 
@@ -228,7 +254,7 @@ export async function equipSkin(skinId) {
   return true;
 }
 
-export async function reportResult(won, ranked, oppElo) {
+export async function reportResult(won, ranked, oppElo, oppId) {
   if (profile === null) {
     return null;
   }
@@ -236,7 +262,8 @@ export async function reportResult(won, ranked, oppElo) {
   const { data, error } = await supabase.rpc("report_result", {
     p_won: won,
     p_ranked: ranked,
-    p_opp_elo: oppElo
+    p_opp_elo: oppElo,
+    p_opp_id: oppId
   });
   if (error !== null) {
     return null;
@@ -244,6 +271,152 @@ export async function reportResult(won, ranked, oppElo) {
   profile.elo = data.elo;
   profile.coins = data.coins;
   return data;
+}
+
+export async function spinWheel() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("spin_wheel");
+  if (error !== null) {
+    if (error.message.indexOf("not enough coins") !== -1) {
+      return { ok: false, reason: "poor" };
+    }
+    return { ok: false, reason: "network" };
+  }
+  profile.coins = data.coins;
+  if (!data.duplicate) {
+    if (data.kind === "skin") {
+      owned.add(data.ref);
+    } else {
+      ownedAcc.add(data.ref);
+    }
+  }
+  return { ok: true, kind: data.kind, ref: data.ref, duplicate: data.duplicate };
+}
+
+export async function equipAccessories(list) {
+  const supabase = getClient();
+  const { error } = await supabase.rpc("set_accessories", { p_list: list });
+  if (error !== null) {
+    return false;
+  }
+  profile.accessories = list;
+  return true;
+}
+
+export async function equipWeapon(weaponId) {
+  const supabase = getClient();
+  const { error } = await supabase.rpc("equip_weapon", { p_weapon: weaponId });
+  if (error !== null) {
+    return false;
+  }
+  profile.weapon = weaponId;
+  return true;
+}
+
+export async function cgFriendsResolved() {
+  const cgFriends = await getCgFriends();
+  if (cgFriends === null) {
+    return null;
+  }
+  const usernames = [];
+  for (const f of cgFriends) {
+    if (f && f.username) {
+      usernames.push(f.username);
+    }
+  }
+  let byName = {};
+  if (usernames.length > 0) {
+    const supabase = getClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, cg_username, pseudo, elo, skin")
+      .in("cg_username", usernames);
+    if (data !== null) {
+      for (const row of data) {
+        byName[String(row.cg_username).toLowerCase()] = row;
+      }
+    }
+  }
+  const out = [];
+  for (const f of cgFriends) {
+    if (!f || !f.username) {
+      continue;
+    }
+    const match = byName[String(f.username).toLowerCase()];
+    out.push({
+      cg: true,
+      username: f.username,
+      avatar: f.profilePictureUrl,
+      profileId: match ? match.id : null,
+      pseudo: match ? match.pseudo : f.username,
+      elo: match ? match.elo : null,
+      skin: match ? match.skin : "drifter"
+    });
+  }
+  return out;
+}
+
+export async function listFriends() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("list_friends");
+  if (error !== null) {
+    return null;
+  }
+  return data;
+}
+
+export async function sendFriendRequest(pseudo) {
+  const supabase = getClient();
+  const { error } = await supabase.rpc("send_friend_request", { p_pseudo: pseudo });
+  if (error !== null) {
+    if (error.message.indexOf("not found") !== -1) {
+      return { ok: false, reason: "notfound" };
+    }
+    if (error.message.indexOf("already exists") !== -1 || error.message.indexOf("self") !== -1) {
+      return { ok: false, reason: "already" };
+    }
+    return { ok: false, reason: "network" };
+  }
+  return { ok: true };
+}
+
+export async function respondFriendRequest(fid, accept) {
+  const supabase = getClient();
+  await supabase.rpc("respond_friend_request", { p_id: fid, p_accept: accept });
+}
+
+export async function removeFriend(fid) {
+  const supabase = getClient();
+  await supabase.rpc("remove_friend", { p_id: fid });
+}
+
+export async function recordStats(stats, won) {
+  if (profile === null) {
+    return;
+  }
+  const supabase = getClient();
+  const { error } = await supabase.rpc("record_stats", {
+    p_shots: stats.shots,
+    p_hits: stats.hits,
+    p_heads: stats.heads,
+    p_won: won
+  });
+  if (error !== null) {
+    return;
+  }
+  if (Number.isFinite(profile.shots_fired)) {
+    profile.shots_fired += stats.shots;
+    profile.shots_hit += stats.hits;
+    profile.headshots += stats.heads;
+    if (won) {
+      profile.win_streak += 1;
+    } else {
+      profile.win_streak = 0;
+    }
+    if (profile.win_streak > profile.best_streak) {
+      profile.best_streak = profile.win_streak;
+    }
+  }
 }
 
 export async function claimAdReward() {

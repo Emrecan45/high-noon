@@ -5,6 +5,8 @@ import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
 import { skinById } from "./skins.js";
+import { weaponById } from "./weapons.js";
+import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
 
 const WIN_SCORE = 3;
@@ -43,6 +45,7 @@ export class Duel {
     }
     this.onResult = deps.onResult;
     this.oppElo = 1000;
+    this.oppId = null;
     this.opponentName = t("theOpponent");
     if (this.mode === "ai") {
       this.opponentName = this.ai.name.toUpperCase();
@@ -60,10 +63,16 @@ export class Duel {
     this.glare = 0;
     this.dodgeSwayAmount = 0;
     this.locked = false;
+    this.killcamUntil = 0;
     this.syncRetry = null;
     this.oppReadyRound = -1;
     this.oppRematch = false;
     this.rematchAsked = false;
+    this.focusedOnce = false;
+    this.oppAckedFire = false;
+    this.fireResend = null;
+    this.bgTimer = null;
+    this.bgLast = 0;
     this.resetMatch();
   }
 
@@ -77,6 +86,11 @@ export class Duel {
     this.round = null;
     this.lastModifierId = null;
     this.resultReported = false;
+    this.matchStats = {
+      shots: 0,
+      hits: 0,
+      heads: 0
+    };
   }
 
   reportResult(won) {
@@ -85,8 +99,35 @@ export class Duel {
     }
     this.resultReported = true;
     if (this.onResult) {
-      this.onResult(won, this.oppElo);
+      this.onResult(won, this.oppElo, this.matchStats, this.oppId);
     }
+  }
+
+  startKillcam(now) {
+    if (this.killcamUntil > now) {
+      return;
+    }
+    this.killcamUntil = now + 2300;
+    this.audio.muffle(true);
+    document.body.classList.add("killcam");
+  }
+
+  endKillcam() {
+    if (this.killcamUntil === 0) {
+      return;
+    }
+    this.killcamUntil = 0;
+    this.audio.muffle(false);
+    document.body.classList.remove("killcam");
+    this.arena.camera.fov = 70;
+    this.arena.camera.updateProjectionMatrix();
+  }
+
+  timeScale(now) {
+    if (this.killcamUntil > now) {
+      return 0.3;
+    }
+    return 1;
   }
 
   addListener(target, type, handler) {
@@ -124,9 +165,12 @@ export class Duel {
       self.locked = document.pointerLockElement === canvas;
       if (!self.isTouch) {
         if (self.locked) {
+          self.focusedOnce = true;
           self.ui.showScreen(null);
           if (self.state === "prelock") {
             self.startIntro();
+          } else if (self.state === "sync" && !self.readySent) {
+            self.sendReadyNow();
           }
         } else if (!self.disposed && self.stateNeedsLock()) {
           self.ui.showScreen("lock-prompt");
@@ -184,17 +228,44 @@ export class Duel {
       });
       if (this.myProfile !== null) {
         this.net.send("hello", {
+          id: this.myProfile.id,
           pseudo: this.myProfile.pseudo,
           skin: this.myProfile.skin,
+          acc: this.myProfile.acc,
+          weapon: this.myProfile.weapon,
           elo: this.myProfile.elo
         });
       }
+      this.ui.setOppTag("");
     } else {
       this.net = null;
+      this.ui.setOppTag(this.opponentName);
     }
 
     gameplayStart();
+    this.startBackgroundTick();
     this.beginRoundSync();
+  }
+
+  startBackgroundTick() {
+    const self = this;
+    this.bgLast = performance.now();
+    this.bgTimer = setInterval(function () {
+      if (self.disposed) {
+        return;
+      }
+      if (document.hidden) {
+        const now = performance.now();
+        let dt = (now - self.bgLast) / 1000;
+        if (dt > 0.05) {
+          dt = 0.05;
+        }
+        self.bgLast = now;
+        self.update(now, dt);
+      } else {
+        self.bgLast = performance.now();
+      }
+    }, 33);
   }
 
   stateNeedsLock() {
@@ -249,23 +320,36 @@ export class Duel {
   beginRoundSync() {
     if (this.net !== null) {
       this.state = "sync";
+      this.readySent = false;
       this.ui.setBig("", null, 0);
       this.ui.setSub(t("waitingOpp"));
-      this.net.send("ready", { round: this.roundIndex });
-      this.readySent = true;
-      this.stopSyncRetry();
-      const self = this;
-      this.syncRetry = setInterval(function () {
-        if (self.state === "sync" && !self.disposed) {
-          self.net.send("ready", { round: self.roundIndex });
-        } else {
-          self.stopSyncRetry();
-        }
-      }, 900);
-      this.checkSync();
+      if (this.isTouch || this.locked) {
+        this.sendReadyNow();
+      } else if (this.focusedOnce) {
+        this.sendReadyNow();
+        this.ui.showScreen("lock-prompt");
+      } else {
+        this.ui.showScreen("lock-prompt");
+      }
     } else {
       this.beginRound();
     }
+  }
+
+  sendReadyNow() {
+    this.focusedOnce = true;
+    this.readySent = true;
+    this.net.send("ready", { round: this.roundIndex });
+    this.stopSyncRetry();
+    const self = this;
+    this.syncRetry = setInterval(function () {
+      if (self.state === "sync" && !self.disposed) {
+        self.net.send("ready", { round: self.roundIndex });
+      } else {
+        self.stopSyncRetry();
+      }
+    }, 900);
+    this.checkSync();
   }
 
   stopSyncRetry() {
@@ -276,13 +360,15 @@ export class Duel {
   }
 
   checkSync() {
-    if (this.state === "sync" && this.oppReadyRound >= this.roundIndex) {
+    if (this.state === "sync" && this.readySent && this.oppReadyRound >= this.roundIndex) {
       this.stopSyncRetry();
       this.beginRound();
     }
   }
 
   beginRound() {
+    this.stopFireResend();
+    this.oppAckedFire = false;
     const rng = createRng(roundSeed(this.matchSeed, this.roundIndex));
     const modifier = pickModifier(rng, this.roundIndex, this.lastModifierId);
     this.lastModifierId = modifier.id;
@@ -402,6 +488,28 @@ export class Duel {
     this.drawWobbleUntil = now + DRAW_WOBBLE_MS;
   }
 
+  startFireResend() {
+    this.stopFireResend();
+    const self = this;
+    let count = 0;
+    this.net.send("fire", { round: this.roundIndex });
+    this.fireResend = setInterval(function () {
+      count += 1;
+      if (self.disposed || self.oppAckedFire || count > 16) {
+        self.stopFireResend();
+        return;
+      }
+      self.net.send("fire", { round: self.roundIndex });
+    }, 220);
+  }
+
+  stopFireResend() {
+    if (this.fireResend !== null) {
+      clearInterval(this.fireResend);
+      this.fireResend = null;
+    }
+  }
+
   tSignal(now) {
     if (this.state === "waiting") {
       return now - this.waitStart - this.round.signalDelay;
@@ -441,6 +549,15 @@ export class Duel {
     this.shake = 1;
 
     const part = this.castShot();
+    this.matchStats.shots += 1;
+    if (part === "head") {
+      this.matchStats.heads += 1;
+      this.matchStats.hits += 1;
+    } else if (part === "body") {
+      this.matchStats.hits += 1;
+    } else if (part === null) {
+      this.spawnMissImpact();
+    }
 
     if (this.net !== null) {
       this.net.send("shot", { t: shotT, part: part });
@@ -482,6 +599,25 @@ export class Duel {
         this.startReload(now, COCK_DELAY);
       }
     }
+  }
+
+  spawnMissImpact() {
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(this.swayX, this.swayY), this.arena.camera);
+    const hit = this.arena.castEnvironment(raycaster);
+    if (hit !== null) {
+      this.arena.spawnImpact(hit.point, hit.kind);
+    }
+  }
+
+  spawnNearImpact() {
+    const rig = this.arena.playerRig;
+    let side = 1 + Math.random() * 1.5;
+    if (Math.random() < 0.5) {
+      side = -side;
+    }
+    const point = new THREE.Vector3(rig.position.x + side, 0.02, rig.position.z - 1 - Math.random() * 2.5);
+    this.arena.spawnImpact(point, "dust");
   }
 
   castShot() {
@@ -580,10 +716,11 @@ export class Duel {
     this.round.oppDeathShotT = shotT;
     this.cowboy.playDeath(this.arena.scene);
     this.audio.thud();
-    this.ui.setBig(t("down"), "gold", 2100);
+    this.ui.setBig(t("down"), "gold", 2600);
     if (this.ai !== null && this.ai !== undefined) {
       this.ai.stop();
     }
+    this.startKillcam(performance.now());
     this.scheduleResolve();
   }
 
@@ -596,19 +733,24 @@ export class Duel {
     this.round.deathAnimT = 0;
     this.ui.hitFlash();
     this.audio.thud();
-    this.ui.setBig(t("youFell"), "fire", 2100);
+    this.ui.setBig(t("youFell"), "fire", 2600);
     this.ui.crosshair(false);
     if (this.net !== null) {
       this.net.send("death", { shotT: killerShotT });
     } else {
       this.ai.stop();
     }
+    this.startKillcam(performance.now());
     this.scheduleResolve();
   }
 
   scheduleResolve() {
     if (this.round.resolveAt === null) {
-      this.round.resolveAt = performance.now() + 1500;
+      let delay = 1500;
+      if (this.killcamUntil > performance.now()) {
+        delay = 2700;
+      }
+      this.round.resolveAt = performance.now() + delay;
     }
     this.round.resolved = true;
   }
@@ -657,14 +799,6 @@ export class Duel {
     }
     this.ui.setScore(this.scoreYou, this.scoreOpp);
 
-    let times = "";
-    if (this.round.playerFirstShotT !== null) {
-      times += "<span>" + t("yourShot") + " : <strong>" + this.round.playerFirstShotT + " ms</strong></span>";
-    }
-    if (this.round.oppShotT !== null) {
-      times += "<span>" + t("oppShot") + " : <strong>" + this.round.oppShotT + " ms</strong></span>";
-    }
-
     if (this.scoreYou >= WIN_SCORE || this.scoreOpp >= WIN_SCORE) {
       this.showMatchEnd();
       return;
@@ -678,7 +812,7 @@ export class Duel {
     }
 
     const self = this;
-    this.ui.roundEnd(title, reason, times, function () {
+    this.ui.roundEnd(title, reason, "", function () {
       self.afterRoundPanel(winner);
     }, function () {
       self.exit();
@@ -731,24 +865,26 @@ export class Duel {
   showMatchEnd() {
     const self = this;
     const score = this.scoreYou + " - " + this.scoreOpp;
-    let title = t("defeat");
-    let detail = t("defeatDetail", { name: this.opponentName, score: score });
+    const sentinel = "⁣";
     const won = this.scoreYou > this.scoreOpp;
+    let title = t("defeat");
+    let flavor = t("defeatDetail", { name: this.opponentName, score: sentinel });
     if (won) {
       title = t("victory");
-      detail = t("victoryDetail", { score: score });
+      flavor = t("victoryDetail", { score: sentinel });
       this.audio.victory();
       happyTime();
     } else {
       this.audio.defeat();
     }
+    flavor = flavor.split(sentinel)[0].replace(/\s+$/, "");
     gameplayStop();
     this.reportResult(won);
     if (document.pointerLockElement !== null && !this.isTouch) {
       document.exitPointerLock();
     }
     this.state = "matchend";
-    this.ui.matchEnd(title, detail, function () {
+    this.ui.matchEnd(title, { flavor: flavor, score: score }, function () {
       self.requestRematch();
     }, function () {
       self.exit();
@@ -801,10 +937,34 @@ export class Duel {
       if (Number.isFinite(payload.elo)) {
         this.oppElo = payload.elo;
       }
+      this.oppId = null;
+      if (typeof payload.id === "string" && payload.id.length > 10) {
+        this.oppId = payload.id;
+      }
       this.cowboy.setSkin(skinById(payload.skin).colors);
+      this.cowboy.setAccessories(payload.acc);
+      this.cowboy.setWeapon(weaponById(payload.weapon).colors);
+      this.ui.setOppTag(this.opponentName + " · " + t(eloTitleKey(this.oppElo)).toUpperCase());
     } else if (type === "ready") {
       this.oppReadyRound = Math.max(this.oppReadyRound, payload.round);
       this.checkSync();
+    } else if (type === "fire") {
+      if (this.net !== null && !this.net.isHost && payload.round === this.roundIndex && this.round !== null) {
+        if (this.round.signalTime !== 0) {
+          this.net.send("ackfire", { round: payload.round });
+        } else if ((this.state === "waiting" || this.state === "intro") && !this.round.resolved) {
+          if (this.state === "intro") {
+            this.waitStart = now;
+          }
+          this.fireSignal(now);
+          this.net.send("ackfire", { round: payload.round });
+        }
+      }
+    } else if (type === "ackfire") {
+      if (payload.round === this.roundIndex) {
+        this.oppAckedFire = true;
+        this.stopFireResend();
+      }
     } else if (type === "misfire") {
       if (this.state === "waiting" || this.state === "active" || this.state === "intro" || this.state === "prelock") {
         this.round.resolved = true;
@@ -853,6 +1013,7 @@ export class Duel {
     }
     if (payload.part === null) {
       this.audio.ricochet();
+      this.spawnNearImpact();
       return;
     }
     if (payload.part === "hat") {
@@ -946,6 +1107,7 @@ export class Duel {
     }
     if (evt.result === "miss") {
       this.audio.ricochet();
+      this.spawnNearImpact();
       return;
     }
     if (this.round.playerDead) {
@@ -994,6 +1156,10 @@ export class Duel {
       return;
     }
 
+    if (this.killcamUntil > 0 && now >= this.killcamUntil) {
+      this.endKillcam();
+    }
+
     if (this.state === "intro") {
       if (!this.isTouch && !this.locked && this.net === null) {
         this.introUntil += dt * 1000;
@@ -1018,8 +1184,15 @@ export class Duel {
           }
         }
       }
-      if (!this.round.resolved && waited >= this.round.signalDelay) {
-        this.fireSignal(now);
+      if (!this.round.resolved && this.round.signalTime === 0 && waited >= this.round.signalDelay) {
+        if (this.net === null || this.net.isHost) {
+          this.fireSignal(now);
+          if (this.net !== null) {
+            this.startFireResend();
+          }
+        } else if (waited >= this.round.signalDelay + 6000) {
+          this.fireSignal(now);
+        }
       }
       this.handleAiEvents(now);
     } else if (this.state === "active") {
@@ -1143,6 +1316,32 @@ export class Duel {
     this.swayY += this.kickY * kickFactor;
     this.ui.moveCrosshair(this.swayX, this.swayY);
 
+    let killTracking = false;
+    if (this.killcamUntil > now && this.round !== null && this.round.oppDead && !this.round.playerDead) {
+      killTracking = true;
+      const target = new THREE.Vector3();
+      this.cowboy.group.getWorldPosition(target);
+      target.y += 0.8;
+      const camPos = new THREE.Vector3();
+      camera.getWorldPosition(camPos);
+      const dx = target.x - camPos.x;
+      const dy = target.y - camPos.y;
+      const dz = target.z - camPos.z;
+      const yaw = Math.atan2(-dx, -dz);
+      const pitch = Math.atan2(dy, Math.hypot(dx, dz));
+      const track = Math.min(1, dt * 12);
+      this.aimYaw += (yaw - this.aimYaw) * track;
+      this.aimPitch += (pitch - this.aimPitch) * track;
+    }
+    let fovTarget = 70;
+    if (killTracking) {
+      fovTarget = 32;
+    }
+    if (Math.abs(camera.fov - fovTarget) > 0.1) {
+      camera.fov += (fovTarget - camera.fov) * Math.min(1, dt * 8);
+      camera.updateProjectionMatrix();
+    }
+
     let shakeYaw = 0;
     let shakePitch = 0;
     if (this.shake > 0) {
@@ -1187,8 +1386,14 @@ export class Duel {
 
   dispose() {
     this.disposed = true;
+    this.endKillcam();
     gameplayStop();
     this.stopSyncRetry();
+    this.stopFireResend();
+    if (this.bgTimer !== null) {
+      clearInterval(this.bgTimer);
+      this.bgTimer = null;
+    }
     for (const entry of this.listeners) {
       entry[0].removeEventListener(entry[1], entry[2]);
     }
