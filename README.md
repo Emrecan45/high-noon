@@ -4,7 +4,7 @@
 
 **High Noon** est un duel de western 1v1 en 3D à la première personne, jouable dans le navigateur. Attends la cloche, dégaine, vise et tire avant l'adversaire. En duel classé contre un autre joueur, contre un ami par lien d'invitation, ou contre trois pistoleros contrôlés par l'IA.
 
-![Version](https://img.shields.io/badge/version-v1.1-blue)
+![Version](https://img.shields.io/badge/version-v1.2-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
 ![Supabase](https://img.shields.io/badge/supabase-realtime-3ECF8E)
 ![Licence](https://img.shields.io/badge/licence-MIT-lightgrey)
@@ -37,6 +37,8 @@ Aucune installation : le jeu tourne directement dans le navigateur, sur ordinate
 - **L'esquive** : 2 roulades par manche (touches Q/D ou A/E). On peut tirer pendant la roulade, mais le viseur tremble fort. Si l'adversaire tire pendant la roulade, il rate. S'il attend la fin, tu es à sa merci.
 - **Le soleil aveugle** : des éblouissements aléatoires peuvent te blinder avant le signal si tu regardes dans sa direction. Détourne les yeux pour t'en protéger.
 - **La brume cache** : par bancs, elle dissimule l'adversaire par intermittence puis se dissipe - pareil pour les deux joueurs en ligne.
+- **La kill cam** : le tir décisif passe au ralenti, l'écran vire sépia et le son s'étouffe pendant que le perdant s'effondre.
+- **Le plomb laisse des traces** : éclats de bois sur les bâtiments, poussière au sol, douilles éjectées au rechargement.
 - **Premier à 3 manches gagnées.**
 
 
@@ -102,7 +104,7 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 | Esquiver à gauche | `Q` ou `A` (ou bouton ◀ sur tactile) |
 | Esquiver à droite | `D` ou `E` (ou bouton ▶ sur tactile) |
 
-> Interface bilingue (anglais par défaut, français d'un clic sur le drapeau), musique et effets sonores réglables depuis l'accueil.
+> Interface en 7 langues (anglais, français, espagnol, allemand, portugais, russe, turc), détectée automatiquement et changeable depuis l'accueil. Musique et effets sonores réglables.
 
 
 
@@ -116,7 +118,9 @@ Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence (le
 
 ## 🏆 Mode classé
 
-Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase - la carte joueur en haut à gauche de l'accueil permet de se renommer. En **duel classé**, pseudo et tenue sont visibles par l'adversaire, l'Elo évolue à chaque match et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, points Elo). Chaque match rapporte des pièces - le classé paie bien plus que l'IA.
+Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase - la carte joueur en haut à gauche de l'accueil permet de se renommer. En **duel classé**, pseudo, tenue et **titre** (Novice, Tireur, Desperado, Légende de l'Ouest selon l'Elo) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, titre, points Elo). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
+
+Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : Elo et pièces divisés par deux au deuxième duel, plus aucun point d'Elo à partir du troisième.
 
 | Résultat | Pièces | Elo (K=32) |
 |--|--|--|
@@ -131,7 +135,7 @@ L'Elo, les pièces et les achats sont gérés côté serveur par des fonctions P
 
 ## 🤠 Tenues & inventaire
 
-Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre l'inventaire : renommage du pistolero et tenues à débloquer. Les pièces s'échangent contre des tenues qui recolorent le pistolero (chapeau, chemise, pantalon, bandana), visibles en ligne et sur le classement. Sur CrazyGames, une pub récompensée offre +25 🪙.
+Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre l'inventaire : renommage du pistolero, statistiques de carrière (duels, précision, tirs à la tête, série de victoires) et tenues à débloquer. Les pièces s'échangent contre des tenues qui recolorent le pistolero (chapeau, chemise, pantalon, bandana), visibles en ligne et sur le classement. Sur CrazyGames, une pub récompensée offre +25 🪙.
 
 | Tenue | Prix |
 |--|--|
@@ -195,7 +199,8 @@ high-noon/
 │   ├── audio.js        # Moteur audio (effets sonores synthétisés)
 │   ├── music.js        # Musique d'ambiance synthétisée
 │   ├── ui.js           # Écrans, HUD, textes
-│   ├── i18n.js         # Traductions français / anglais
+│   ├── i18n.js         # Traductions (EN, FR, ES, DE, PT, RU, TR)
+│   ├── titles.js       # Titres selon l'Elo
 │   ├── perks.js        # Avantages de remontada
 │   ├── modifiers.js    # Modificateurs de manche
 │   └── rng.js          # Générateur pseudo-aléatoire à seed partagée
