@@ -60,6 +60,39 @@ export function createViewmodel(camera) {
     flashUntil: 0
   };
 
+  const shells = [];
+  const shellGeo = new THREE.CylinderGeometry(0.011, 0.011, 0.032, 6);
+  const shellMat = mat(0xd4a017);
+
+  function ejectShell() {
+    const shell = new THREE.Mesh(shellGeo, shellMat);
+    shell.position.set(0.03, 0.02, -0.05);
+    group.add(shell);
+    shells.push({
+      mesh: shell,
+      vel: new THREE.Vector3(0.5 + Math.random() * 0.3, 0.45 + Math.random() * 0.2, 0.15 * (Math.random() - 0.3)),
+      spin: new THREE.Vector3(Math.random() * 14 - 7, Math.random() * 14 - 7, Math.random() * 14 - 7),
+      life: 0
+    });
+  }
+
+  function updateShells(dt) {
+    for (let i = shells.length - 1; i >= 0; i--) {
+      const shell = shells[i];
+      shell.life += dt;
+      if (shell.life > 1) {
+        group.remove(shell.mesh);
+        shells.splice(i, 1);
+        continue;
+      }
+      shell.vel.y -= 2.6 * dt;
+      shell.mesh.position.addScaledVector(shell.vel, dt);
+      shell.mesh.rotation.x += shell.spin.x * dt;
+      shell.mesh.rotation.y += shell.spin.y * dt;
+      shell.mesh.rotation.z += shell.spin.z * dt;
+    }
+  }
+
   function holster() {
     state.mode = "holstered";
   }
@@ -80,6 +113,9 @@ export function createViewmodel(camera) {
     state.mode = "reloading";
     state.reloadStart = state.time;
     state.reloadUntil = state.time + duration;
+    if (duration >= 0.7) {
+      ejectShell();
+    }
   }
 
   function isReady() {
@@ -88,6 +124,7 @@ export function createViewmodel(camera) {
 
   function update(dt) {
     state.time += dt;
+    updateShells(dt);
 
     if (state.mode === "holstered") {
       group.position.lerp(holsterPos, Math.min(1, dt * 10));
