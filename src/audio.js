@@ -13,6 +13,7 @@ function storedVolume(key, fallback) {
 export class AudioEngine {
   constructor() {
     this.ctx = null;
+    this.master = null;
     this.sfxGain = null;
     this.musicGain = null;
     this.sfxVolume = storedVolume("hn-sfx-vol", 0.9);
@@ -22,16 +23,29 @@ export class AudioEngine {
   ensure() {
     if (this.ctx === null) {
       this.ctx = new AudioContext();
+      this.master = this.ctx.createBiquadFilter();
+      this.master.type = "lowpass";
+      this.master.frequency.value = 20000;
+      this.master.connect(this.ctx.destination);
       this.sfxGain = this.ctx.createGain();
       this.sfxGain.gain.value = this.sfxVolume;
-      this.sfxGain.connect(this.ctx.destination);
+      this.sfxGain.connect(this.master);
       this.musicGain = this.ctx.createGain();
       this.musicGain.gain.value = this.musicVolume;
-      this.musicGain.connect(this.ctx.destination);
+      this.musicGain.connect(this.master);
     }
     if (this.ctx.state === "suspended") {
       this.ctx.resume();
     }
+  }
+
+  muffle(active) {
+    this.ensure();
+    let target = 20000;
+    if (active) {
+      target = 620;
+    }
+    this.master.frequency.setTargetAtTime(target, this.ctx.currentTime, 0.07);
   }
 
   setSfxVolume(value) {

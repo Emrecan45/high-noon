@@ -10,14 +10,10 @@ import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, createMatchmaker, createPrivateRoom } from "./net.js";
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, buySkin, equipSkin, reportResult, claimAdReward, fetchLeaderboard } from "./account.js";
+import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, buySkin, equipSkin, reportResult, recordStats, claimAdReward, fetchLeaderboard } from "./account.js";
 import { SKINS, skinById, portraitDataUrl } from "./skins.js";
+import { eloTitleKey } from "./titles.js";
 import pkg from "../package.json";
-
-const FLAG_FR =
-  '<svg viewBox="0 0 30 20"><rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#ffffff"/><rect x="20" width="10" height="20" fill="#ef4135"/></svg>';
-const FLAG_EN =
-  '<svg viewBox="0 0 30 20"><rect width="30" height="20" fill="#012169"/><path d="M0 0 L30 20 M30 0 L0 20" stroke="#ffffff" stroke-width="4"/><path d="M0 0 L30 20 M30 0 L0 20" stroke="#c8102e" stroke-width="2"/><path d="M15 0 V20 M0 10 H30" stroke="#ffffff" stroke-width="7"/><path d="M15 0 V20 M0 10 H30" stroke="#c8102e" stroke-width="4"/></svg>';
 
 const PSEUDO_RE = /^[A-Za-z0-9_ .-]{3,16}$/;
 
@@ -45,15 +41,6 @@ function el(id) {
 applyStatic();
 el("version-tag").textContent = "v" + pkg.version.split(".").slice(0, 2).join(".");
 
-function renderFlag() {
-  if (getLang() === "fr") {
-    el("btn-lang").innerHTML = FLAG_EN;
-  } else {
-    el("btn-lang").innerHTML = FLAG_FR;
-  }
-}
-renderFlag();
-
 function buildOpponentCards() {
   ui.opponentCards(PERSONAS, function (persona) {
     bootAudio();
@@ -61,14 +48,11 @@ function buildOpponentCards() {
   });
 }
 
-el("btn-lang").addEventListener("click", function () {
-  if (getLang() === "fr") {
-    setLang("en");
-  } else {
-    setLang("fr");
-  }
+const langSelect = el("lang-select");
+langSelect.value = getLang();
+langSelect.addEventListener("change", function () {
+  setLang(langSelect.value);
   applyStatic();
-  renderFlag();
   buildOpponentCards();
   renderProfileChip();
 });
@@ -178,6 +162,7 @@ async function openProfile() {
   renderProfileChip();
   el("pseudo-input").value = profile.pseudo;
   el("pseudo-error").classList.add("hidden");
+  renderStatsBlock();
   renderShop();
   if (isCrazyGames()) {
     el("btn-shop-ad").classList.remove("hidden");
@@ -207,6 +192,39 @@ el("btn-pseudo-save").addEventListener("click", async function () {
 el("btn-profile-back").addEventListener("click", function () {
   ui.showScreen("screen-title");
 });
+
+function statRow(container, label, value) {
+  const labelNode = document.createElement("span");
+  labelNode.textContent = label;
+  const valueNode = document.createElement("span");
+  valueNode.className = "stat-value";
+  valueNode.textContent = value;
+  container.appendChild(labelNode);
+  container.appendChild(valueNode);
+}
+
+function renderStatsBlock() {
+  const profile = getProfile();
+  const block = el("stats-block");
+  block.innerHTML = "";
+  statRow(block, t("statsTitle"), t(eloTitleKey(profile.elo)));
+  statRow(block, t("statsMatches"), t("statsMatchesValue", { w: profile.wins, l: profile.losses }));
+  let accuracy = "-";
+  let headPct = "-";
+  let streak = "-";
+  if (Number.isFinite(profile.shots_fired)) {
+    if (profile.shots_fired > 0) {
+      accuracy = Math.round((profile.shots_hit / profile.shots_fired) * 100) + "%";
+    }
+    if (profile.shots_hit > 0) {
+      headPct = Math.round((profile.headshots / profile.shots_hit) * 100) + "%";
+    }
+    streak = t("statsStreakValue", { cur: profile.win_streak, best: profile.best_streak });
+  }
+  statRow(block, t("statsAccuracy"), accuracy);
+  statRow(block, t("statsHead"), headPct);
+  statRow(block, t("statsStreak"), streak);
+}
 
 function setShopMsg(text) {
   const node = el("shop-coins");
@@ -329,15 +347,22 @@ function renderBoard(rows) {
     rank.textContent = "#" + (i + 1);
     const img = document.createElement("img");
     img.src = portraitDataUrl(entry.skin, 72);
+    const nameWrap = document.createElement("span");
+    nameWrap.className = "board-name";
     const pseudo = document.createElement("span");
     pseudo.className = "board-pseudo";
     pseudo.textContent = entry.pseudo;
+    const title = document.createElement("span");
+    title.className = "board-title";
+    title.textContent = t(eloTitleKey(entry.elo));
+    nameWrap.appendChild(pseudo);
+    nameWrap.appendChild(title);
     const elo = document.createElement("span");
     elo.className = "board-elo";
     elo.textContent = entry.elo;
     row.appendChild(rank);
     row.appendChild(img);
-    row.appendChild(pseudo);
+    row.appendChild(nameWrap);
     row.appendChild(elo);
     list.appendChild(row);
   }
@@ -375,17 +400,18 @@ function backToMenu() {
 function duelProfile() {
   const profile = getProfile();
   if (profile === null) {
-    return { pseudo: localPseudo(), skin: "drifter", elo: 1000 };
+    return { id: null, pseudo: localPseudo(), skin: "drifter", elo: 1000 };
   }
-  return { pseudo: profile.pseudo, skin: profile.skin, elo: profile.elo };
+  return { id: profile.id, pseudo: profile.pseudo, skin: profile.skin, elo: profile.elo };
 }
 
 function handleResult(ranked) {
-  return function (won, oppElo) {
+  return function (won, oppElo, stats, oppId) {
     if (getProfile() === null || !netAvailable()) {
       return;
     }
-    reportResult(won, ranked, oppElo).then(function (result) {
+    recordStats(stats, won);
+    reportResult(won, ranked, oppElo, oppId).then(function (result) {
       if (result === null) {
         return;
       }
@@ -429,7 +455,11 @@ function startAiDuel(persona) {
   activeDuel.start();
 }
 
-function startNetDuel(room, ranked) {
+function startNetDuel(room, ranked, friendly) {
+  let onResult = handleResult(ranked);
+  if (friendly) {
+    onResult = null;
+  }
   activeDuel = new Duel({
     arena: arena,
     ui: ui,
@@ -443,7 +473,7 @@ function startNetDuel(room, ranked) {
     isTouch: isTouch,
     ranked: ranked,
     profile: duelProfile(),
-    onResult: handleResult(ranked),
+    onResult: onResult,
     onExit: backToMenu
   });
   activeDuel.start();
@@ -481,7 +511,7 @@ function startSearch() {
   matchmaker.search({
     onMatched: function (room) {
       stopSearch();
-      startNetDuel(room, true);
+      startNetDuel(room, true, false);
     },
     onPairFailed: function () {},
     onError: function () {
@@ -532,7 +562,7 @@ function openFriendRoom(rawCode, hosting) {
       friendCode = null;
       hideInviteButton();
       stopSearch();
-      startNetDuel(room, false);
+      startNetDuel(room, false, true);
     },
     onError: function () {
       stopSearch();
@@ -618,11 +648,15 @@ function loop() {
   const now = performance.now();
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
-  arena.update(dt);
-  cowboy.update(dt);
-  viewmodel.update(dt);
+  let scaled = dt;
   if (activeDuel !== null) {
-    activeDuel.update(now, dt);
+    scaled = dt * activeDuel.timeScale(now);
+  }
+  arena.update(scaled);
+  cowboy.update(scaled);
+  viewmodel.update(scaled);
+  if (activeDuel !== null) {
+    activeDuel.update(now, scaled);
   }
   arena.renderer.render(arena.scene, arena.camera);
 }

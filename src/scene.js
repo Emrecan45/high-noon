@@ -172,16 +172,20 @@ export function createArena(container) {
   moonDisc.visible = false;
   scene.add(moonDisc);
 
+  const impactTargets = [ground];
+
   const buildingColors = [0x8a5a2e, 0x74522f, 0x9c6b38, 0x6b4a26, 0x84603a];
   for (let i = 0; i < 6; i++) {
     const left = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[i % buildingColors.length], i % 2 === 0);
     left.position.set(-9.5, 0, -26 + i * 10);
     left.rotation.y = Math.PI / 2;
     scene.add(left);
+    impactTargets.push(left);
     const right = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[(i + 2) % buildingColors.length], i % 2 === 1);
     right.position.set(9.5, 0, -22 + i * 10);
     right.rotation.y = -Math.PI / 2;
     scene.add(right);
+    impactTargets.push(right);
   }
 
   const cactusSpots = [
@@ -200,6 +204,7 @@ export function createArena(container) {
     const barrel = makeBarrel();
     barrel.position.set(spot[0], 0, spot[1]);
     scene.add(barrel);
+    impactTargets.push(barrel);
   }
 
   const tower = makeWaterTower();
@@ -220,6 +225,80 @@ export function createArena(container) {
   let fogFarNormal = 22;
   let fogFarThick = 22;
   let fogPulseAmount = 0;
+
+  const bursts = [];
+  const chipGeo = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+
+  function castEnvironment(raycaster) {
+    const hits = raycaster.intersectObjects(impactTargets, true);
+    if (hits.length === 0) {
+      return null;
+    }
+    const hit = hits[0];
+    let kind = "wood";
+    if (hit.object === ground) {
+      kind = "dust";
+    }
+    return { point: hit.point, kind: kind };
+  }
+
+  function spawnImpact(point, kind) {
+    let color = 0x6b4a26;
+    let count = 7;
+    let speed = 2.4;
+    if (kind === "dust") {
+      color = 0xcfa36a;
+      count = 9;
+      speed = 1.6;
+    }
+    const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.95 });
+    const parts = [];
+    for (let i = 0; i < count; i++) {
+      const mesh = new THREE.Mesh(chipGeo, material);
+      mesh.position.copy(point);
+      const scale = 0.5 + Math.random() * 0.9;
+      mesh.scale.setScalar(scale);
+      scene.add(mesh);
+      parts.push({
+        mesh: mesh,
+        vel: new THREE.Vector3(
+          (Math.random() - 0.5) * speed * 2,
+          Math.random() * speed * 1.4 + 0.6,
+          (Math.random() - 0.5) * speed * 2
+        ),
+        spin: new THREE.Vector3(Math.random() * 8 - 4, Math.random() * 8 - 4, Math.random() * 8 - 4)
+      });
+    }
+    bursts.push({ parts: parts, material: material, life: 0, maxLife: 0.75 });
+  }
+
+  function updateBursts(dt) {
+    for (let i = bursts.length - 1; i >= 0; i--) {
+      const burst = bursts[i];
+      burst.life += dt;
+      const fade = 1 - burst.life / burst.maxLife;
+      if (fade <= 0) {
+        for (const part of burst.parts) {
+          scene.remove(part.mesh);
+        }
+        burst.material.dispose();
+        bursts.splice(i, 1);
+        continue;
+      }
+      burst.material.opacity = fade * 0.95;
+      for (const part of burst.parts) {
+        part.vel.y -= 7.5 * dt;
+        part.mesh.position.addScaledVector(part.vel, dt);
+        if (part.mesh.position.y < 0.02) {
+          part.mesh.position.y = 0.02;
+          part.vel.set(0, 0, 0);
+        }
+        part.mesh.rotation.x += part.spin.x * dt;
+        part.mesh.rotation.y += part.spin.y * dt;
+        part.mesh.rotation.z += part.spin.z * dt;
+      }
+    }
+  }
 
   function applyModifier(mod, distanceMeters) {
     windy = mod.sway > 0;
@@ -270,6 +349,7 @@ export function createArena(container) {
 
   function update(dt) {
     elapsed += dt;
+    updateBursts(dt);
     let interval = 8;
     if (windy) {
       interval = 2.5;
@@ -318,6 +398,8 @@ export function createArena(container) {
     sunDisc: sunDisc,
     applyModifier: applyModifier,
     setFogPulse: setFogPulse,
+    castEnvironment: castEnvironment,
+    spawnImpact: spawnImpact,
     update: update
   };
 }

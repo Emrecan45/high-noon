@@ -84,6 +84,10 @@ export function createUi() {
     el("round-label").textContent = text;
   }
 
+  function setOppTag(text) {
+    el("opp-tag").textContent = text;
+  }
+
   function setHearts(count) {
     let hearts = "";
     for (let i = 0; i < count; i++) {
@@ -230,6 +234,7 @@ export function createUi() {
     setSub: setSub,
     setScore: setScore,
     setRoundLabel: setRoundLabel,
+    setOppTag: setOppTag,
     setHearts: setHearts,
     setDodges: setDodges,
     setGunState: setGunState,

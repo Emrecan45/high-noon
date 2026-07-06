@@ -27,6 +27,14 @@ html, body {
   display: block;
 }
 
+#game {
+  transition: filter 0.25s;
+}
+
+body.killcam #game {
+  filter: sepia(0.75) saturate(0.7) contrast(1.1) brightness(0.95);
+}
+
 .hidden {
   display: none !important;
 }
@@ -84,23 +92,20 @@ html, body {
   accent-color: #e8b64c;
 }
 
-#btn-lang {
-  background: none;
+#lang-select {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: 14px;
+  color: #f3e4c2;
+  background: #241608;
   border: 2px solid #7a4c15;
   border-radius: 4px;
-  padding: 3px 5px;
+  padding: 4px 6px;
   cursor: pointer;
-  line-height: 0;
+  outline: none;
 }
 
-#btn-lang:hover {
+#lang-select:hover {
   border-color: #e8b64c;
-}
-
-#btn-lang svg {
-  width: 30px;
-  height: 20px;
-  display: block;
 }
 
 #version-tag {
@@ -293,6 +298,18 @@ h2 {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
 }
 
+#opp-tag {
+  position: absolute;
+  top: 86px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #b98d4f;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
 #bigmsg {
   position: absolute;
   top: 17%;
@@ -363,39 +380,39 @@ h2 {
 
 #hearts {
   position: absolute;
-  right: 28px;
-  bottom: 22px;
+  right: 30px;
+  bottom: 24px;
   color: #ff5040;
-  letter-spacing: 7px;
-  font-size: 40px;
+  letter-spacing: 9px;
+  font-size: 54px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 #hearts .hp-label {
-  font-size: 16px;
-  letter-spacing: 2px;
+  font-size: 21px;
+  letter-spacing: 3px;
   color: #e0a89c;
 }
 
 #dodges {
   position: absolute;
-  left: 28px;
-  bottom: 28px;
+  left: 30px;
+  bottom: 30px;
   color: #7fd0ff;
-  letter-spacing: 5px;
-  font-size: 28px;
+  letter-spacing: 7px;
+  font-size: 40px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 #dodges .dodge-label {
-  font-size: 18px;
-  letter-spacing: 2px;
+  font-size: 22px;
+  letter-spacing: 3px;
   color: #a8c9e0;
 }
 
@@ -407,14 +424,14 @@ h2 {
 
 .key-hint kbd {
   font-family: "Special Elite", Georgia, serif;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1;
   color: #dfe9f2;
   background: rgba(20, 14, 8, 0.75);
   border: 1px solid rgba(127, 208, 255, 0.55);
   border-bottom-width: 3px;
   border-radius: 4px;
-  padding: 4px 7px;
+  padding: 5px 8px;
 }
 
 body.touch .key-hint {
@@ -423,18 +440,18 @@ body.touch .key-hint {
 
 body.touch #hearts {
   bottom: 158px;
-  font-size: 32px;
-  letter-spacing: 5px;
+  font-size: 40px;
+  letter-spacing: 6px;
 }
 
 body.touch #dodges {
   bottom: 158px;
-  font-size: 22px;
-  letter-spacing: 3px;
+  font-size: 30px;
+  letter-spacing: 4px;
 }
 
 body.touch #dodges .dodge-label {
-  font-size: 15px;
+  font-size: 18px;
 }
 
 body.touch #submsg {
@@ -621,9 +638,9 @@ body.touch #gunstate {
     width: 56px;
   }
 
-  #btn-lang svg {
-    width: 22px;
-    height: 15px;
+  #lang-select {
+    font-size: 11px;
+    padding: 2px 4px;
   }
 
   .footer-note {
@@ -646,6 +663,10 @@ body.touch #gunstate {
     top: 32px;
     font-size: 10px;
     letter-spacing: 2px;
+  }
+
+  #opp-tag {
+    display: none;
   }
 
   #bigmsg {
@@ -758,6 +779,24 @@ body.touch #gunstate {
   color: #8fd48a;
 }
 
+.stats-grid {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 4px 26px;
+  font-size: 14px;
+  color: #cdb491;
+  background: rgba(26, 16, 7, 0.6);
+  border: 2px solid #4a3018;
+  border-radius: 8px;
+  padding: 10px 18px;
+  text-align: left;
+}
+
+.stats-grid .stat-value {
+  color: #e8b64c;
+  text-align: right;
+}
+
 #friend-block {
   display: flex;
   flex-direction: column;
@@ -843,12 +882,26 @@ body.touch #gunstate {
   font-size: 15px;
 }
 
-.board-pseudo {
+.board-name {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  overflow: hidden;
+}
+
+.board-pseudo {
   color: #f3e4c2;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.board-title {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #9a7c52;
 }
 
 .board-elo {
