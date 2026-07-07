@@ -11,15 +11,13 @@ import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, listenChallenges, sendChallenge } from "./net.js";
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
+import { initAccount, getProfile, ensureAccount, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
 import { SKINS, skinById, portraitDataUrl } from "./skins.js";
 import { ACCESSORIES, accessoryById, accessoryIconDataUrl } from "./accessories.js";
 import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
 import { patchNotes, legalPage } from "./pages.js";
 import pkg from "../package.json";
-
-const PSEUDO_RE = /^[A-Za-z0-9_ .-]{3,16}$/;
 
 const arena = createArena(document.getElementById("game"));
 const cowboy = createCowboy();
@@ -67,9 +65,7 @@ langSelect.addEventListener("change", function () {
   renderFriends();
   drawWheel();
   updatePlayersOnline();
-  if (!el("screen-challenges").classList.contains("hidden")) {
-    renderChallenges();
-  }
+  renderChallenges();
   if (!el("screen-patch").classList.contains("hidden")) {
     renderPatchNotes();
   }
@@ -100,6 +96,16 @@ document.addEventListener("touchstart", bootAudio, { once: true, capture: true, 
 document.addEventListener("mousedown", bootAudio, { once: true, capture: true });
 document.addEventListener("click", bootAudio, { once: true, capture: true });
 document.addEventListener("keydown", bootAudio, { once: true, capture: true });
+
+document.addEventListener("click", function (e) {
+  if (!audioBooted || activeDuel !== null) {
+    return;
+  }
+  const hit = e.target.closest(".btn, .ch-tab, .friend-btn");
+  if (hit !== null && !hit.disabled) {
+    audio.uiClick();
+  }
+});
 
 function attemptAutoAudio() {
   if (audioBooted) {
@@ -205,22 +211,6 @@ async function accountReady() {
     initSocial();
   }
   return profile;
-}
-
-function showPseudoMsg(kind) {
-  const node = el("pseudo-error");
-  node.classList.remove("ok-text");
-  if (kind === "saved") {
-    node.textContent = t("pseudoSaved");
-    node.classList.add("ok-text");
-  } else if (kind === "taken") {
-    node.textContent = t("accountTaken");
-  } else if (kind === "invalid") {
-    node.textContent = t("accountInvalid");
-  } else {
-    node.textContent = t("accountError");
-  }
-  node.classList.remove("hidden");
 }
 
 function mountViewer(containerId) {
@@ -357,6 +347,7 @@ function renderInventory() {
       if (isEquipped) {
         return;
       }
+      audio.equip();
       await equipSkin(skin.id);
       renderProfileChip();
       renderInventory();
@@ -372,6 +363,7 @@ function renderInventory() {
       if (isEquipped) {
         return;
       }
+      audio.equip();
       await equipWeapon(weapon.id);
       renderInventory();
       refreshViewerModel();
@@ -396,6 +388,7 @@ function renderInventory() {
         });
         next.push(acc.id);
       }
+      audio.equip();
       await equipAccessories(next);
       renderInventory();
       refreshViewerModel();
@@ -410,8 +403,7 @@ async function openProfile() {
     alert(t("connectError"));
     return;
   }
-  el("pseudo-input").value = profile.pseudo;
-  el("pseudo-error").classList.add("hidden");
+  el("profile-name").textContent = profile.pseudo;
   renderStatsBlock();
   ui.showScreen("screen-profile");
   mountViewer("profile-view");
@@ -430,23 +422,6 @@ el("btn-customize").addEventListener("click", openInventory);
 el("btn-inv-back").addEventListener("click", function () {
   ui.showScreen("screen-profile");
   mountViewer("profile-view");
-});
-
-el("btn-pseudo-save").addEventListener("click", async function () {
-  const pseudo = el("pseudo-input").value.trim();
-  if (!PSEUDO_RE.test(pseudo)) {
-    showPseudoMsg("invalid");
-    return;
-  }
-  el("btn-pseudo-save").disabled = true;
-  const result = await renamePseudo(pseudo);
-  el("btn-pseudo-save").disabled = false;
-  if (result.ok) {
-    showPseudoMsg("saved");
-    renderProfileChip();
-  } else {
-    showPseudoMsg(result.reason);
-  }
 });
 
 el("btn-profile-back").addEventListener("click", function () {
@@ -583,6 +558,7 @@ el("btn-spin").addEventListener("click", async function () {
   }
   wheelAngle += 4 * 360 + delta;
   el("wheel-canvas").style.transform = "rotate(" + wheelAngle + "deg)";
+  audio.whoosh();
   setTimeout(function () {
     spinning = false;
     el("btn-spin").disabled = false;
@@ -594,8 +570,10 @@ el("btn-spin").addEventListener("click", async function () {
       }
     }
     if (result.duplicate) {
+      audio.coin();
       resultNode.textContent = t("wheelDup", { item: t(nameKey) });
     } else {
+      audio.wheelWin();
       resultNode.textContent = t("wheelNew", { item: t(nameKey) });
     }
     resultNode.classList.remove("hidden");
@@ -637,6 +615,7 @@ function initSocial() {
   });
   listenChallenges(profile.id, onChallenge);
   refreshFriends();
+  refreshChallenges();
   updatePlayersOnline();
   setInterval(refreshFriends, 30000);
 }
@@ -916,7 +895,6 @@ function startAiDuel(persona) {
   cowboy.setAccessories([]);
   cowboy.setWeapon(weaponById("iron").colors);
   applyMyWeapon();
-  music.setMode("combat");
   const ai = new AiOpponent(persona, createRng(randomSeed()));
   activeDuel = new Duel({
     arena: arena,
@@ -932,14 +910,19 @@ function startAiDuel(persona) {
     ranked: false,
     profile: duelProfile(),
     onResult: handleResult(false),
+    onCombat: startCombatMusic,
     onExit: backToMenu
   });
   activeDuel.start();
   refreshCoins();
 }
 
-function startNetDuel(room, ranked, friendly) {
+function startCombatMusic() {
+  bootAudio();
   music.setMode("combat");
+}
+
+function startNetDuel(room, ranked, friendly) {
   applyMyWeapon();
   let onResult = handleResult(ranked);
   if (friendly) {
@@ -959,6 +942,7 @@ function startNetDuel(room, ranked, friendly) {
     ranked: ranked,
     profile: duelProfile(),
     onResult: onResult,
+    onCombat: startCombatMusic,
     onExit: backToMenu
   });
   activeDuel.start();
@@ -1329,19 +1313,18 @@ async function doClaim(period, index, btn) {
     btn.disabled = false;
     return;
   }
+  bootAudio();
+  audio.coin();
   challengeData = await challengeState();
   renderProfileChip();
   renderChallenges();
 }
 
-async function openChallenges() {
-  bootAudio();
-  ui.showScreen("screen-challenges");
-  el("ch-list").innerHTML = "";
-  el("ch-msg").textContent = "…";
-  el("ch-msg").classList.remove("hidden");
-  const profile = await accountReady();
-  if (profile === null) {
+async function refreshChallenges() {
+  if (!netAvailable()) {
+    return;
+  }
+  if (getProfile() === null) {
     challengeData = null;
     renderChallenges();
     return;
@@ -1349,12 +1332,6 @@ async function openChallenges() {
   challengeData = await challengeState();
   renderChallenges();
 }
-
-el("btn-challenges").addEventListener("click", openChallenges);
-
-el("btn-challenges-back").addEventListener("click", function () {
-  ui.showScreen("screen-title");
-});
 
 el("ch-tab-daily").addEventListener("click", function () {
   challengePeriod = "daily";
@@ -1364,6 +1341,10 @@ el("ch-tab-daily").addEventListener("click", function () {
 el("ch-tab-weekly").addEventListener("click", function () {
   challengePeriod = "weekly";
   renderChallenges();
+});
+
+el("challenges-toggle").addEventListener("click", function () {
+  el("challenges-bar").classList.toggle("open");
 });
 
 function openLegal(kind) {
@@ -1379,10 +1360,6 @@ el("lnk-terms").addEventListener("click", function () {
 
 el("lnk-privacy").addEventListener("click", function () {
   openLegal("privacy");
-});
-
-el("lnk-contact").addEventListener("click", function () {
-  openLegal("contact");
 });
 
 el("legal-close").addEventListener("click", function () {
@@ -1438,7 +1415,10 @@ async function boot() {
   if (netAvailable()) {
     el("friends-bar").classList.remove("hidden");
     el("friends-toggle").classList.remove("hidden");
+    el("challenges-bar").classList.remove("hidden");
+    el("challenges-toggle").classList.remove("hidden");
     renderFriends();
+    renderChallenges();
     initSocial();
   }
   loadingStop();
