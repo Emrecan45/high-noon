@@ -4,7 +4,7 @@ import { pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
-import { skinById } from "./skins.js";
+import { skinById, portraitDataUrl } from "./skins.js";
 import { weaponById } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
@@ -15,6 +15,7 @@ const FAST_RELOAD = 780;
 const COCK_DELAY = 550;
 const DODGE_DURATION = 750;
 const DODGE_RECOVERY = 350;
+const DODGE_STEP = 2.6;
 const SPURS_RECOVERY = 120;
 const ROUND_TIMEOUT = 12000;
 const SWAY_BASE = 0.028;
@@ -46,6 +47,7 @@ export class Duel {
     this.onResult = deps.onResult;
     this.oppElo = 1000;
     this.oppId = null;
+    this.oppSkin = "drifter";
     this.opponentName = t("theOpponent");
     if (this.mode === "ai") {
       this.opponentName = this.ai.name.toUpperCase();
@@ -244,7 +246,51 @@ export class Duel {
 
     gameplayStart();
     this.startBackgroundTick();
-    this.beginRoundSync();
+    this.presentDuel();
+  }
+
+  presentDuel() {
+    const self = this;
+    let delay = 0;
+    if (this.net !== null) {
+      delay = 750;
+    }
+    setTimeout(function () {
+      if (self.disposed) {
+        return;
+      }
+      self.showIntro();
+    }, delay);
+  }
+
+  oppSubtitle() {
+    if (this.mode === "ai") {
+      return t("duelOutlaw");
+    }
+    return t(eloTitleKey(this.oppElo));
+  }
+
+  showIntro() {
+    const self = this;
+    const you = {
+      name: this.myProfile.pseudo,
+      title: t(eloTitleKey(this.myProfile.elo)),
+      portrait: portraitDataUrl(this.myProfile.skin, 340)
+    };
+    const opp = {
+      name: this.opponentName,
+      title: this.oppSubtitle(),
+      portrait: portraitDataUrl(this.oppSkin, 340)
+    };
+    this.audio.wind();
+    this.audio.duelBell();
+    this.audio.crow();
+    this.ui.duelIntro({ you: you, opp: opp }, function () {
+      if (self.disposed) {
+        return;
+      }
+      self.beginRoundSync();
+    });
   }
 
   startBackgroundTick() {
@@ -884,7 +930,7 @@ export class Duel {
       document.exitPointerLock();
     }
     this.state = "matchend";
-    this.ui.matchEnd(title, { flavor: flavor, score: score }, function () {
+    this.ui.matchEnd(title, { flavor: flavor, score: score, stats: this.matchStats }, function () {
       self.requestRematch();
     }, function () {
       self.exit();
@@ -941,6 +987,7 @@ export class Duel {
       if (typeof payload.id === "string" && payload.id.length > 10) {
         this.oppId = payload.id;
       }
+      this.oppSkin = payload.skin;
       this.cowboy.setSkin(skinById(payload.skin).colors);
       this.cowboy.setAccessories(payload.acc);
       this.cowboy.setWeapon(weaponById(payload.weapon).colors);
@@ -1355,17 +1402,30 @@ export class Duel {
     camera.rotation.x = this.aimPitch + shakePitch;
 
     let targetX = 0;
+    let dodgeRoll = 0;
+    let dodgeDip = 0;
     if (this.round !== null && this.round.dodgeStart > 0) {
       const elapsed = now - this.round.dodgeStart;
       const total = DODGE_DURATION + DODGE_RECOVERY;
       if (elapsed < total) {
         const phase = elapsed / total;
-        targetX = Math.sin(phase * Math.PI) * 1.3 * this.round.dodgeDir;
+        let e = 0;
+        if (phase < 0.26) {
+          const p = phase / 0.26;
+          e = p * (2 - p);
+        } else if (phase < 0.6) {
+          e = 1;
+        } else {
+          e = 1 - (phase - 0.6) / 0.4;
+        }
+        targetX = e * DODGE_STEP * this.round.dodgeDir;
+        dodgeRoll = e * 0.16 * this.round.dodgeDir;
+        dodgeDip = Math.sin(phase * Math.PI) * 0.14;
       } else {
         this.round.dodgeStart = -1;
       }
     }
-    rig.position.x += (targetX - rig.position.x) * Math.min(1, dt * 12);
+    rig.position.x += (targetX - rig.position.x) * Math.min(1, dt * 16);
 
     if (this.round !== null && this.round.playerDead) {
       this.round.deathAnimT = Math.min(1, this.round.deathAnimT + dt * 1.4);
@@ -1373,8 +1433,8 @@ export class Duel {
       rig.position.y = 1.6 - e * 1.1;
       camera.rotation.z = e * 0.6;
     } else {
-      rig.position.y = 1.6;
-      camera.rotation.z = 0;
+      rig.position.y = 1.6 - dodgeDip;
+      camera.rotation.z = -dodgeRoll;
     }
   }
 
@@ -1393,6 +1453,10 @@ export class Duel {
     if (this.bgTimer !== null) {
       clearInterval(this.bgTimer);
       this.bgTimer = null;
+    }
+    const intro = document.getElementById("screen-duelintro");
+    if (intro !== null) {
+      intro.classList.add("hidden");
     }
     for (const entry of this.listeners) {
       entry[0].removeEventListener(entry[1], entry[2]);
