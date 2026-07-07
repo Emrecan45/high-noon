@@ -88,6 +88,13 @@ function ensurePortraitKit() {
   return portraitKit;
 }
 
+function bustCamera(kit) {
+  kit.camera.position.set(0.18, 1.66, 1.95);
+  kit.camera.lookAt(0, 1.54, 0);
+  kit.camera.aspect = 1;
+  kit.camera.updateProjectionMatrix();
+}
+
 export function portraitDataUrl(skinId, size) {
   const key = skinId + "@" + size;
   const cached = portraitCache.get(key);
@@ -97,9 +104,33 @@ export function portraitDataUrl(skinId, size) {
   const kit = ensurePortraitKit();
   kit.model.setSkin(skinById(skinId).colors);
   kit.model.setAccessories([]);
+  bustCamera(kit);
   kit.renderer.setSize(size, size, false);
   kit.renderer.render(kit.scene, kit.camera);
   const url = kit.renderer.domElement.toDataURL();
   portraitCache.set(key, url);
+  return url;
+}
+
+const figureCache = new Map();
+
+export function figureDataUrl(skinId, w, h) {
+  const key = skinId + "@fig" + w + "x" + h;
+  const cached = figureCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const kit = ensurePortraitKit();
+  kit.model.setSkin(skinById(skinId).colors);
+  kit.model.setAccessories([]);
+  kit.camera.position.set(0.32, 1.05, 3.7);
+  kit.camera.lookAt(0, 0.9, 0);
+  kit.camera.aspect = w / h;
+  kit.camera.updateProjectionMatrix();
+  kit.renderer.setSize(w, h, false);
+  kit.renderer.render(kit.scene, kit.camera);
+  const url = kit.renderer.domElement.toDataURL();
+  figureCache.set(key, url);
+  bustCamera(kit);
   return url;
 }

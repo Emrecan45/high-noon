@@ -629,12 +629,10 @@ body.touch #gunstate {
 
 .di-top {
   top: 0;
-  transform: translateY(-100%);
 }
 
 .di-bottom {
   bottom: 0;
-  transform: translateY(100%);
 }
 
 .di-sun {
@@ -649,113 +647,158 @@ body.touch #gunstate {
   z-index: 1;
 }
 
-.di-stage {
-  position: relative;
+.di-walk {
+  position: absolute;
+  inset: 0;
   z-index: 2;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: min(6vw, 70px);
-  width: 100%;
-  max-width: 1080px;
-  padding: 0 18px;
+  gap: min(12vw, 160px);
+  padding-bottom: 9vh;
+  opacity: 0;
+  transition: opacity 0.5s ease;
 }
 
-.di-side {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.di-name {
-  font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(20px, 4vw, 40px);
-  color: #f3e4c2;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  text-shadow: 0 3px 0 #3a2008, 0 0 18px rgba(232, 182, 76, 0.5);
-}
-
-.di-title {
-  font-family: "Special Elite", Georgia, serif;
-  font-size: clamp(11px, 1.6vw, 15px);
-  color: #e8b64c;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 8px;
+#screen-duelintro.p-walk .di-walk,
+#screen-duelintro.p-vs .di-walk {
+  opacity: 1;
 }
 
 .di-fig {
-  width: clamp(120px, 22vw, 240px);
+  width: clamp(140px, 21vw, 270px);
   height: auto;
-  filter: drop-shadow(0 12px 22px rgba(0, 0, 0, 0.6));
+  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.65));
 }
 
-.di-opp .di-fig {
+.di-fig-opp {
   transform: scaleX(-1);
 }
 
-.di-center {
+#screen-duelintro.p-walk .di-fig-you {
+  animation: diWalkYou 2.4s ease-out both;
+}
+
+#screen-duelintro.p-walk .di-fig-opp {
+  animation: diWalkOpp 2.4s ease-out both;
+}
+
+.di-closeup {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
   display: flex;
   flex-direction: column;
   align-items: center;
-  align-self: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 14px;
+  opacity: 0;
+}
+
+.di-close-you {
+  background: radial-gradient(circle at 42% 45%, rgba(232, 150, 60, 0.28), transparent 60%);
+}
+
+.di-close-opp {
+  background: radial-gradient(circle at 58% 45%, rgba(180, 44, 32, 0.28), transparent 60%);
+}
+
+#screen-duelintro.p-you .di-close-you {
+  animation: diCloseInL 0.5s ease both;
+}
+
+#screen-duelintro.p-opp .di-close-opp {
+  animation: diCloseInR 0.5s ease both;
+}
+
+.di-head {
+  width: clamp(170px, 30vw, 300px);
+  height: auto;
+  border-radius: 14px;
+  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.7));
+}
+
+.di-cu-info {
+  text-align: center;
+}
+
+.di-cu-name {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: clamp(28px, 6vw, 56px);
+  color: #f3e4c2;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 0 3px 0 #3a2008, 0 0 22px rgba(232, 182, 76, 0.6);
+}
+
+.di-cu-title {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: clamp(12px, 2vw, 18px);
+  color: #e8b64c;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.di-versus {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+#screen-duelintro.p-vs .di-versus {
+  opacity: 1;
+}
+
+#screen-duelintro.p-vs .di-vs {
+  animation: diPop 0.5s ease both;
 }
 
 .di-vs {
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(34px, 7vw, 72px);
+  font-size: clamp(40px, 8vw, 84px);
   color: #e8b64c;
-  text-shadow: 0 4px 0 #5a3410, 0 0 24px rgba(232, 182, 76, 0.7);
+  text-shadow: 0 4px 0 #5a3410, 0 0 28px rgba(232, 182, 76, 0.75);
 }
 
 .di-tag {
   font-family: "Special Elite", Georgia, serif;
-  font-size: clamp(10px, 1.5vw, 14px);
+  font-size: clamp(11px, 1.6vw, 15px);
   letter-spacing: 3px;
   color: #cdb491;
   text-transform: uppercase;
 }
 
-#screen-duelintro.show .di-top {
-  animation: diBarTop 0.5s ease forwards;
+@keyframes diWalkYou {
+  0% { transform: translateX(-45vw) translateY(0); }
+  25% { transform: translateX(-33vw) translateY(-9px); }
+  50% { transform: translateX(-22vw) translateY(0); }
+  75% { transform: translateX(-11vw) translateY(-9px); }
+  100% { transform: translateX(0) translateY(0); }
 }
 
-#screen-duelintro.show .di-bottom {
-  animation: diBarBottom 0.5s ease forwards;
+@keyframes diWalkOpp {
+  0% { transform: scaleX(-1) translateX(-45vw) translateY(0); }
+  25% { transform: scaleX(-1) translateX(-33vw) translateY(-9px); }
+  50% { transform: scaleX(-1) translateX(-22vw) translateY(0); }
+  75% { transform: scaleX(-1) translateX(-11vw) translateY(-9px); }
+  100% { transform: scaleX(-1) translateX(0) translateY(0); }
 }
 
-#screen-duelintro.show .di-you {
-  animation: diInLeft 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-#screen-duelintro.show .di-opp {
-  animation: diInRight 0.75s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-#screen-duelintro.show .di-center {
-  animation: diPop 0.5s ease 0.55s both;
-}
-
-@keyframes diBarTop {
-  from { transform: translateY(-100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes diBarBottom {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes diInLeft {
-  from { opacity: 0; transform: translateX(-60vw); }
+@keyframes diCloseInL {
+  from { opacity: 0; transform: translateX(-8vw); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes diInRight {
-  from { opacity: 0; transform: translateX(60vw); }
+@keyframes diCloseInR {
+  from { opacity: 0; transform: translateX(8vw); }
   to { opacity: 1; transform: translateX(0); }
 }
 
@@ -816,6 +859,99 @@ body.touch #gunstate {
 
 .legal-sep {
   color: #5a4326;
+}
+
+#challenges-bar {
+  position: absolute;
+  top: max(96px, calc(env(safe-area-inset-top) + 88px));
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 14px));
+  right: max(16px, env(safe-area-inset-right));
+  width: 262px;
+  background: rgba(20, 12, 6, 0.88);
+  border: 2px solid #7a4c15;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+  text-align: left;
+  z-index: 25;
+}
+
+#challenges-bar h3 {
+  font-family: "Rye", "Special Elite", serif;
+  color: #e8b64c;
+  font-size: 18px;
+  letter-spacing: 2px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+#challenges-bar .ch-tabs {
+  flex-shrink: 0;
+  justify-content: center;
+}
+
+#challenges-bar .ch-tab {
+  padding: 6px 16px;
+  font-size: 12px;
+}
+
+#challenges-bar .ch-list {
+  flex: 1;
+  min-height: 0;
+  max-height: none;
+  width: auto;
+}
+
+#challenges-bar .ch-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+#challenges-bar .ch-reward {
+  align-self: center;
+}
+
+#challenges-bar .ch-msg {
+  font-size: 13px;
+  color: #cdb491;
+  text-align: center;
+}
+
+#challenges-toggle {
+  display: none;
+  position: fixed;
+  right: max(16px, env(safe-area-inset-right));
+  top: max(90px, calc(env(safe-area-inset-top) + 82px));
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-size: 20px;
+  background: rgba(232, 182, 76, 0.92);
+  border: 3px solid #7a4c15;
+  cursor: pointer;
+  z-index: 30;
+}
+
+@media (max-width: 1080px) {
+  #challenges-bar:not(.open) {
+    display: none;
+  }
+
+  #challenges-bar.open {
+    position: fixed;
+    z-index: 40;
+  }
+
+  #challenges-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .ch-tabs {

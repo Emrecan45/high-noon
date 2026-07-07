@@ -286,6 +286,8 @@ export async function spinWheel() {
   if (!data.duplicate) {
     if (data.kind === "skin") {
       owned.add(data.ref);
+    } else if (data.kind === "weapon") {
+      ownedWeapons.add(data.ref);
     } else {
       ownedAcc.add(data.ref);
     }

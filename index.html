@@ -66,13 +66,22 @@
       </div>
     </div>
     <button id="friends-toggle" class="hidden" aria-label="Friends">🤝</button>
+    <div id="challenges-bar" class="hidden">
+      <h3 data-i18n="challengesTitle"></h3>
+      <div class="ch-tabs">
+        <button id="ch-tab-daily" class="ch-tab active" data-i18n="challengesDaily"></button>
+        <button id="ch-tab-weekly" class="ch-tab" data-i18n="challengesWeekly"></button>
+      </div>
+      <div id="ch-list" class="ch-list"></div>
+      <p id="ch-msg" class="ch-msg hidden"></p>
+    </div>
+    <button id="challenges-toggle" class="hidden" aria-label="Challenges">🎯</button>
     <h1 class="logo">HIGH NOON</h1>
     <p class="tagline" data-i18n="tagline"></p>
     <div class="menu">
       <button id="btn-ranked" class="btn" data-i18n="btnRanked"></button>
       <button id="btn-ai" class="btn" data-i18n="btnAi"></button>
       <div class="btn-row">
-        <button id="btn-challenges" class="btn btn-small" data-i18n="btnChallenges"></button>
         <button id="btn-shop" class="btn btn-small" data-i18n="btnShop"></button>
         <button id="btn-board" class="btn btn-small" data-i18n="btnBoard"></button>
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
@@ -87,8 +96,6 @@
         <a id="lnk-terms" data-i18n="legalTerms"></a>
         <span class="legal-sep">·</span>
         <a id="lnk-privacy" data-i18n="legalPrivacy"></a>
-        <span class="legal-sep">·</span>
-        <a id="lnk-contact" data-i18n="legalContact"></a>
         <span class="legal-sep">·</span>
         <span id="version-tag"></span>
       </p>
@@ -113,18 +120,13 @@
   </div>
 
   <div id="screen-profile" class="screen hidden">
-    <h2 data-i18n="profileTitle"></h2>
+    <h2 id="profile-name"></h2>
     <div class="profile-layout">
       <div class="profile-left">
         <div id="profile-view"></div>
         <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
       </div>
       <div class="profile-right">
-        <div class="pseudo-row">
-          <input id="pseudo-input" type="text" maxlength="16" autocomplete="off" />
-          <button id="btn-pseudo-save" class="btn btn-small" data-i18n="pseudoSave"></button>
-        </div>
-        <p id="pseudo-error" class="error-text hidden"></p>
         <div id="stats-block" class="stats-grid"></div>
       </div>
     </div>
@@ -156,17 +158,6 @@
       <button id="btn-spin" class="btn" data-i18n="wheelSpin"></button>
       <button id="btn-shop-back" class="btn btn-small" data-i18n="back"></button>
     </div>
-  </div>
-
-  <div id="screen-challenges" class="screen hidden">
-    <h2 data-i18n="challengesTitle"></h2>
-    <div class="ch-tabs">
-      <button id="ch-tab-daily" class="ch-tab active" data-i18n="challengesDaily"></button>
-      <button id="ch-tab-weekly" class="ch-tab" data-i18n="challengesWeekly"></button>
-    </div>
-    <div id="ch-list" class="ch-list"></div>
-    <p id="ch-msg" class="screen-hint hidden"></p>
-    <button id="btn-challenges-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
   <div id="screen-patch" class="screen hidden">
@@ -240,21 +231,30 @@
     <div class="di-bar di-top"></div>
     <div class="di-bar di-bottom"></div>
     <div class="di-sun"></div>
-    <div class="di-stage">
-      <div class="di-side di-you">
-        <div class="di-name" id="di-you-name"></div>
-        <div class="di-title" id="di-you-title"></div>
-        <img class="di-fig" id="di-you-fig" alt="" />
+
+    <div class="di-walk">
+      <img class="di-fig di-fig-you" id="di-you-fig" alt="" />
+      <img class="di-fig di-fig-opp" id="di-opp-fig" alt="" />
+    </div>
+
+    <div class="di-closeup di-close-you">
+      <img class="di-head" id="di-you-head" alt="" />
+      <div class="di-cu-info">
+        <div class="di-cu-name" id="di-you-name"></div>
+        <div class="di-cu-title" id="di-you-title"></div>
       </div>
-      <div class="di-center">
-        <div class="di-vs">VS</div>
-        <div class="di-tag" data-i18n="duelTag"></div>
+    </div>
+    <div class="di-closeup di-close-opp">
+      <img class="di-head" id="di-opp-head" alt="" />
+      <div class="di-cu-info">
+        <div class="di-cu-name" id="di-opp-name"></div>
+        <div class="di-cu-title" id="di-opp-title"></div>
       </div>
-      <div class="di-side di-opp">
-        <div class="di-name" id="di-opp-name"></div>
-        <div class="di-title" id="di-opp-title"></div>
-        <img class="di-fig" id="di-opp-fig" alt="" />
-      </div>
+    </div>
+
+    <div class="di-versus">
+      <div class="di-vs">VS</div>
+      <div class="di-tag" data-i18n="duelTag"></div>
     </div>
   </div>
 

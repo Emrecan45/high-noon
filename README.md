@@ -126,7 +126,7 @@ Deux garde-fous réseau : impossible de **s'affronter soi-même** (deux onglets 
 
 ## 🏆 Mode classé
 
-Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase - la carte joueur en haut à gauche de l'accueil permet de se renommer. En **duel classé**, pseudo, tenue et **rang** (Novice, Tireur, Desperado, Légende de l'Ouest, selon les points accumulés) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, rang, points). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
+Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase. En **duel classé**, pseudo, tenue et **rang** (Novice, Tireur, Desperado, Légende de l'Ouest, selon les points accumulés) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, rang, points). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
 
 Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points de rang et pièces divisés par deux au deuxième duel, plus aucun point de rang à partir du troisième.
 
@@ -143,15 +143,15 @@ Le rang, les pièces et les achats sont gérés côté serveur par des fonctions
 
 ## 🤠 Profil, tenues & accessoires
 
-Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil : le pistolero en **3D** à gauche (revolver au holster), à droite le renommage et les statistiques de carrière (duels, précision, tirs à la tête, série de victoires). Les portraits de l'accueil, des amis et du classement sont **rendus depuis le même modèle 3D** que le personnage en jeu, pour un look cohérent partout. Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
+Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil, titré par ton **pseudo** (repris de CrazyGames, non modifiable) : le pistolero en **3D** à gauche (revolver au holster), à droite les statistiques de carrière (duels, précision, tirs à la tête, série de victoires). Les portraits de l'accueil, des amis et du classement sont **rendus depuis le même modèle 3D** que le personnage en jeu, pour un look cohérent partout. Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
 
 ## 📅 Défis quotidiens & hebdomadaires
 
-Une page **Défis** (depuis l'accueil) propose 3 objectifs **quotidiens** et 3 **hebdomadaires** - générés de façon déterministe à partir de la date (identiques pour tous les joueurs), avec barre de progression et récompense en pièces à réclamer. La progression est suivie **côté serveur** (table `challenge_progress` + RPC `challenge_state` / `claim_challenge`, protégés par RLS et incrémentés à la fin de chaque duel) et se réinitialise à chaque période. Objectifs types : jouer X duels, en gagner X, gagner X duels classés, placer X tirs à la tête, toucher X fois.
+Un **panneau Défis**, à droite de l'accueil, propose 3 objectifs **quotidiens** et 3 **hebdomadaires** - générés de façon déterministe à partir de la date (identiques pour tous les joueurs), avec barre de progression et récompense en pièces à réclamer. La progression est suivie **côté serveur** (table `challenge_progress` + RPC `challenge_state` / `claim_challenge`, protégés par RLS et incrémentés à la fin de chaque duel) et se réinitialise à chaque période. Objectifs types : jouer X duels, en gagner X, gagner X duels classés, placer X tirs à la tête, toucher X fois.
 
 ## 🏠 Accueil
 
-L'accueil reprend les standards du genre, rangés proprement : bouton **Notes de version** (historique des mises à jour daté), compteur de **joueurs en ligne** (présence Supabase en temps réel), et un pied de page **Conditions / Confidentialité / Contact** (modale). Les pièces sont affichées en permanence en haut à droite.
+L'accueil reprend les standards du genre, rangés proprement : barre d'amis à gauche, panneau de défis à droite, bouton **Notes de version** (historique des mises à jour daté), compteur de **joueurs en ligne** (présence Supabase en temps réel), et un pied de page **Conditions / Confidentialité** (modale). Les pièces sont affichées en permanence en haut à droite. Chaque action a son bruitage synthétisé (clics, équipement, pièces, roue).
 
 ## 🎡 La roue du destin
 
