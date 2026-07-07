@@ -271,6 +271,10 @@ export function isOnline(profileId) {
   return onlineIds.has(profileId);
 }
 
+export function onlineCount() {
+  return onlineIds.size;
+}
+
 export function listenChallenges(profileId, handler) {
   if (personalChannel !== null) {
     return;

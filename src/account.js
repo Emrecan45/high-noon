@@ -429,6 +429,27 @@ export async function claimAdReward() {
   return data;
 }
 
+export async function challengeState() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("challenge_state");
+  if (error !== null) {
+    return null;
+  }
+  return data;
+}
+
+export async function claimChallenge(period, index) {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("claim_challenge", { p_period: period, p_index: index });
+  if (error !== null) {
+    return null;
+  }
+  if (data !== null && profile !== null) {
+    profile.coins = data.coins;
+  }
+  return data;
+}
+
 export async function fetchLeaderboard() {
   const supabase = getClient();
   const { data, error } = await supabase
