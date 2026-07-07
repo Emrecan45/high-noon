@@ -4,7 +4,7 @@ import { pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
-import { skinById, portraitDataUrl } from "./skins.js";
+import { skinById, portraitDataUrl, figureDataUrl } from "./skins.js";
 import { weaponById } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
@@ -45,6 +45,12 @@ export class Duel {
       this.myProfile = deps.profile;
     }
     this.onResult = deps.onResult;
+    this.onCombat = null;
+    if (deps.onCombat) {
+      this.onCombat = deps.onCombat;
+    }
+    this.combatStarted = false;
+    this.introTimers = [];
     this.oppElo = 1000;
     this.oppId = null;
     this.oppSkin = "drifter";
@@ -275,22 +281,37 @@ export class Duel {
     const you = {
       name: this.myProfile.pseudo,
       title: t(eloTitleKey(this.myProfile.elo)),
-      portrait: portraitDataUrl(this.myProfile.skin, 340)
+      head: portraitDataUrl(this.myProfile.skin, 300),
+      figure: figureDataUrl(this.myProfile.skin, 300, 520)
     };
     const opp = {
       name: this.opponentName,
       title: this.oppSubtitle(),
-      portrait: portraitDataUrl(this.oppSkin, 340)
+      head: portraitDataUrl(this.oppSkin, 300),
+      figure: figureDataUrl(this.oppSkin, 300, 520)
     };
     this.audio.wind();
-    this.audio.duelBell();
-    this.audio.crow();
+    this.introTimers = [];
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 500));
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 1300));
+    this.introTimers.push(setTimeout(function () { self.audio.duelBell(); }, 2300));
+    this.introTimers.push(setTimeout(function () { self.audio.spurs(); }, 3600));
+    this.introTimers.push(setTimeout(function () { self.audio.duelSting(); }, 4900));
     this.ui.duelIntro({ you: you, opp: opp }, function () {
       if (self.disposed) {
         return;
       }
       self.beginRoundSync();
     });
+  }
+
+  clearIntroTimers() {
+    if (this.introTimers) {
+      for (const id of this.introTimers) {
+        clearTimeout(id);
+      }
+      this.introTimers = [];
+    }
   }
 
   startBackgroundTick() {
@@ -414,6 +435,12 @@ export class Duel {
 
   beginRound() {
     this.stopFireResend();
+    if (!this.combatStarted) {
+      this.combatStarted = true;
+      if (this.onCombat !== null) {
+        this.onCombat();
+      }
+    }
     this.oppAckedFire = false;
     const rng = createRng(roundSeed(this.matchSeed, this.roundIndex));
     const modifier = pickModifier(rng, this.roundIndex, this.lastModifierId);
@@ -726,6 +753,7 @@ export class Duel {
     this.round.dodgeCooldownUntil = now + DODGE_DURATION + this.dodgeRecovery();
     this.round.dodgeWindows.push([dodgeT - 40, dodgeT + DODGE_DURATION]);
     this.audio.whoosh();
+    this.audio.step();
     if (this.net !== null) {
       this.net.send("dodge", { t: dodgeT, dir: dir });
     } else {
@@ -1420,7 +1448,7 @@ export class Duel {
         }
         targetX = e * DODGE_STEP * this.round.dodgeDir;
         dodgeRoll = e * 0.16 * this.round.dodgeDir;
-        dodgeDip = Math.sin(phase * Math.PI) * 0.14;
+        dodgeDip = Math.sin(phase * Math.PI) * 0.07 + Math.exp(-Math.pow((phase - 0.28) / 0.09, 2)) * 0.13;
       } else {
         this.round.dodgeStart = -1;
       }
@@ -1450,6 +1478,7 @@ export class Duel {
     gameplayStop();
     this.stopSyncRetry();
     this.stopFireResend();
+    this.clearIntroTimers();
     if (this.bgTimer !== null) {
       clearInterval(this.bgTimer);
       this.bgTimer = null;

@@ -303,6 +303,136 @@ export class AudioEngine {
     }
   }
 
+  step() {
+    this.ensure();
+    const t = this.now();
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer(0.12);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 480;
+    const g = this.envGain(t, 0.38, 0.12);
+    src.connect(filter);
+    filter.connect(g);
+    src.start(t);
+    const knock = this.ctx.createOscillator();
+    knock.type = "sine";
+    knock.frequency.setValueAtTime(140, t);
+    knock.frequency.exponentialRampToValueAtTime(58, t + 0.1);
+    const kg = this.envGain(t, 0.34, 0.12);
+    knock.connect(kg);
+    knock.start(t);
+    knock.stop(t + 0.14);
+  }
+
+  footsteps() {
+    this.step();
+    const self = this;
+    setTimeout(function () {
+      self.step();
+    }, 260);
+  }
+
+  spurs() {
+    this.ensure();
+    const t = this.now();
+    for (let i = 0; i < 3; i++) {
+      const start = t + i * 0.08;
+      const osc = this.ctx.createOscillator();
+      osc.type = "square";
+      osc.frequency.value = 2400 + i * 220;
+      const g = this.envGain(start, 0.05, 0.09);
+      osc.connect(g);
+      osc.start(start);
+      osc.stop(start + 0.1);
+    }
+  }
+
+  duelSting() {
+    this.ensure();
+    const t = this.now();
+    const notes = [146.83, 220, 174.61];
+    for (let i = 0; i < notes.length; i++) {
+      const osc = this.ctx.createOscillator();
+      osc.type = "sawtooth";
+      osc.frequency.value = notes[i];
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.value = 1100;
+      const g = this.envGain(t, 0.14, 1.2);
+      osc.connect(filter);
+      filter.connect(g);
+      osc.start(t);
+      osc.stop(t + 1.3);
+    }
+    const boom = this.ctx.createOscillator();
+    boom.type = "sine";
+    boom.frequency.setValueAtTime(80, t);
+    boom.frequency.exponentialRampToValueAtTime(40, t + 0.5);
+    const bg = this.envGain(t, 0.5, 0.6);
+    boom.connect(bg);
+    boom.start(t);
+    boom.stop(t + 0.7);
+  }
+
+  uiClick() {
+    this.ensure();
+    const t = this.now();
+    const osc = this.ctx.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(560, t);
+    osc.frequency.exponentialRampToValueAtTime(300, t + 0.05);
+    const g = this.envGain(t, 0.1, 0.06);
+    osc.connect(g);
+    osc.start(t);
+    osc.stop(t + 0.08);
+  }
+
+  coin() {
+    this.ensure();
+    const t = this.now();
+    const notes = [1318, 1760];
+    for (let i = 0; i < notes.length; i++) {
+      const start = t + i * 0.07;
+      const osc = this.ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = notes[i];
+      const g = this.envGain(start, 0.16, 0.25);
+      osc.connect(g);
+      osc.start(start);
+      osc.stop(start + 0.3);
+    }
+  }
+
+  equip() {
+    this.ensure();
+    const t = this.now();
+    const osc = this.ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(300, t);
+    osc.frequency.exponentialRampToValueAtTime(170, t + 0.08);
+    const g = this.envGain(t, 0.13, 0.1);
+    osc.connect(g);
+    osc.start(t);
+    osc.stop(t + 0.12);
+  }
+
+  wheelWin() {
+    this.ensure();
+    const t = this.now();
+    const notes = [523, 659, 784, 1046, 1318];
+    for (let i = 0; i < notes.length; i++) {
+      const start = t + i * 0.09;
+      const osc = this.ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.value = notes[i];
+      const g = this.envGain(start, 0.2, 0.38);
+      osc.connect(g);
+      osc.start(start);
+      osc.stop(start + 0.42);
+    }
+  }
+
   thud() {
     this.ensure();
     const t = this.now();
