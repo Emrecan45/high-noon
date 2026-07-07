@@ -365,6 +365,13 @@ begin
     same_opp_count = case when track then same_count else same_opp_count end
   where id = uid
   returning elo, coins into new_elo, new_coins;
+  perform public.bump_challenge('played', 1);
+  if p_won then
+    perform public.bump_challenge('won', 1);
+  end if;
+  if p_won and p_ranked then
+    perform public.bump_challenge('ranked_won', 1);
+  end if;
   return json_build_object('elo', new_elo, 'coins', new_coins, 'elo_delta', delta, 'coins_delta', gained);
 end;
 $$;
@@ -398,6 +405,207 @@ begin
     win_streak = case when p_won then win_streak + 1 else 0 end,
     best_streak = greatest(best_streak, case when p_won then win_streak + 1 else 0 end)
   where id = uid;
+  perform public.bump_challenge('shots', greatest(0, least(200, p_shots)));
+  perform public.bump_challenge('hits', greatest(0, least(200, p_hits)));
+  perform public.bump_challenge('heads', greatest(0, least(200, p_heads)));
+end;
+$$;
+
+create table if not exists public.challenge_progress (
+  profile_id uuid references public.profiles(id) on delete cascade,
+  period text not null,
+  period_key text not null,
+  counters jsonb not null default '{}'::jsonb,
+  claimed jsonb not null default '[]'::jsonb,
+  primary key (profile_id, period)
+);
+
+alter table public.challenge_progress enable row level security;
+
+drop policy if exists challenge_self_read on public.challenge_progress;
+create policy challenge_self_read on public.challenge_progress
+  for select using (auth.uid() = profile_id);
+
+create or replace function public.hn_period_key(p_period text)
+returns text
+language sql
+stable
+as $$
+  select case when p_period = 'weekly'
+    then to_char((now() at time zone 'utc'), 'IYYY"W"IW')
+    else to_char((now() at time zone 'utc'), 'YYYY-MM-DD')
+  end;
+$$;
+
+create or replace function public.challenge_defs(p_period text, p_key text)
+returns jsonb
+language plpgsql
+stable
+as $$
+declare
+  pool jsonb;
+  n integer;
+  roff integer;
+  i integer;
+  elem jsonb;
+  acc jsonb := '[]'::jsonb;
+begin
+  if p_period = 'weekly' then
+    pool := '[
+      {"stat":"played","goal":25,"reward":120},
+      {"stat":"won","goal":12,"reward":170},
+      {"stat":"ranked_won","goal":8,"reward":220},
+      {"stat":"heads","goal":30,"reward":160},
+      {"stat":"hits","goal":90,"reward":150}
+    ]'::jsonb;
+  else
+    pool := '[
+      {"stat":"played","goal":4,"reward":30},
+      {"stat":"won","goal":2,"reward":45},
+      {"stat":"ranked_won","goal":1,"reward":40},
+      {"stat":"heads","goal":5,"reward":50},
+      {"stat":"hits","goal":12,"reward":35}
+    ]'::jsonb;
+  end if;
+  n := jsonb_array_length(pool);
+  roff := ((hashtext(p_period || ':' || p_key) % n) + n) % n;
+  for i in 0..2 loop
+    elem := pool -> ((roff + i) % n);
+    elem := jsonb_set(elem, '{id}', to_jsonb(i));
+    acc := acc || jsonb_build_array(elem);
+  end loop;
+  return acc;
+end;
+$$;
+
+create or replace function public.bump_challenge(p_stat text, p_amount integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  per text;
+  pk text;
+  cur_key text;
+  cur integer;
+begin
+  uid := auth.uid();
+  if uid is null or p_amount <= 0 then
+    return;
+  end if;
+  foreach per in array array['daily', 'weekly'] loop
+    pk := public.hn_period_key(per);
+    insert into public.challenge_progress(profile_id, period, period_key, counters, claimed)
+    values (uid, per, pk, '{}'::jsonb, '[]'::jsonb)
+    on conflict (profile_id, period) do nothing;
+    select period_key into cur_key from public.challenge_progress where profile_id = uid and period = per;
+    if cur_key <> pk then
+      update public.challenge_progress set period_key = pk, counters = '{}'::jsonb, claimed = '[]'::jsonb
+      where profile_id = uid and period = per;
+    end if;
+    select coalesce((counters ->> p_stat)::integer, 0) into cur
+    from public.challenge_progress where profile_id = uid and period = per;
+    update public.challenge_progress set counters = jsonb_set(counters, array[p_stat], to_jsonb(cur + p_amount))
+    where profile_id = uid and period = per;
+  end loop;
+end;
+$$;
+
+create or replace function public.challenge_state()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  per text;
+  pk text;
+  cur_key text;
+  cnt jsonb;
+  clm jsonb;
+  result jsonb := '{}'::jsonb;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return null;
+  end if;
+  foreach per in array array['daily', 'weekly'] loop
+    pk := public.hn_period_key(per);
+    insert into public.challenge_progress(profile_id, period, period_key, counters, claimed)
+    values (uid, per, pk, '{}'::jsonb, '[]'::jsonb)
+    on conflict (profile_id, period) do nothing;
+    select period_key, counters, claimed into cur_key, cnt, clm
+    from public.challenge_progress where profile_id = uid and period = per;
+    if cur_key <> pk then
+      update public.challenge_progress set period_key = pk, counters = '{}'::jsonb, claimed = '[]'::jsonb
+      where profile_id = uid and period = per;
+      cnt := '{}'::jsonb;
+      clm := '[]'::jsonb;
+    end if;
+    result := jsonb_set(result, array[per], jsonb_build_object(
+      'defs', public.challenge_defs(per, pk),
+      'counters', cnt,
+      'claimed', clm
+    ));
+  end loop;
+  return result;
+end;
+$$;
+
+create or replace function public.claim_challenge(p_period text, p_index integer)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  pk text;
+  cur_key text;
+  cnt jsonb;
+  clm jsonb;
+  defs jsonb;
+  def jsonb;
+  stat text;
+  goal integer;
+  reward integer;
+  cur integer;
+  new_coins integer;
+begin
+  uid := auth.uid();
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  if p_period <> 'daily' and p_period <> 'weekly' then
+    raise exception 'bad period';
+  end if;
+  pk := public.hn_period_key(p_period);
+  select period_key, counters, claimed into cur_key, cnt, clm
+  from public.challenge_progress where profile_id = uid and period = p_period;
+  if cur_key is null or cur_key <> pk then
+    raise exception 'not ready';
+  end if;
+  defs := public.challenge_defs(p_period, pk);
+  def := defs -> p_index;
+  if def is null then
+    raise exception 'bad index';
+  end if;
+  if clm @> to_jsonb(p_index) then
+    raise exception 'already claimed';
+  end if;
+  stat := def ->> 'stat';
+  goal := (def ->> 'goal')::integer;
+  reward := (def ->> 'reward')::integer;
+  cur := coalesce((cnt ->> stat)::integer, 0);
+  if cur < goal then
+    raise exception 'not complete';
+  end if;
+  update public.profiles set coins = coins + reward where id = uid returning coins into new_coins;
+  update public.challenge_progress set claimed = claimed || to_jsonb(p_index) where profile_id = uid and period = p_period;
+  return json_build_object('coins', new_coins, 'reward', reward, 'period', p_period, 'index', p_index);
 end;
 $$;
 
@@ -645,6 +853,9 @@ grant execute on function public.buy_skin(text) to authenticated;
 grant execute on function public.report_result(boolean, boolean, integer) to authenticated;
 grant execute on function public.report_result(boolean, boolean, integer, uuid) to authenticated;
 grant execute on function public.record_stats(integer, integer, integer, boolean) to authenticated;
+grant execute on function public.challenge_state() to authenticated;
+grant execute on function public.claim_challenge(text, integer) to authenticated;
+grant select on public.challenge_progress to authenticated;
 grant execute on function public.spin_wheel() to authenticated;
 grant execute on function public.set_accessories(text[]) to authenticated;
 grant execute on function public.send_friend_request(text) to authenticated;
