@@ -12,6 +12,8 @@ export function createUi() {
     "screen-profile",
     "screen-inventory",
     "screen-shop",
+    "screen-challenges",
+    "screen-patch",
     "screen-board",
     "screen-search",
     "screen-roundend",
@@ -194,12 +196,40 @@ export function createUi() {
     showScreen("screen-perk");
   }
 
+  function recapRow(container, label, value) {
+    const l = document.createElement("span");
+    l.textContent = label;
+    const v = document.createElement("span");
+    v.className = "stat-value";
+    v.textContent = value;
+    container.appendChild(l);
+    container.appendChild(v);
+  }
+
+  function fillRecap(stats) {
+    const recap = el("matchend-recap");
+    recap.innerHTML = "";
+    if (!stats) {
+      recap.classList.add("hidden");
+      return;
+    }
+    let acc = "-";
+    if (stats.shots > 0) {
+      acc = Math.round((stats.hits / stats.shots) * 100) + "%";
+    }
+    recapRow(recap, t("statsAccuracy"), acc);
+    recapRow(recap, t("meShots"), String(stats.shots));
+    recapRow(recap, t("statsHead"), String(stats.heads));
+    recap.classList.remove("hidden");
+  }
+
   function matchEnd(title, detail, onRematch, onMenu) {
     el("matchend-title").textContent = title;
     const node = el("matchend-detail");
     node.innerHTML = "";
     if (typeof detail === "string") {
       node.textContent = detail;
+      fillRecap(null);
     } else {
       const flavor = document.createElement("div");
       flavor.className = "me-flavor";
@@ -213,6 +243,7 @@ export function createUi() {
       node.appendChild(flavor);
       node.appendChild(score);
       node.appendChild(reward);
+      fillRecap(detail.stats);
     }
     showScreen("screen-matchend");
     el("btn-rematch").onclick = function () {
@@ -222,6 +253,25 @@ export function createUi() {
     el("btn-menu").onclick = function () {
       onMenu();
     };
+  }
+
+  function duelIntro(info, onDone) {
+    const node = el("screen-duelintro");
+    el("di-you-name").textContent = info.you.name;
+    el("di-you-title").textContent = info.you.title;
+    el("di-you-fig").src = info.you.portrait;
+    el("di-opp-name").textContent = info.opp.name;
+    el("di-opp-title").textContent = info.opp.title;
+    el("di-opp-fig").src = info.opp.portrait;
+    node.classList.remove("hidden");
+    node.classList.remove("show");
+    void node.offsetWidth;
+    node.classList.add("show");
+    setTimeout(function () {
+      node.classList.remove("show");
+      node.classList.add("hidden");
+      onDone();
+    }, 4200);
   }
 
   function opponentCards(personas, cb) {
@@ -266,6 +316,7 @@ export function createUi() {
     roundEnd: roundEnd,
     perkChoice: perkChoice,
     matchEnd: matchEnd,
+    duelIntro: duelIntro,
     opponentCards: opponentCards,
     searchTick: searchTick
   };

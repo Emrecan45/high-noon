@@ -72,14 +72,27 @@
       <button id="btn-ranked" class="btn" data-i18n="btnRanked"></button>
       <button id="btn-ai" class="btn" data-i18n="btnAi"></button>
       <div class="btn-row">
+        <button id="btn-challenges" class="btn btn-small" data-i18n="btnChallenges"></button>
         <button id="btn-shop" class="btn btn-small" data-i18n="btnShop"></button>
         <button id="btn-board" class="btn btn-small" data-i18n="btnBoard"></button>
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
+        <button id="btn-patch" class="btn btn-small" data-i18n="btnPatch"></button>
       </div>
       <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
+      <p id="players-online" class="players-online hidden"></p>
     </div>
-    <p class="footer-note"><span data-i18n="footer"></span> <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
-    <p id="version-tag"></p>
+    <div class="home-footer">
+      <p class="footer-note"><span data-i18n="footer"></span> <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
+      <p class="legal-links">
+        <a id="lnk-terms" data-i18n="legalTerms"></a>
+        <span class="legal-sep">·</span>
+        <a id="lnk-privacy" data-i18n="legalPrivacy"></a>
+        <span class="legal-sep">·</span>
+        <a id="lnk-contact" data-i18n="legalContact"></a>
+        <span class="legal-sep">·</span>
+        <span id="version-tag"></span>
+      </p>
+    </div>
   </div>
 
   <div id="coins-badge" class="hidden">
@@ -145,6 +158,31 @@
     </div>
   </div>
 
+  <div id="screen-challenges" class="screen hidden">
+    <h2 data-i18n="challengesTitle"></h2>
+    <div class="ch-tabs">
+      <button id="ch-tab-daily" class="ch-tab active" data-i18n="challengesDaily"></button>
+      <button id="ch-tab-weekly" class="ch-tab" data-i18n="challengesWeekly"></button>
+    </div>
+    <div id="ch-list" class="ch-list"></div>
+    <p id="ch-msg" class="screen-hint hidden"></p>
+    <button id="btn-challenges-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
+  <div id="screen-patch" class="screen hidden">
+    <h2 data-i18n="patchTitle"></h2>
+    <div id="patch-list" class="patch-list"></div>
+    <button id="btn-patch-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
+  <div id="legal-modal" class="hidden">
+    <div class="legal-card">
+      <h3 id="legal-title"></h3>
+      <div id="legal-body"></div>
+      <button id="legal-close" class="btn btn-small" data-i18n="back"></button>
+    </div>
+  </div>
+
   <div id="toast" class="hidden">
     <span id="toast-text"></span>
     <button id="toast-accept" class="btn btn-small" data-i18n="accept"></button>
@@ -186,12 +224,37 @@
     <div id="perk-cards" class="cards"></div>
   </div>
 
-  <div id="screen-matchend" class="screen overlay hidden">
-    <h2 id="matchend-title"></h2>
-    <p id="matchend-detail"></p>
-    <div class="menu">
-      <button id="btn-rematch" class="btn" data-i18n="rematch"></button>
-      <button id="btn-menu" class="btn btn-small" data-i18n="menu"></button>
+  <div id="screen-matchend" class="screen hidden">
+    <div id="matchend-card">
+      <h2 id="matchend-title"></h2>
+      <p id="matchend-detail"></p>
+      <div id="matchend-recap" class="stats-grid hidden"></div>
+      <div class="menu">
+        <button id="btn-rematch" class="btn" data-i18n="rematch"></button>
+        <button id="btn-menu" class="btn btn-small" data-i18n="menu"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="screen-duelintro" class="hidden">
+    <div class="di-bar di-top"></div>
+    <div class="di-bar di-bottom"></div>
+    <div class="di-sun"></div>
+    <div class="di-stage">
+      <div class="di-side di-you">
+        <div class="di-name" id="di-you-name"></div>
+        <div class="di-title" id="di-you-title"></div>
+        <img class="di-fig" id="di-you-fig" alt="" />
+      </div>
+      <div class="di-center">
+        <div class="di-vs">VS</div>
+        <div class="di-tag" data-i18n="duelTag"></div>
+      </div>
+      <div class="di-side di-opp">
+        <div class="di-name" id="di-opp-name"></div>
+        <div class="di-title" id="di-opp-title"></div>
+        <img class="di-fig" id="di-opp-fig" alt="" />
+      </div>
     </div>
   </div>
 

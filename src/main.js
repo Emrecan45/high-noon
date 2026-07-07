@@ -8,14 +8,15 @@ import { createMusic } from "./music.js";
 import { AiOpponent, PERSONAS } from "./ai.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
-import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, listenChallenges, sendChallenge } from "./net.js";
+import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, listenChallenges, sendChallenge } from "./net.js";
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
+import { initAccount, getProfile, ensureAccount, localPseudo, renamePseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
 import { SKINS, skinById, portraitDataUrl } from "./skins.js";
 import { ACCESSORIES, accessoryById, accessoryIconDataUrl } from "./accessories.js";
 import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
+import { patchNotes, legalPage } from "./pages.js";
 import pkg from "../package.json";
 
 const PSEUDO_RE = /^[A-Za-z0-9_ .-]{3,16}$/;
@@ -65,6 +66,13 @@ langSelect.addEventListener("change", function () {
   renderProfileChip();
   renderFriends();
   drawWheel();
+  updatePlayersOnline();
+  if (!el("screen-challenges").classList.contains("hidden")) {
+    renderChallenges();
+  }
+  if (!el("screen-patch").classList.contains("hidden")) {
+    renderPatchNotes();
+  }
 });
 
 const musicSlider = el("vol-music");
@@ -623,9 +631,13 @@ function initSocial() {
     return;
   }
   socialReady = true;
-  goOnline(profile.id, renderFriends);
+  goOnline(profile.id, function () {
+    renderFriends();
+    updatePlayersOnline();
+  });
   listenChallenges(profile.id, onChallenge);
   refreshFriends();
+  updatePlayersOnline();
   setInterval(refreshFriends, 30000);
 }
 
@@ -845,6 +857,7 @@ function backToMenu() {
   viewmodel.holster();
   arena.applyModifier({ id: "noon", sway: 0 }, 19);
   ui.hudVisible(false);
+  music.setMode("menu");
   ui.showScreen("screen-title");
   renderProfileChip();
   requestMidgameAd({ onStart: adMuteOn, onDone: adMuteOff });
@@ -903,6 +916,7 @@ function startAiDuel(persona) {
   cowboy.setAccessories([]);
   cowboy.setWeapon(weaponById("iron").colors);
   applyMyWeapon();
+  music.setMode("combat");
   const ai = new AiOpponent(persona, createRng(randomSeed()));
   activeDuel = new Duel({
     arena: arena,
@@ -925,6 +939,7 @@ function startAiDuel(persona) {
 }
 
 function startNetDuel(room, ranked, friendly) {
+  music.setMode("combat");
   applyMyWeapon();
   let onResult = handleResult(ranked);
   if (friendly) {
@@ -1172,6 +1187,206 @@ el("btn-help-back").addEventListener("click", function () {
 
 el("btn-opp-back").addEventListener("click", function () {
   ui.showScreen("screen-title");
+});
+
+function updatePlayersOnline() {
+  const node = el("players-online");
+  if (node === null) {
+    return;
+  }
+  if (!netAvailable() || getProfile() === null) {
+    node.classList.add("hidden");
+    return;
+  }
+  const n = Math.max(1, onlineCount());
+  node.textContent = t("playersOnline", { n: n });
+  node.classList.remove("hidden");
+}
+
+function renderPatchNotes() {
+  const list = el("patch-list");
+  list.innerHTML = "";
+  for (const entry of patchNotes(getLang())) {
+    const card = document.createElement("div");
+    card.className = "patch-card";
+    const head = document.createElement("div");
+    head.className = "patch-date";
+    head.textContent = entry.date + " · v" + entry.version;
+    card.appendChild(head);
+    const ul = document.createElement("ul");
+    for (const item of entry.items) {
+      const li = document.createElement("li");
+      li.textContent = item;
+      ul.appendChild(li);
+    }
+    card.appendChild(ul);
+    list.appendChild(card);
+  }
+}
+
+el("btn-patch").addEventListener("click", function () {
+  bootAudio();
+  renderPatchNotes();
+  ui.showScreen("screen-patch");
+});
+
+el("btn-patch-back").addEventListener("click", function () {
+  ui.showScreen("screen-title");
+});
+
+let challengePeriod = "daily";
+let challengeData = null;
+
+function challengeLabel(def) {
+  const params = { goal: def.goal };
+  if (def.stat === "played") {
+    return t("chPlayed", params);
+  }
+  if (def.stat === "won") {
+    return t("chWon", params);
+  }
+  if (def.stat === "ranked_won") {
+    return t("chRankedWon", params);
+  }
+  if (def.stat === "heads") {
+    return t("chHeads", params);
+  }
+  return t("chHits", params);
+}
+
+function renderChallenges() {
+  const list = el("ch-list");
+  const msg = el("ch-msg");
+  el("ch-tab-daily").classList.toggle("active", challengePeriod === "daily");
+  el("ch-tab-weekly").classList.toggle("active", challengePeriod === "weekly");
+  list.innerHTML = "";
+  if (challengeData === null) {
+    msg.textContent = t("challengesLogin");
+    msg.classList.remove("hidden");
+    return;
+  }
+  const bucket = challengeData[challengePeriod];
+  if (!bucket) {
+    return;
+  }
+  msg.classList.add("hidden");
+  const counters = bucket.counters || {};
+  const claimed = bucket.claimed || [];
+  for (const def of bucket.defs) {
+    const cur = Math.min(def.goal, Number(counters[def.stat] || 0));
+    const isClaimed = claimed.indexOf(def.id) !== -1;
+    const done = cur >= def.goal;
+    const row = document.createElement("div");
+    row.className = "ch-item";
+    if (isClaimed) {
+      row.classList.add("claimed");
+    }
+    const info = document.createElement("div");
+    info.className = "ch-info";
+    const label = document.createElement("div");
+    label.className = "ch-label";
+    label.textContent = challengeLabel(def);
+    const bar = document.createElement("div");
+    bar.className = "ch-bar";
+    const fill = document.createElement("div");
+    fill.className = "ch-fill";
+    fill.style.width = Math.round((cur / def.goal) * 100) + "%";
+    bar.appendChild(fill);
+    const prog = document.createElement("div");
+    prog.className = "ch-prog";
+    prog.textContent = cur + " / " + def.goal;
+    info.appendChild(label);
+    info.appendChild(bar);
+    info.appendChild(prog);
+    const reward = document.createElement("div");
+    reward.className = "ch-reward";
+    reward.textContent = "+" + def.reward + " 🪙";
+    const btn = document.createElement("button");
+    btn.className = "btn btn-small ch-claim";
+    if (isClaimed) {
+      btn.textContent = t("challengesClaimed");
+      btn.disabled = true;
+    } else if (done) {
+      btn.textContent = t("challengesClaim");
+      btn.onclick = function () {
+        doClaim(challengePeriod, def.id, btn);
+      };
+    } else {
+      btn.textContent = t("challengesClaim");
+      btn.disabled = true;
+    }
+    row.appendChild(info);
+    row.appendChild(reward);
+    row.appendChild(btn);
+    list.appendChild(row);
+  }
+}
+
+async function doClaim(period, index, btn) {
+  btn.disabled = true;
+  const result = await claimChallenge(period, index);
+  if (result === null) {
+    btn.disabled = false;
+    return;
+  }
+  challengeData = await challengeState();
+  renderProfileChip();
+  renderChallenges();
+}
+
+async function openChallenges() {
+  bootAudio();
+  ui.showScreen("screen-challenges");
+  el("ch-list").innerHTML = "";
+  el("ch-msg").textContent = "…";
+  el("ch-msg").classList.remove("hidden");
+  const profile = await accountReady();
+  if (profile === null) {
+    challengeData = null;
+    renderChallenges();
+    return;
+  }
+  challengeData = await challengeState();
+  renderChallenges();
+}
+
+el("btn-challenges").addEventListener("click", openChallenges);
+
+el("btn-challenges-back").addEventListener("click", function () {
+  ui.showScreen("screen-title");
+});
+
+el("ch-tab-daily").addEventListener("click", function () {
+  challengePeriod = "daily";
+  renderChallenges();
+});
+
+el("ch-tab-weekly").addEventListener("click", function () {
+  challengePeriod = "weekly";
+  renderChallenges();
+});
+
+function openLegal(kind) {
+  const page = legalPage(getLang(), kind);
+  el("legal-title").textContent = page.title;
+  el("legal-body").innerHTML = page.body;
+  el("legal-modal").classList.remove("hidden");
+}
+
+el("lnk-terms").addEventListener("click", function () {
+  openLegal("terms");
+});
+
+el("lnk-privacy").addEventListener("click", function () {
+  openLegal("privacy");
+});
+
+el("lnk-contact").addEventListener("click", function () {
+  openLegal("contact");
+});
+
+el("legal-close").addEventListener("click", function () {
+  el("legal-modal").classList.add("hidden");
 });
 
 let lastTime = performance.now();

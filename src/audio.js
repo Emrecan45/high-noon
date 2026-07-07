@@ -266,6 +266,43 @@ export class AudioEngine {
     lfo.stop(t + 0.7);
   }
 
+  wind() {
+    this.ensure();
+    const t = this.now();
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer(3.2);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(320, t);
+    filter.frequency.linearRampToValueAtTime(720, t + 1.6);
+    filter.frequency.linearRampToValueAtTime(280, t + 3.2);
+    filter.Q.value = 0.8;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(0.18, t + 0.8);
+    g.gain.linearRampToValueAtTime(0.12, t + 2.2);
+    g.gain.linearRampToValueAtTime(0.0001, t + 3.2);
+    g.connect(this.sfxGain);
+    src.connect(filter);
+    filter.connect(g);
+    src.start(t);
+  }
+
+  duelBell() {
+    this.ensure();
+    const t = this.now();
+    const freqs = [196, 293.66, 98];
+    for (let i = 0; i < freqs.length; i++) {
+      const osc = this.ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.value = freqs[i];
+      const g = this.envGain(t, 0.34 / (i + 1), 2.4);
+      osc.connect(g);
+      osc.start(t);
+      osc.stop(t + 2.6);
+    }
+  }
+
   thud() {
     this.ensure();
     const t = this.now();
