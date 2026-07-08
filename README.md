@@ -31,11 +31,11 @@ Aucune installation : le jeu tourne directement dans le navigateur, sur ordinate
 
 ## 🎮 Gameplay
 
-- **La présentation du duel** : avant le premier échange, une intro cinématique met les deux pistoleros face à face, pseudo et rang affichés au-dessus, sur fond de soleil de plomb - pour planter l'ambiance.
+- **La présentation du duel** : avant chaque duel, une intro cinématique **en 3D dans l'arène** montre les deux pistoleros s'avancer l'un vers l'autre (vraie animation de marche), la caméra resserrant sur leurs visages, pseudo et rang affichés au-dessus - pour planter l'ambiance.
 - **Le signal** : tirer avant la cloche = tir anticipé, manche perdue.
 - **La visée compte** : une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Un tir manqué impose un rechargement.
 - **Le dégainé désaxe la visée** : au signal, le viseur remonte avec un décalage aléatoire et flotte en permanence (respiration du bras) - il faut rattraper la cible avant de tirer.
-- **L'esquive** : 2 pas de côté par manche (touches Q/D ou A/E), un vrai déplacement latéral engagé (bascule du corps et du regard). On peut tirer pendant l'esquive, mais le viseur tremble fort. Si l'adversaire tire pendant ton pas de côté, il rate. S'il attend la fin, tu es à sa merci.
+- **L'esquive** : 2 pas de côté par manche (touches Q/D ou A/E). C'est un vrai pas latéral qui te **déplace pour de bon** - tu restes décalé, tu ne reviens pas à ta position. On peut tirer pendant l'esquive, mais le viseur tremble fort. Si l'adversaire tire pendant ton pas de côté, il rate. S'il attend la fin, tu es à sa merci.
 - **Le soleil aveugle** : des éblouissements aléatoires peuvent te blinder avant le signal si tu regardes dans sa direction. Détourne les yeux pour t'en protéger.
 - **La brume cache** : par bancs, elle dissimule l'adversaire par intermittence puis se dissipe - pareil pour les deux joueurs en ligne.
 - **La kill cam** : le tir décisif passe au ralenti, l'écran vire sépia, le son s'étouffe et la caméra zoome sur le duelliste qui s'effondre.

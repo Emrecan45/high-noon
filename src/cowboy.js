@@ -23,18 +23,25 @@ export function createCowboy() {
   };
   const leather = mat(0x4a3018);
 
+  const legLPivot = new THREE.Group();
+  legLPivot.position.set(-0.12, 0.82, 0);
+  group.add(legLPivot);
   const legL = box(0.17, 0.82, 0.2, mats.pants);
-  legL.position.set(-0.12, 0.41, 0);
-  const legR = box(0.17, 0.82, 0.2, mats.pants);
-  legR.position.set(0.12, 0.41, 0);
-  group.add(legL);
-  group.add(legR);
+  legL.position.set(0, -0.41, 0);
+  legLPivot.add(legL);
   const bootL = box(0.18, 0.12, 0.3, leather);
-  bootL.position.set(-0.12, 0.06, 0.04);
+  bootL.position.set(0, -0.76, 0.04);
+  legLPivot.add(bootL);
+
+  const legRPivot = new THREE.Group();
+  legRPivot.position.set(0.12, 0.82, 0);
+  group.add(legRPivot);
+  const legR = box(0.17, 0.82, 0.2, mats.pants);
+  legR.position.set(0, -0.41, 0);
+  legRPivot.add(legR);
   const bootR = box(0.18, 0.12, 0.3, leather);
-  bootR.position.set(0.12, 0.06, 0.04);
-  group.add(bootL);
-  group.add(bootR);
+  bootR.position.set(0, -0.76, 0.04);
+  legRPivot.add(bootR);
 
   const torsoPivot = new THREE.Group();
   torsoPivot.position.y = 0.82;
@@ -120,11 +127,13 @@ export function createCowboy() {
     time: 0,
     armTarget: 0,
     armCurrent: 0,
-    dodge: null,
+    dodgeTarget: 0,
     death: null,
     flinch: 0,
     flashUntil: 0,
     wounded: false,
+    walk: false,
+    walkPhase: 0,
     hatFlying: false,
     hatVel: new THREE.Vector3(),
     hatSpin: new THREE.Vector3()
@@ -209,14 +218,19 @@ export function createCowboy() {
   function reset() {
     anim.armTarget = 0;
     anim.armCurrent = 0;
-    anim.dodge = null;
+    anim.dodgeTarget = 0;
     anim.death = null;
     anim.flinch = 0;
     anim.wounded = false;
+    anim.walk = false;
+    anim.walkPhase = 0;
     group.rotation.set(0, 0, 0);
     group.position.x = 0;
     torsoPivot.rotation.set(0, 0, 0);
     armPivot.rotation.set(0, 0, 0);
+    legLPivot.rotation.set(0, 0, 0);
+    legRPivot.rotation.set(0, 0, 0);
+    armL.rotation.set(0, 0, 0);
     flash.visible = false;
     flashLight.intensity = 0;
     if (anim.hatFlying) {
@@ -247,7 +261,11 @@ export function createCowboy() {
   }
 
   function playDodge(dir) {
-    anim.dodge = { t: 0, dir: dir };
+    anim.dodgeTarget = Math.max(-2.6, Math.min(2.6, anim.dodgeTarget + dir * 1.5));
+  }
+
+  function setWalk(active) {
+    anim.walk = active;
   }
 
   function playFlinch() {
@@ -297,8 +315,11 @@ export function createCowboy() {
     anim.armCurrent += (anim.armTarget - anim.armCurrent) * Math.min(1, dt * lerpSpeed);
     armPivot.rotation.x = anim.armCurrent;
 
-    if (anim.death === null && anim.dodge === null) {
-      const bob = Math.sin(anim.time * 1.6) * 0.012;
+    if (anim.death === null) {
+      let bob = Math.sin(anim.time * 1.6) * 0.012;
+      if (anim.walk) {
+        bob = Math.abs(Math.sin(anim.walkPhase)) * 0.06 - 0.03;
+      }
       torsoPivot.position.y = 0.82 + bob;
       let lean = 0;
       if (anim.wounded) {
@@ -311,31 +332,23 @@ export function createCowboy() {
       }
       torsoPivot.rotation.z = lean * 0.4;
       torsoPivot.rotation.x = -flinchLean;
+
+      const targetX = anim.dodgeTarget;
+      const glideLean = (targetX - group.position.x) * 0.16;
+      group.position.x += (targetX - group.position.x) * Math.min(1, dt * 8);
+      group.rotation.z = glideLean;
     }
 
-    if (anim.dodge !== null) {
-      anim.dodge.t += dt;
-      const t = anim.dodge.t;
-      const total = 1.1;
-      const out = 0.35;
-      const hold = 0.75;
-      let x = 0;
-      if (t < out) {
-        x = (t / out) * 1.35;
-      } else if (t < hold) {
-        x = 1.35;
-      } else if (t < total) {
-        x = 1.35 * (1 - (t - hold) / (total - hold));
-      } else {
-        anim.dodge = null;
-      }
-      if (anim.dodge !== null) {
-        group.position.x = x * anim.dodge.dir;
-        group.rotation.z = -0.35 * (x / 1.35) * anim.dodge.dir;
-      } else {
-        group.position.x = 0;
-        group.rotation.z = 0;
-      }
+    if (anim.walk) {
+      anim.walkPhase += dt * 7;
+      const swing = Math.sin(anim.walkPhase) * 0.7;
+      legLPivot.rotation.x = swing;
+      legRPivot.rotation.x = -swing;
+      armL.rotation.x = -swing * 0.5;
+    } else if (anim.death === null) {
+      legLPivot.rotation.x += (0 - legLPivot.rotation.x) * Math.min(1, dt * 10);
+      legRPivot.rotation.x += (0 - legRPivot.rotation.x) * Math.min(1, dt * 10);
+      armL.rotation.x += (0 - armL.rotation.x) * Math.min(1, dt * 10);
     }
 
     if (anim.death !== null) {
@@ -378,6 +391,7 @@ export function createCowboy() {
     playShoot: playShoot,
     playReload: playReload,
     playDodge: playDodge,
+    setWalk: setWalk,
     playFlinch: playFlinch,
     playDeath: playDeath,
     playHatShot: playHatShot,

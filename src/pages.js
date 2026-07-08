@@ -1,7 +1,7 @@
 const PATCH = {
   en: [
     { date: "July 7, 2026", version: "1.3", items: [
-      "Cinematic showdown intro before every duel",
+"3D showdown intro: both gunslingers walk up to each other",
       "End-of-duel page with rewards and stats recap",
       "Dodge is now a real sidestep",
       "Dedicated combat music",
@@ -30,7 +30,7 @@ const PATCH = {
   ],
   fr: [
     { date: "7 juillet 2026", version: "1.3", items: [
-      "Présentation cinématique avant chaque duel",
+"Présentation 3D : les deux pistoleros s'avancent l'un vers l'autre",
       "Page de fin de duel avec récap des gains et stats",
       "L'esquive devient un vrai pas de côté",
       "Musique de combat dédiée",
