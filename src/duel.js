@@ -4,7 +4,7 @@ import { pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
-import { skinById, portraitDataUrl, figureDataUrl } from "./skins.js";
+import { skinById } from "./skins.js";
 import { weaponById } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
@@ -16,6 +16,12 @@ const COCK_DELAY = 550;
 const DODGE_DURATION = 750;
 const DODGE_RECOVERY = 350;
 const DODGE_STEP = 2.6;
+const CINE_WALK = 2800;
+const CINE_TOTAL = 4600;
+const YOU_START_Z = 10;
+const YOU_END_Z = 2.6;
+const OPP_START_Z = -10;
+const OPP_END_Z = -2.6;
 const SPURS_RECOVERY = 120;
 const ROUND_TIMEOUT = 12000;
 const SWAY_BASE = 0.028;
@@ -45,6 +51,11 @@ export class Duel {
       this.myProfile = deps.profile;
     }
     this.onResult = deps.onResult;
+    this.playerBody = null;
+    if (deps.playerBody) {
+      this.playerBody = deps.playerBody;
+    }
+    this.cineStart = 0;
     this.onCombat = null;
     if (deps.onCombat) {
       this.onCombat = deps.onCombat;
@@ -278,31 +289,130 @@ export class Duel {
 
   showIntro() {
     const self = this;
-    const you = {
-      name: this.myProfile.pseudo,
-      title: t(eloTitleKey(this.myProfile.elo)),
-      head: portraitDataUrl(this.myProfile.skin, 300),
-      figure: figureDataUrl(this.myProfile.skin, 300, 520)
-    };
-    const opp = {
-      name: this.opponentName,
-      title: this.oppSubtitle(),
-      head: portraitDataUrl(this.oppSkin, 300),
-      figure: figureDataUrl(this.oppSkin, 300, 520)
-    };
+    if (this.playerBody === null) {
+      this.beginRoundSync();
+      return;
+    }
+    this.arena.opponentAnchor.position.set(0, 0, OPP_START_Z);
+    this.cowboy.reset();
+    this.cowboy.setWalk(true);
+
+    this.playerBody.reset();
+    this.playerBody.setSkin(skinById(this.myProfile.skin).colors);
+    this.playerBody.setWeapon(weaponById(this.myProfile.weapon).colors);
+    this.playerBody.setAccessories(this.myProfile.acc);
+    this.playerBody.group.position.set(0, 0, YOU_START_Z);
+    this.playerBody.group.rotation.set(0, Math.PI, 0);
+    this.playerBody.group.visible = true;
+    this.playerBody.setWalk(true);
+
+    document.getElementById("cine-you-name").textContent = this.myProfile.pseudo;
+    document.getElementById("cine-you-title").textContent = t(eloTitleKey(this.myProfile.elo));
+    document.getElementById("cine-opp-name").textContent = this.opponentName;
+    document.getElementById("cine-opp-title").textContent = this.oppSubtitle();
+    document.getElementById("cine-overlay").classList.remove("hidden");
+
+    this.ui.hideScreens();
+    this.ui.hudVisible(false);
+    this.state = "cinematic";
+    this.cineStart = performance.now();
+
     this.audio.wind();
     this.introTimers = [];
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 500));
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 1300));
-    this.introTimers.push(setTimeout(function () { self.audio.duelBell(); }, 2300));
-    this.introTimers.push(setTimeout(function () { self.audio.spurs(); }, 3600));
-    this.introTimers.push(setTimeout(function () { self.audio.duelSting(); }, 4900));
-    this.ui.duelIntro({ you: you, opp: opp }, function () {
-      if (self.disposed) {
-        return;
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 400));
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 1200));
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 2000));
+    this.introTimers.push(setTimeout(function () { self.audio.duelBell(); }, 2900));
+    this.introTimers.push(setTimeout(function () { self.audio.duelSting(); }, 4100));
+  }
+
+  placeCamera(wx, wy, wz, tx, ty, tz) {
+    const cam = this.arena.camera;
+    const rig = this.arena.playerRig;
+    cam.position.set(wx - rig.position.x, wy - rig.position.y, wz - rig.position.z);
+    cam.lookAt(tx, ty, tz);
+  }
+
+  projectTag(headObj, id) {
+    const node = document.getElementById(id);
+    const v = new THREE.Vector3();
+    headObj.getWorldPosition(v);
+    v.y += 0.5;
+    v.project(this.arena.camera);
+    if (v.z > 1 || v.x < -1.05 || v.x > 1.05 || v.y < -1.05 || v.y > 1.05) {
+      node.style.opacity = "0";
+      return;
+    }
+    node.style.left = ((v.x * 0.5 + 0.5) * window.innerWidth) + "px";
+    node.style.top = ((-v.y * 0.5 + 0.5) * window.innerHeight) + "px";
+    node.style.opacity = "1";
+  }
+
+  updateCinematic(now, dt) {
+    const el = now - this.cineStart;
+    let w = el / CINE_WALK;
+    if (w > 1) {
+      w = 1;
+    }
+    const ease = w * w * (3 - 2 * w);
+    this.playerBody.group.position.z = YOU_START_Z + (YOU_END_Z - YOU_START_Z) * ease;
+    this.arena.opponentAnchor.position.z = OPP_START_Z + (OPP_END_Z - OPP_START_Z) * ease;
+    if (w >= 1) {
+      this.cowboy.setWalk(false);
+      this.playerBody.setWalk(false);
+    }
+    this.playerBody.update(dt);
+
+    let camx = 0;
+    let camy = 0;
+    let camz = 0;
+    let ty = 0;
+    let tz = 0;
+    if (el < CINE_WALK) {
+      const s = ease;
+      camx = 11 + (7 - 11) * s;
+      camy = 3.8 + (2.4 - 3.8) * s;
+      camz = 1.5 + (0.5 - 1.5) * s;
+      ty = 1.4 + (1.55 - 1.4) * s;
+      tz = 0;
+    } else {
+      let p = (el - CINE_WALK) / (CINE_TOTAL - CINE_WALK);
+      if (p > 1) {
+        p = 1;
       }
-      self.beginRoundSync();
-    });
+      const s = p * p * (3 - 2 * p);
+      camx = 7 + (5 - 7) * s;
+      camy = 2.4 + (1.95 - 2.4) * s;
+      camz = 0.5 + (0 - 0.5) * s;
+      ty = 1.55 + (1.62 - 1.55) * s;
+      tz = 0;
+    }
+    this.placeCamera(camx, camy, camz, 0, ty, tz);
+    this.projectTag(this.playerBody.head, "cine-you-tag");
+    this.projectTag(this.cowboy.head, "cine-opp-tag");
+
+    if (el >= CINE_TOTAL) {
+      this.endCinematic();
+    }
+  }
+
+  endCinematic() {
+    this.clearIntroTimers();
+    this.cowboy.setWalk(false);
+    if (this.playerBody !== null) {
+      this.playerBody.setWalk(false);
+      this.playerBody.group.visible = false;
+    }
+    const overlay = document.getElementById("cine-overlay");
+    if (overlay !== null) {
+      overlay.classList.add("hidden");
+    }
+    this.arena.camera.position.set(0, 0, 0);
+    this.ui.hudVisible(true);
+    if (this.disposed) {
+      return;
+    }
+    this.beginRoundSync();
   }
 
   clearIntroTimers() {
@@ -484,8 +594,7 @@ export class Duel {
       playerHp: this.maxPlayerHp(),
       oppHp: this.oppMaxHp(),
       playerDodges: this.dodgesPerRound(),
-      dodgeStart: -1,
-      dodgeDir: 0,
+      stepX: 0,
       playerDodgeUntil: 0,
       playerBusyUntil: 0,
       dodgeCooldownUntil: 0,
@@ -747,8 +856,7 @@ export class Duel {
     const dodgeT = Math.round(this.tSignal(now));
     this.round.playerDodges -= 1;
     this.ui.setDodges(this.round.playerDodges);
-    this.round.dodgeStart = now;
-    this.round.dodgeDir = dir;
+    this.round.stepX = Math.max(-DODGE_STEP, Math.min(DODGE_STEP, this.round.stepX + dir * 1.5));
     this.round.playerDodgeUntil = now + DODGE_DURATION;
     this.round.dodgeCooldownUntil = now + DODGE_DURATION + this.dodgeRecovery();
     this.round.dodgeWindows.push([dodgeT - 40, dodgeT + DODGE_DURATION]);
@@ -1235,6 +1343,11 @@ export class Duel {
       this.endKillcam();
     }
 
+    if (this.state === "cinematic") {
+      this.updateCinematic(now, dt);
+      return;
+    }
+
     if (this.state === "intro") {
       if (!this.isTouch && !this.locked && this.net === null) {
         this.introUntil += dt * 1000;
@@ -1430,30 +1543,11 @@ export class Duel {
     camera.rotation.x = this.aimPitch + shakePitch;
 
     let targetX = 0;
-    let dodgeRoll = 0;
-    let dodgeDip = 0;
-    if (this.round !== null && this.round.dodgeStart > 0) {
-      const elapsed = now - this.round.dodgeStart;
-      const total = DODGE_DURATION + DODGE_RECOVERY;
-      if (elapsed < total) {
-        const phase = elapsed / total;
-        let e = 0;
-        if (phase < 0.26) {
-          const p = phase / 0.26;
-          e = p * (2 - p);
-        } else if (phase < 0.6) {
-          e = 1;
-        } else {
-          e = 1 - (phase - 0.6) / 0.4;
-        }
-        targetX = e * DODGE_STEP * this.round.dodgeDir;
-        dodgeRoll = e * 0.16 * this.round.dodgeDir;
-        dodgeDip = Math.sin(phase * Math.PI) * 0.07 + Math.exp(-Math.pow((phase - 0.28) / 0.09, 2)) * 0.13;
-      } else {
-        this.round.dodgeStart = -1;
-      }
+    if (this.round !== null) {
+      targetX = this.round.stepX;
     }
-    rig.position.x += (targetX - rig.position.x) * Math.min(1, dt * 16);
+    const lean = (targetX - rig.position.x) * 0.14;
+    rig.position.x += (targetX - rig.position.x) * Math.min(1, dt * 9);
 
     if (this.round !== null && this.round.playerDead) {
       this.round.deathAnimT = Math.min(1, this.round.deathAnimT + dt * 1.4);
@@ -1461,8 +1555,8 @@ export class Duel {
       rig.position.y = 1.6 - e * 1.1;
       camera.rotation.z = e * 0.6;
     } else {
-      rig.position.y = 1.6 - dodgeDip;
-      camera.rotation.z = -dodgeRoll;
+      rig.position.y = 1.6;
+      camera.rotation.z = lean;
     }
   }
 
@@ -1483,9 +1577,13 @@ export class Duel {
       clearInterval(this.bgTimer);
       this.bgTimer = null;
     }
-    const intro = document.getElementById("screen-duelintro");
+    const intro = document.getElementById("cine-overlay");
     if (intro !== null) {
       intro.classList.add("hidden");
+    }
+    if (this.playerBody !== null) {
+      this.playerBody.setWalk(false);
+      this.playerBody.group.visible = false;
     }
     for (const entry of this.listeners) {
       entry[0].removeEventListener(entry[1], entry[2]);

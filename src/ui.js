@@ -254,38 +254,6 @@ export function createUi() {
     };
   }
 
-  function duelIntro(info, onDone) {
-    const node = el("screen-duelintro");
-    el("di-you-fig").src = info.you.figure;
-    el("di-opp-fig").src = info.opp.figure;
-    el("di-you-head").src = info.you.head;
-    el("di-opp-head").src = info.opp.head;
-    el("di-you-name").textContent = info.you.name;
-    el("di-you-title").textContent = info.you.title;
-    el("di-opp-name").textContent = info.opp.name;
-    el("di-opp-title").textContent = info.opp.title;
-    node.classList.remove("hidden", "p-walk", "p-you", "p-opp", "p-vs");
-    void node.offsetWidth;
-    node.classList.add("p-walk");
-    setTimeout(function () {
-      node.classList.remove("p-walk");
-      node.classList.add("p-you");
-    }, 2300);
-    setTimeout(function () {
-      node.classList.remove("p-you");
-      node.classList.add("p-opp");
-    }, 3600);
-    setTimeout(function () {
-      node.classList.remove("p-opp");
-      node.classList.add("p-vs");
-    }, 4900);
-    setTimeout(function () {
-      node.classList.remove("p-vs");
-      node.classList.add("hidden");
-      onDone();
-    }, 6100);
-  }
-
   function opponentCards(personas, cb) {
     const container = el("opponent-cards");
     container.innerHTML = "";
@@ -328,7 +296,6 @@ export function createUi() {
     roundEnd: roundEnd,
     perkChoice: perkChoice,
     matchEnd: matchEnd,
-    duelIntro: duelIntro,
     opponentCards: opponentCards,
     searchTick: searchTick
   };
