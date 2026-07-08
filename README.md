@@ -31,7 +31,7 @@ Aucune installation : le jeu tourne directement dans le navigateur, sur ordinate
 
 ## 🎮 Gameplay
 
-- **La présentation du duel** : avant chaque duel, une intro cinématique **en 3D dans l'arène** montre les deux pistoleros s'avancer l'un vers l'autre (vraie animation de marche), la caméra resserrant sur leurs visages, pseudo et rang affichés au-dessus - pour planter l'ambiance.
+- **La présentation du duel** : en ligne, un écran **« Adversaire trouvé »** annonce le rival ; puis, avant chaque duel, une intro cinématique **en 3D dans l'arène** montre les deux pistoleros s'avancer l'un vers l'autre (vraie animation de marche), la caméra resserrant sur leurs visages, pseudo et rang affichés au-dessus - pour planter l'ambiance.
 - **Le signal** : tirer avant la cloche = tir anticipé, manche perdue.
 - **La visée compte** : une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Un tir manqué impose un rechargement.
 - **Le dégainé désaxe la visée** : au signal, le viseur remonte avec un décalage aléatoire et flotte en permanence (respiration du bras) - il faut rattraper la cible avant de tirer.
@@ -143,7 +143,7 @@ Le rang, les pièces et les achats sont gérés côté serveur par des fonctions
 
 ## 🤠 Profil, tenues & accessoires
 
-Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil, titré par ton **pseudo** (repris de CrazyGames, non modifiable) : le pistolero en **3D** à gauche (revolver au holster), à droite les statistiques de carrière (duels, précision, tirs à la tête, série de victoires). Les portraits de l'accueil, des amis et du classement sont **rendus depuis le même modèle 3D** que le personnage en jeu, pour un look cohérent partout. Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
+Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil en une seule colonne, titré par ton **pseudo** (repris de CrazyGames, non modifiable) : les statistiques de carrière (duels, précision, tirs à la tête, série de victoires), puis le pistolero en **3D** (revolver au holster) et le bouton Modifier. Les portraits de l'accueil, des amis et du classement sont **rendus depuis le même modèle 3D** que le personnage en jeu, pour un look cohérent partout. Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
 
 ## 📅 Défis quotidiens & hebdomadaires
 
