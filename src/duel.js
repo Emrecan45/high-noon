@@ -295,7 +295,7 @@ export class Duel {
     }
     this.arena.opponentAnchor.position.set(0, 0, OPP_START_Z);
     this.cowboy.reset();
-    this.cowboy.setWalk(true);
+    this.cowboy.setWalk(false);
 
     this.playerBody.reset();
     this.playerBody.setSkin(skinById(this.myProfile.skin).colors);
@@ -304,7 +304,7 @@ export class Duel {
     this.playerBody.group.position.set(0, 0, YOU_START_Z);
     this.playerBody.group.rotation.set(0, Math.PI, 0);
     this.playerBody.group.visible = true;
-    this.playerBody.setWalk(true);
+    this.playerBody.setWalk(false);
 
     document.getElementById("cine-you-name").textContent = this.myProfile.pseudo;
     document.getElementById("cine-you-title").textContent = t(eloTitleKey(this.myProfile.elo));
@@ -312,18 +312,32 @@ export class Duel {
     document.getElementById("cine-opp-title").textContent = this.oppSubtitle();
     document.getElementById("cine-overlay").classList.remove("hidden");
 
+    let announceDur = 0;
+    const announce = document.getElementById("cine-announce");
+    if (this.net !== null) {
+      announceDur = 3000;
+      document.getElementById("ca-title").textContent = t("opponentFound");
+      document.getElementById("ca-name").textContent = this.opponentName;
+      announce.classList.remove("hidden");
+    } else {
+      announce.classList.add("hidden");
+    }
+
     this.ui.hideScreens();
     this.ui.hudVisible(false);
     this.state = "cinematic";
-    this.cineStart = performance.now();
+    this.cineStart = performance.now() + announceDur;
 
     this.audio.wind();
     this.introTimers = [];
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 400));
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 1200));
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 2000));
-    this.introTimers.push(setTimeout(function () { self.audio.duelBell(); }, 2900));
-    this.introTimers.push(setTimeout(function () { self.audio.duelSting(); }, 4100));
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, announceDur + 400));
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, announceDur + 1200));
+    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, announceDur + 2000));
+    this.introTimers.push(setTimeout(function () { self.audio.duelBell(); }, announceDur + 2900));
+    this.introTimers.push(setTimeout(function () { self.audio.duelSting(); }, announceDur + 4100));
+    if (announceDur > 0) {
+      this.audio.duelBell();
+    }
   }
 
   placeCamera(wx, wy, wz, tx, ty, tz) {
@@ -350,6 +364,19 @@ export class Duel {
 
   updateCinematic(now, dt) {
     const el = now - this.cineStart;
+    if (el < 0) {
+      this.playerBody.group.position.z = YOU_START_Z;
+      this.arena.opponentAnchor.position.z = OPP_START_Z;
+      this.playerBody.update(dt);
+      this.placeCamera(12, 4.2, 4, 0, 1.5, 0);
+      document.getElementById("cine-you-tag").style.opacity = "0";
+      document.getElementById("cine-opp-tag").style.opacity = "0";
+      return;
+    }
+    const announce = document.getElementById("cine-announce");
+    if (!announce.classList.contains("hidden")) {
+      announce.classList.add("hidden");
+    }
     let w = el / CINE_WALK;
     if (w > 1) {
       w = 1;
@@ -357,7 +384,10 @@ export class Duel {
     const ease = w * w * (3 - 2 * w);
     this.playerBody.group.position.z = YOU_START_Z + (YOU_END_Z - YOU_START_Z) * ease;
     this.arena.opponentAnchor.position.z = OPP_START_Z + (OPP_END_Z - OPP_START_Z) * ease;
-    if (w >= 1) {
+    if (w < 1) {
+      this.cowboy.setWalk(true);
+      this.playerBody.setWalk(true);
+    } else {
       this.cowboy.setWalk(false);
       this.playerBody.setWalk(false);
     }
@@ -398,6 +428,10 @@ export class Duel {
 
   endCinematic() {
     this.clearIntroTimers();
+    const announce = document.getElementById("cine-announce");
+    if (announce !== null) {
+      announce.classList.add("hidden");
+    }
     this.cowboy.setWalk(false);
     if (this.playerBody !== null) {
       this.playerBody.setWalk(false);
