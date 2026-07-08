@@ -15,7 +15,8 @@
 <body>
   <div id="boot-loading">
     <div class="boot-logo">HIGH NOON</div>
-    <div class="boot-spinner"></div>
+    <div class="boot-bar"><div id="boot-bar-fill"></div></div>
+    <div id="boot-pct">0%</div>
   </div>
 
   <div id="game"></div>
@@ -43,6 +44,9 @@
     </div>
   </div>
 
+  <div id="backdrop"></div>
+  <div id="stage">
+
   <div id="screen-title" class="screen">
     <div id="topbar">
       <span class="vol">🎵<input id="vol-music" type="range" min="0" max="100" /></span>
@@ -65,6 +69,7 @@
       <h3 data-i18n="friendsTitle"></h3>
       <p id="friends-msg" class="hidden"></p>
       <div id="friends-list"></div>
+      <p id="friend-addmsg" class="hidden"></p>
       <div id="friend-add" class="friend-add">
         <input id="friend-input" type="text" maxlength="16" autocomplete="off" data-i18n-ph="friendsAddPh" />
         <button id="btn-friend-add" class="btn btn-small" data-i18n="friendsAdd"></button>
@@ -79,6 +84,7 @@
       </div>
       <div id="ch-list" class="ch-list"></div>
       <p id="ch-msg" class="ch-msg hidden"></p>
+      <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
     </div>
     <button id="challenges-toggle" class="hidden" aria-label="Challenges">🎯</button>
     <h1 class="logo">HIGH NOON</h1>
@@ -92,7 +98,6 @@
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
         <button id="btn-patch" class="btn btn-small" data-i18n="btnPatch"></button>
       </div>
-      <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
       <p id="players-online" class="players-online hidden"></p>
     </div>
     <div class="home-footer">
@@ -196,6 +201,37 @@
     </div>
     <div class="menu">
       <button id="btn-search-cancel" class="btn btn-small" data-i18n="cancel"></button>
+    </div>
+  </div>
+
+  </div>
+
+  <div id="screen-announce" class="screen overlay opaque hidden">
+    <div class="announce-inner">
+      <div id="announce-title" class="announce-title"></div>
+      <div id="announce-name" class="announce-name"></div>
+    </div>
+  </div>
+
+  <div id="screen-duelintro" class="screen hidden">
+    <div class="di-bar di-top"></div>
+    <div class="di-bar di-bottom"></div>
+    <div class="di-sun"></div>
+    <div class="di-stage">
+      <div class="di-side di-you">
+        <div class="di-name" id="di-you-name"></div>
+        <div class="di-title" id="di-you-title"></div>
+        <img class="di-fig" id="di-you-fig" alt="" />
+      </div>
+      <div class="di-center">
+        <div class="di-vs">VS</div>
+        <div class="di-tag" data-i18n="duelTag"></div>
+      </div>
+      <div class="di-side di-opp">
+        <div class="di-name" id="di-opp-name"></div>
+        <div class="di-title" id="di-opp-title"></div>
+        <img class="di-fig" id="di-opp-fig" alt="" />
+      </div>
     </div>
   </div>
 

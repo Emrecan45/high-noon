@@ -25,13 +25,13 @@
 
 **▶ Jouer maintenant : [emrecan45.github.io/high-noon](https://emrecan45.github.io/high-noon/)**
 
-Aucune installation : le jeu tourne directement dans le navigateur, sur ordinateur comme sur **mobile et tablette** (visée tactile et boutons dédiés).
+Aucune installation : le jeu tourne directement dans le navigateur, sur ordinateur comme sur **mobile et tablette** (visée tactile et boutons dédiés). Sur mobile, l'interface reprend **exactement la mise en page PC**, simplement réduite pour tenir à l'écran (pas de réagencement), commandes tactiles conservées.
 
 
 
 ## 🎮 Gameplay
 
-- **La présentation du duel** : en ligne, un écran **« Adversaire trouvé »** annonce le rival ; puis, avant chaque duel, une intro cinématique **en 3D dans l'arène** montre les deux pistoleros s'avancer l'un vers l'autre (vraie animation de marche), la caméra resserrant sur leurs visages, pseudo et rang affichés au-dessus - pour planter l'ambiance.
+- **La présentation du duel** : en ligne, un écran **« Adversaire trouvé »** annonce le rival par-dessus le matchmaking ; puis une présentation **face-à-face** montre les deux pistoleros (portrait 3D, pseudo et rang) séparés par un grand **VS**, suivie d'une **intro dans l'arène** où les deux pistoleros s'avancent l'un vers l'autre (vraie animation de marche, caméra qui resserre sur les têtes, pseudo affiché au-dessus). Contre l'IA, la présentation s'enchaîne directement, sans annonce.
 - **Le signal** : tirer avant la cloche = tir anticipé, manche perdue.
 - **La visée compte** : une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Un tir manqué impose un rechargement.
 - **Le dégainé désaxe la visée** : au signal, le viseur remonte avec un décalage aléatoire et flotte en permanence (respiration du bras) - il faut rattraper la cible avant de tirer.
@@ -95,6 +95,10 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 | 🌵 El Rápido | Le plus rapide de l'Ouest, vise la tête |
 | 🥃 Doc Silence | Lent au signal, mais ne rate jamais une faute |
 
+Chaque pistolero IA arbore une **tenue qui lui est propre** (couleurs, arme et accessoires signature), introuvable en boutique.
+
+Si un adversaire en ligne quitte ou reste inactif, la manche n'est plus bloquée : **victoire par forfait** accordée automatiquement.
+
 
 
 ## 🕹️ Contrôles
@@ -128,12 +132,12 @@ Deux garde-fous réseau : impossible de **s'affronter soi-même** (deux onglets 
 
 Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase. En **duel classé**, pseudo, tenue et **rang** (Novice, Tireur, Desperado, Légende de l'Ouest, selon les points accumulés) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, rang, points). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
 
-Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points de rang et pièces divisés par deux au deuxième duel, plus aucun point de rang à partir du troisième.
+Le classement repose sur des **points de duel cumulés** : une victoire en rapporte d'autant plus que l'adversaire est fort, une défaite n'en coûte qu'une poignée et le total ne descend jamais sous le seuil de départ (1000). Les **rangs** sont des paliers de ce total, pour un système lisible qui monte surtout à la victoire (plutôt qu'un Elo qui zigzague). Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points et pièces divisés par deux au deuxième duel, plus aucun point à partir du troisième.
 
-| Résultat | Pièces | Points de rang (K=32) |
+| Résultat | Pièces | Points de duel |
 |--|--|--|
-| 🏆 Victoire classée | +40 🪙 | montent |
-| 💀 Défaite classée | +10 🪙 | descendent |
+| 🏆 Victoire classée | +40 🪙 | +14 à +40 (selon l'adversaire) |
+| 💀 Défaite classée | +10 🪙 | -8 (jamais sous 1000) |
 | 🤖 Victoire contre l'IA | +8 🪙 | - |
 | 🤖 Défaite contre l'IA | +2 🪙 | - |
 

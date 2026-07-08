@@ -321,14 +321,11 @@ begin
   if p_ranked then
     opp_elo := greatest(0, least(4000, p_opp_elo));
     expected := 1.0 / (1.0 + power(10.0, (opp_elo - my_elo) / 400.0));
-    score := 0.0;
     if p_won then
-      score := 1.0;
-    end if;
-    delta := round(32 * (score - expected));
-    if p_won then
+      delta := round(14 + 26 * (1.0 - expected));
       gained := 40;
     else
+      delta := -8;
       gained := 10;
     end if;
   else
@@ -354,7 +351,7 @@ begin
     end if;
   end if;
   update profiles set
-    elo = greatest(0, elo + delta),
+    elo = greatest(1000, elo + delta),
     coins = coins + gained,
     wins = wins + (case when p_won then 1 else 0 end),
     losses = losses + (case when p_won then 0 else 1 end),

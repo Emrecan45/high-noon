@@ -1,12 +1,12 @@
 const PATCH = {
   en: [
     { date: "July 7, 2026", version: "1.3", items: [
-"3D showdown intro: both gunslingers walk up to each other",
-      "End-of-duel page with rewards and stats recap",
-      "Dodge is now a real sidestep",
-      "Dedicated combat music",
-      "Daily and weekly challenges",
-      "Patch notes and online player counter"
+      "Duel intro: \"opponent found\", a face-off, then the gunslingers walk up in the arena",
+      "Duel points and ranks on the leaderboard",
+      "Special outfits for the AI gunslingers",
+      "Interface scaled down for mobile (same layout as on PC)",
+      "Win by forfeit when your opponent leaves",
+      "Daily and weekly challenges, combat music and a real sidestep"
     ] },
     { date: "July 6, 2026", version: "1.2", items: [
       "Slow-motion sepia kill cam",
@@ -30,12 +30,12 @@ const PATCH = {
   ],
   fr: [
     { date: "7 juillet 2026", version: "1.3", items: [
-"Présentation 3D : les deux pistoleros s'avancent l'un vers l'autre",
-      "Page de fin de duel avec récap des gains et stats",
-      "L'esquive devient un vrai pas de côté",
-      "Musique de combat dédiée",
-      "Défis quotidiens et hebdomadaires",
-      "Notes de version et compteur de joueurs en ligne"
+      "Présentation du duel : « adversaire trouvé », face-à-face puis avancée des pistoleros dans l'arène",
+      "Points de duel et rangs au classement",
+      "Tenues spéciales pour les pistoleros IA",
+      "Interface réduite pour le mobile (même mise en page que sur PC)",
+      "Victoire par forfait quand l'adversaire quitte",
+      "Défis quotidiens et hebdomadaires, musique de combat et vrai pas de côté"
     ] },
     { date: "6 juillet 2026", version: "1.2", items: [
       "Kill cam au ralenti avec zoom sépia",
@@ -59,12 +59,12 @@ const PATCH = {
   ],
   es: [
     { date: "7 de julio de 2026", version: "1.3", items: [
-      "Presentación cinemática antes de cada duelo",
-      "Página de fin de duelo con recompensas y estadísticas",
-      "El esquive es ahora un paso lateral real",
-      "Música de combate dedicada",
-      "Desafíos diarios y semanales",
-      "Notas de versión y contador de jugadores en línea"
+      "Presentación del duelo: «rival encontrado», cara a cara y avance de los pistoleros en la arena",
+      "Puntos de duelo y rangos en la clasificación",
+      "Atuendos especiales para los pistoleros de IA",
+      "Interfaz reducida para móvil (misma disposición que en PC)",
+      "Victoria por abandono cuando el rival se va",
+      "Desafíos diarios y semanales, música de combate y paso lateral real"
     ] },
     { date: "6 de julio de 2026", version: "1.2", items: [
       "Kill cam a cámara lenta en sepia",
@@ -88,12 +88,12 @@ const PATCH = {
   ],
   de: [
     { date: "7. Juli 2026", version: "1.3", items: [
-      "Filmische Vorstellung vor jedem Duell",
-      "Duell-Ende-Seite mit Belohnungen und Statistiken",
-      "Ausweichen ist jetzt ein echter Seitenschritt",
-      "Eigene Kampfmusik",
-      "Tägliche und wöchentliche Aufgaben",
-      "Patch Notes und Online-Spielerzähler"
+      "Duell-Vorstellung: „Gegner gefunden“, Face-off und Anmarsch der Revolverhelden in der Arena",
+      "Duellpunkte und Ränge in der Bestenliste",
+      "Besondere Outfits für die KI-Revolverhelden",
+      "Oberfläche für Mobilgeräte verkleinert (gleiches Layout wie am PC)",
+      "Sieg durch Aufgabe, wenn der Gegner geht",
+      "Tägliche und wöchentliche Aufgaben, Kampfmusik und echter Seitenschritt"
     ] },
     { date: "6. Juli 2026", version: "1.2", items: [
       "Zeitlupen-Kill-Cam in Sepia",
@@ -117,12 +117,12 @@ const PATCH = {
   ],
   pt: [
     { date: "7 de julho de 2026", version: "1.3", items: [
-      "Apresentação cinematográfica antes de cada duelo",
-      "Página de fim de duelo com recompensas e estatísticas",
-      "A esquiva agora é um passo lateral de verdade",
-      "Música de combate dedicada",
-      "Desafios diários e semanais",
-      "Notas de versão e contador de jogadores online"
+      "Apresentação do duelo: «oponente encontrado», o confronto e o avanço dos pistoleiros na arena",
+      "Pontos de duelo e patentes na classificação",
+      "Trajes especiais para os pistoleiros de IA",
+      "Interface reduzida para o celular (mesmo layout do PC)",
+      "Vitória por desistência quando o oponente sai",
+      "Desafios diários e semanais, música de combate e passo lateral real"
     ] },
     { date: "6 de julho de 2026", version: "1.2", items: [
       "Kill cam em câmera lenta sépia",
@@ -146,12 +146,12 @@ const PATCH = {
   ],
   ru: [
     { date: "7 июля 2026", version: "1.3", items: [
-      "Кинематографическое представление перед каждой дуэлью",
-      "Экран итогов дуэли с наградами и статистикой",
-      "Уклонение теперь настоящий шаг в сторону",
-      "Отдельная боевая музыка",
-      "Ежедневные и еженедельные задания",
-      "Список изменений и счётчик игроков онлайн"
+      "Представление дуэли: «соперник найден», лицом к лицу и сближение стрелков на арене",
+      "Очки дуэли и ранги в таблице лидеров",
+      "Особые наряды для стрелков с ИИ",
+      "Интерфейс уменьшен для мобильных (та же раскладка, что на ПК)",
+      "Победа при выходе соперника из боя",
+      "Ежедневные и еженедельные задания, боевая музыка и настоящий шаг в сторону"
     ] },
     { date: "6 июля 2026", version: "1.2", items: [
       "Замедленная сепия кил-кам",
@@ -175,12 +175,12 @@ const PATCH = {
   ],
   tr: [
     { date: "7 Temmuz 2026", version: "1.3", items: [
-      "Her düellodan önce sinematik tanıtım",
-      "Ödül ve istatistik özetli düello sonu ekranı",
-      "Yan geçiş artık gerçek bir adım",
-      "Özel savaş müziği",
-      "Günlük ve haftalık görevler",
-      "Sürüm notları ve çevrimiçi oyuncu sayacı"
+      "Düello tanıtımı: «rakip bulundu», yüz yüze ve silahşorların arenada yaklaşması",
+      "Düello puanları ve sıralamada rütbeler",
+      "Yapay zekâ silahşorları için özel kıyafetler",
+      "Arayüz mobil için küçültüldü (PC ile aynı yerleşim)",
+      "Rakip ayrıldığında hükmen galibiyet",
+      "Günlük ve haftalık görevler, savaş müziği ve gerçek yan adım"
     ] },
     { date: "6 Temmuz 2026", version: "1.2", items: [
       "Ağır çekim sepya kill cam",

@@ -130,6 +130,9 @@ export function createMatchmaker(myProfileId) {
               payload: { kind: type, data: payload }
             });
           },
+          close: function () {
+            supabase.removeChannel(room);
+          },
           onEvent: function (handler) {
             eventHandler = handler;
             const backlog = pendingEvents;
@@ -358,6 +361,9 @@ export function createPrivateRoom(code, callbacks, myProfileId) {
           event: "duel",
           payload: { kind: type, data: payload }
         });
+      },
+      close: function () {
+        supabase.removeChannel(room);
       },
       onEvent: function (handler) {
         eventHandler = handler;

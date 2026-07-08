@@ -275,6 +275,42 @@ export function createUi() {
     el("search-timer").textContent = seconds + " s";
   }
 
+  function announce(title, name, ms, onDone) {
+    el("announce-title").textContent = title;
+    el("announce-name").textContent = name;
+    el("screen-announce").classList.remove("hidden");
+    const node = el("screen-announce");
+    node.classList.remove("show");
+    void node.offsetWidth;
+    node.classList.add("show");
+    setTimeout(function () {
+      node.classList.remove("show");
+      setTimeout(function () {
+        node.classList.add("hidden");
+      }, 500);
+      onDone();
+    }, ms);
+  }
+
+  function duelIntro(info, ms, onDone) {
+    el("di-you-name").textContent = info.you.name;
+    el("di-you-title").textContent = info.you.title;
+    el("di-you-fig").src = info.you.portrait;
+    el("di-opp-name").textContent = info.opp.name;
+    el("di-opp-title").textContent = info.opp.title;
+    el("di-opp-fig").src = info.opp.portrait;
+    const node = el("screen-duelintro");
+    node.classList.remove("hidden");
+    node.classList.remove("show");
+    void node.offsetWidth;
+    node.classList.add("show");
+    setTimeout(function () {
+      node.classList.add("hidden");
+      node.classList.remove("show");
+      onDone();
+    }, ms);
+  }
+
   return {
     showScreen: showScreen,
     hideScreens: hideScreens,
@@ -297,6 +333,8 @@ export function createUi() {
     perkChoice: perkChoice,
     matchEnd: matchEnd,
     opponentCards: opponentCards,
-    searchTick: searchTick
+    searchTick: searchTick,
+    announce: announce,
+    duelIntro: duelIntro
   };
 }

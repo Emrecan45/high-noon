@@ -61,6 +61,32 @@ export function skinById(id) {
   return SKINS[0];
 }
 
+export const AI_SKINS = {
+  nervous: {
+    colors: { skin: 0xc0895a, shirt: 0x9c2b22, pants: 0x33241a, hat: 0x5a3a18, bandana: 0xf0cf3e },
+    weapon: "rose",
+    acc: ["mustache"]
+  },
+  rapido: {
+    colors: { skin: 0xa9744a, shirt: 0x1f6b47, pants: 0x22331d, hat: 0x2c4a2a, bandana: 0xe9e2c4 },
+    weapon: "ranger",
+    acc: ["poncho", "cigar"]
+  },
+  patient: {
+    colors: { skin: 0xd0b294, shirt: 0x241a2e, pants: 0x14101c, hat: 0x0e0a14, bandana: 0x8a4f8a },
+    weapon: "ivory",
+    acc: ["beard", "eyepatch"]
+  }
+};
+
+export function aiSkinFor(id) {
+  const found = AI_SKINS[id];
+  if (found !== undefined) {
+    return found;
+  }
+  return { colors: SKINS[0].colors, weapon: "iron", acc: [] };
+}
+
 let portraitKit = null;
 const portraitCache = new Map();
 
@@ -108,6 +134,25 @@ export function portraitDataUrl(skinId, size) {
   kit.renderer.setSize(size, size, false);
   kit.renderer.render(kit.scene, kit.camera);
   const url = kit.renderer.domElement.toDataURL();
+  portraitCache.set(key, url);
+  return url;
+}
+
+export function portraitColorsDataUrl(colors, acc, size) {
+  const list = acc || [];
+  const key = JSON.stringify(colors) + "|" + list.join(",") + "@" + size;
+  const cached = portraitCache.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const kit = ensurePortraitKit();
+  kit.model.setSkin(colors);
+  kit.model.setAccessories(list);
+  bustCamera(kit);
+  kit.renderer.setSize(size, size, false);
+  kit.renderer.render(kit.scene, kit.camera);
+  const url = kit.renderer.domElement.toDataURL();
+  kit.model.setAccessories([]);
   portraitCache.set(key, url);
   return url;
 }

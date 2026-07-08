@@ -4,7 +4,7 @@ import { pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
-import { skinById } from "./skins.js";
+import { skinById, portraitDataUrl, portraitColorsDataUrl } from "./skins.js";
 import { weaponById } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
@@ -24,6 +24,8 @@ const OPP_START_Z = -10;
 const OPP_END_Z = -2.6;
 const SPURS_RECOVERY = 120;
 const ROUND_TIMEOUT = 12000;
+const FORFEIT_TIMEOUT = 12000;
+const PING_INTERVAL = 2500;
 const SWAY_BASE = 0.028;
 const DODGE_SWAY = 0.05;
 const DRAW_WOBBLE_MS = 700;
@@ -56,12 +58,23 @@ export class Duel {
       this.playerBody = deps.playerBody;
     }
     this.cineStart = 0;
+    this.introTimers = [];
     this.onCombat = null;
     if (deps.onCombat) {
       this.onCombat = deps.onCombat;
     }
     this.combatStarted = false;
-    this.introTimers = [];
+    this.oppColors = null;
+    if (deps.oppColors) {
+      this.oppColors = deps.oppColors;
+    }
+    this.oppAcc = [];
+    if (deps.oppAcc) {
+      this.oppAcc = deps.oppAcc;
+    }
+    this.helloReceived = false;
+    this.lastOppMsgAt = 0;
+    this.pingTimer = null;
     this.oppElo = 1000;
     this.oppId = null;
     this.oppSkin = "drifter";
@@ -156,7 +169,6 @@ export class Duel {
 
   start() {
     const self = this;
-    this.ui.hideScreens();
     this.ui.hudVisible(true);
     this.ui.setScore(0, 0);
     this.ui.touchControls(this.isTouch);
@@ -268,16 +280,40 @@ export class Duel {
 
   presentDuel() {
     const self = this;
-    let delay = 0;
-    if (this.net !== null) {
-      delay = 750;
+    this.state = "present";
+    if (this.net === null) {
+      this.showIntro();
+      return;
     }
-    setTimeout(function () {
+    this.waitForHello(function () {
+      if (self.disposed || self.state === "matchend") {
+        return;
+      }
+      self.ui.hudVisible(false);
+      self.audio.duelBell();
+      self.ui.announce(t("opponentFound"), self.opponentName, 2600, function () {
+        if (self.disposed || self.state === "matchend") {
+          return;
+        }
+        self.showIntro();
+      });
+    });
+  }
+
+  waitForHello(cb) {
+    const self = this;
+    const started = performance.now();
+    const check = function () {
       if (self.disposed) {
         return;
       }
-      self.showIntro();
-    }, delay);
+      if (self.helloReceived || performance.now() - started > 3500) {
+        cb();
+        return;
+      }
+      setTimeout(check, 100);
+    };
+    check();
   }
 
   oppSubtitle() {
@@ -287,9 +323,48 @@ export class Duel {
     return t(eloTitleKey(this.oppElo));
   }
 
+  oppPortrait() {
+    if (this.oppColors !== null) {
+      return portraitColorsDataUrl(this.oppColors, this.oppAcc, 340);
+    }
+    return portraitDataUrl(this.oppSkin, 340);
+  }
+
   showIntro() {
     const self = this;
+    if (this.disposed || this.state === "matchend") {
+      return;
+    }
+    this.state = "present";
+    this.ui.hideScreens();
+    this.ui.hudVisible(false);
+    this.audio.wind();
+    this.audio.duelBell();
+    const info = {
+      you: {
+        name: this.myProfile.pseudo,
+        title: t(eloTitleKey(this.myProfile.elo)),
+        portrait: portraitDataUrl(this.myProfile.skin, 340)
+      },
+      opp: {
+        name: this.opponentName,
+        title: this.oppSubtitle(),
+        portrait: this.oppPortrait()
+      }
+    };
+    this.ui.duelIntro(info, 3200, function () {
+      if (self.disposed || self.state === "matchend") {
+        return;
+      }
+      self.startArenaCinematic();
+    });
+  }
+
+  startArenaCinematic() {
+    const self = this;
     if (this.playerBody === null) {
+      this.ui.hideScreens();
+      this.ui.hudVisible(true);
       this.beginRoundSync();
       return;
     }
@@ -443,7 +518,7 @@ export class Duel {
     }
     this.arena.camera.position.set(0, 0, 0);
     this.ui.hudVisible(true);
-    if (this.disposed) {
+    if (this.disposed || this.state === "matchend") {
       return;
     }
     this.beginRoundSync();
@@ -455,6 +530,39 @@ export class Duel {
         clearTimeout(id);
       }
       this.introTimers = [];
+    }
+  }
+
+  startHeartbeat() {
+    if (this.pingTimer !== null || this.net === null) {
+      return;
+    }
+    const self = this;
+    this.pingTimer = setInterval(function () {
+      if (self.disposed || self.net === null) {
+        self.stopHeartbeat();
+        return;
+      }
+      self.net.send("ping", {});
+    }, PING_INTERVAL);
+  }
+
+  stopHeartbeat() {
+    if (this.pingTimer !== null) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+  }
+
+  checkForfeit(now) {
+    if (this.net === null || !this.helloReceived) {
+      return;
+    }
+    if (this.state === "matchend" || this.state === "ended") {
+      return;
+    }
+    if (now - this.lastOppMsgAt > FORFEIT_TIMEOUT) {
+      this.onOpponentLeft();
     }
   }
 
@@ -1099,6 +1207,7 @@ export class Duel {
     if (document.pointerLockElement !== null && !this.isTouch) {
       document.exitPointerLock();
     }
+    this.ui.hudVisible(false);
     this.state = "matchend";
     this.ui.matchEnd(title, { flavor: flavor, score: score, stats: this.matchStats }, function () {
       self.requestRematch();
@@ -1147,6 +1256,7 @@ export class Duel {
       return;
     }
     const now = performance.now();
+    this.lastOppMsgAt = now;
     if (type === "hello") {
       this.opponentName = String(payload.pseudo).toUpperCase();
       this.oppElo = 1000;
@@ -1158,10 +1268,15 @@ export class Duel {
         this.oppId = payload.id;
       }
       this.oppSkin = payload.skin;
+      this.oppColors = null;
       this.cowboy.setSkin(skinById(payload.skin).colors);
       this.cowboy.setAccessories(payload.acc);
       this.cowboy.setWeapon(weaponById(payload.weapon).colors);
       this.ui.setOppTag(this.opponentName + " · " + t(eloTitleKey(this.oppElo)).toUpperCase());
+      this.helloReceived = true;
+      this.startHeartbeat();
+    } else if (type === "ping") {
+      return;
     } else if (type === "ready") {
       this.oppReadyRound = Math.max(this.oppReadyRound, payload.round);
       this.checkSync();
@@ -1361,6 +1476,7 @@ export class Duel {
     if (document.pointerLockElement !== null && !this.isTouch) {
       document.exitPointerLock();
     }
+    this.ui.hudVisible(false);
     this.ui.matchEnd(t("fled"), t("fledDetail"), function () {
       self.exit();
     }, function () {
@@ -1375,6 +1491,12 @@ export class Duel {
 
     if (this.killcamUntil > 0 && now >= this.killcamUntil) {
       this.endKillcam();
+    }
+
+    this.checkForfeit(now);
+
+    if (this.state === "present") {
+      return;
     }
 
     if (this.state === "cinematic") {
@@ -1464,7 +1586,7 @@ export class Duel {
     }
     let intensity = 0;
     const modifier = this.round.modifier;
-    const sunny = modifier.id !== "dusk" && modifier.id !== "fog";
+    const sunny = modifier.id === "noon";
     const inRound = this.state === "waiting" || this.state === "active";
     if (sunny && inRound && !this.playerPerks.has("brim")) {
       const waited = now - this.waitStart;
@@ -1595,8 +1717,12 @@ export class Duel {
   }
 
   exit() {
-    this.reportResult(false);
-    this.dispose();
+    try {
+      this.reportResult(false);
+      this.dispose();
+    } catch (e) {
+      console.error(e);
+    }
     this.onExit();
   }
 
@@ -1606,14 +1732,15 @@ export class Duel {
     gameplayStop();
     this.stopSyncRetry();
     this.stopFireResend();
+    this.stopHeartbeat();
     this.clearIntroTimers();
     if (this.bgTimer !== null) {
       clearInterval(this.bgTimer);
       this.bgTimer = null;
     }
-    const intro = document.getElementById("cine-overlay");
-    if (intro !== null) {
-      intro.classList.add("hidden");
+    const overlay = document.getElementById("cine-overlay");
+    if (overlay !== null) {
+      overlay.classList.add("hidden");
     }
     if (this.playerBody !== null) {
       this.playerBody.setWalk(false);
