@@ -22,6 +22,9 @@ import pkg from "../package.json";
 const arena = createArena(document.getElementById("game"));
 const cowboy = createCowboy();
 arena.opponentAnchor.add(cowboy.group);
+const playerBody = createCowboy();
+playerBody.group.visible = false;
+arena.scene.add(playerBody.group);
 const viewmodel = createViewmodel(arena.camera);
 const ui = createUi();
 const audio = new AudioEngine();
@@ -83,13 +86,19 @@ sfxSlider.addEventListener("input", function () {
 });
 
 let audioBooted = false;
+let menuMusicAllowed = false;
 function bootAudio() {
   if (audioBooted) {
     return;
   }
   audioBooted = true;
   audio.ensure();
-  music.start();
+  maybeStartMenuMusic();
+}
+function maybeStartMenuMusic() {
+  if (audioBooted && menuMusicAllowed && activeDuel === null) {
+    music.start();
+  }
 }
 document.addEventListener("pointerdown", bootAudio, { once: true, capture: true });
 document.addEventListener("touchstart", bootAudio, { once: true, capture: true, passive: true });
@@ -911,6 +920,7 @@ function startAiDuel(persona) {
     profile: duelProfile(),
     onResult: handleResult(false),
     onCombat: startCombatMusic,
+    playerBody: playerBody,
     onExit: backToMenu
   });
   activeDuel.start();
@@ -919,6 +929,7 @@ function startAiDuel(persona) {
 
 function startCombatMusic() {
   bootAudio();
+  music.start();
   music.setMode("combat");
 }
 
@@ -943,6 +954,7 @@ function startNetDuel(room, ranked, friendly) {
     profile: duelProfile(),
     onResult: onResult,
     onCombat: startCombatMusic,
+    playerBody: playerBody,
     onExit: backToMenu
   });
   activeDuel.start();
@@ -1422,6 +1434,9 @@ async function boot() {
     initSocial();
   }
   loadingStop();
+  el("boot-loading").classList.add("hidden");
+  menuMusicAllowed = true;
+  maybeStartMenuMusic();
   let joinCode = getInviteParam("roomId");
   if (joinCode === null) {
     const params = new URLSearchParams(location.search);

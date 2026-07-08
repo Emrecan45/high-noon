@@ -13,6 +13,11 @@
   <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 </head>
 <body>
+  <div id="boot-loading">
+    <div class="boot-logo">HIGH NOON</div>
+    <div class="boot-spinner"></div>
+  </div>
+
   <div id="game"></div>
 
   <div id="hud" class="hidden">
@@ -227,34 +232,16 @@
     </div>
   </div>
 
-  <div id="screen-duelintro" class="hidden">
+  <div id="cine-overlay" class="hidden">
     <div class="di-bar di-top"></div>
     <div class="di-bar di-bottom"></div>
-    <div class="di-sun"></div>
-
-    <div class="di-walk">
-      <img class="di-fig di-fig-you" id="di-you-fig" alt="" />
-      <img class="di-fig di-fig-opp" id="di-opp-fig" alt="" />
+    <div class="cine-tag" id="cine-you-tag">
+      <span class="cine-name" id="cine-you-name"></span>
+      <span class="cine-title" id="cine-you-title"></span>
     </div>
-
-    <div class="di-closeup di-close-you">
-      <img class="di-head" id="di-you-head" alt="" />
-      <div class="di-cu-info">
-        <div class="di-cu-name" id="di-you-name"></div>
-        <div class="di-cu-title" id="di-you-title"></div>
-      </div>
-    </div>
-    <div class="di-closeup di-close-opp">
-      <img class="di-head" id="di-opp-head" alt="" />
-      <div class="di-cu-info">
-        <div class="di-cu-name" id="di-opp-name"></div>
-        <div class="di-cu-title" id="di-opp-title"></div>
-      </div>
-    </div>
-
-    <div class="di-versus">
-      <div class="di-vs">VS</div>
-      <div class="di-tag" data-i18n="duelTag"></div>
+    <div class="cine-tag" id="cine-opp-tag">
+      <span class="cine-name" id="cine-opp-name"></span>
+      <span class="cine-title" id="cine-opp-title"></span>
     </div>
   </div>
 
