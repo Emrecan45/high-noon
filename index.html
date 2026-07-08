@@ -13,6 +13,12 @@
   <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 </head>
 <body>
+  <div id="boot-loading">
+    <div class="boot-logo">HIGH NOON</div>
+    <div class="boot-bar"><div id="boot-bar-fill"></div></div>
+    <div id="boot-pct">0%</div>
+  </div>
+
   <div id="game"></div>
 
   <div id="hud" class="hidden">
@@ -38,6 +44,9 @@
     </div>
   </div>
 
+  <div id="backdrop"></div>
+  <div id="stage">
+
   <div id="screen-title" class="screen">
     <div id="topbar">
       <span class="vol">🎵<input id="vol-music" type="range" min="0" max="100" /></span>
@@ -60,6 +69,7 @@
       <h3 data-i18n="friendsTitle"></h3>
       <p id="friends-msg" class="hidden"></p>
       <div id="friends-list"></div>
+      <p id="friend-addmsg" class="hidden"></p>
       <div id="friend-add" class="friend-add">
         <input id="friend-input" type="text" maxlength="16" autocomplete="off" data-i18n-ph="friendsAddPh" />
         <button id="btn-friend-add" class="btn btn-small" data-i18n="friendsAdd"></button>
@@ -74,6 +84,7 @@
       </div>
       <div id="ch-list" class="ch-list"></div>
       <p id="ch-msg" class="ch-msg hidden"></p>
+      <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
     </div>
     <button id="challenges-toggle" class="hidden" aria-label="Challenges">🎯</button>
     <h1 class="logo">HIGH NOON</h1>
@@ -87,7 +98,6 @@
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
         <button id="btn-patch" class="btn btn-small" data-i18n="btnPatch"></button>
       </div>
-      <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
       <p id="players-online" class="players-online hidden"></p>
     </div>
     <div class="home-footer">
@@ -121,15 +131,9 @@
 
   <div id="screen-profile" class="screen hidden">
     <h2 id="profile-name"></h2>
-    <div class="profile-layout">
-      <div class="profile-left">
-        <div id="profile-view"></div>
-        <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
-      </div>
-      <div class="profile-right">
-        <div id="stats-block" class="stats-grid"></div>
-      </div>
-    </div>
+    <div id="stats-block" class="stats-grid"></div>
+    <div id="profile-view"></div>
+    <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
     <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
@@ -200,6 +204,37 @@
     </div>
   </div>
 
+  </div>
+
+  <div id="screen-announce" class="screen overlay opaque hidden">
+    <div class="announce-inner">
+      <div id="announce-title" class="announce-title"></div>
+      <div id="announce-name" class="announce-name"></div>
+    </div>
+  </div>
+
+  <div id="screen-duelintro" class="screen hidden">
+    <div class="di-bar di-top"></div>
+    <div class="di-bar di-bottom"></div>
+    <div class="di-sun"></div>
+    <div class="di-stage">
+      <div class="di-side di-you">
+        <div class="di-name" id="di-you-name"></div>
+        <div class="di-title" id="di-you-title"></div>
+        <img class="di-fig" id="di-you-fig" alt="" />
+      </div>
+      <div class="di-center">
+        <div class="di-vs">VS</div>
+        <div class="di-tag" data-i18n="duelTag"></div>
+      </div>
+      <div class="di-side di-opp">
+        <div class="di-name" id="di-opp-name"></div>
+        <div class="di-title" id="di-opp-title"></div>
+        <img class="di-fig" id="di-opp-fig" alt="" />
+      </div>
+    </div>
+  </div>
+
   <div id="screen-roundend" class="screen overlay hidden">
     <h2 id="roundend-title"></h2>
     <p id="roundend-detail"></p>
@@ -227,34 +262,16 @@
     </div>
   </div>
 
-  <div id="screen-duelintro" class="hidden">
+  <div id="cine-overlay" class="hidden">
     <div class="di-bar di-top"></div>
     <div class="di-bar di-bottom"></div>
-    <div class="di-sun"></div>
-
-    <div class="di-walk">
-      <img class="di-fig di-fig-you" id="di-you-fig" alt="" />
-      <img class="di-fig di-fig-opp" id="di-opp-fig" alt="" />
+    <div class="cine-tag" id="cine-you-tag">
+      <span class="cine-name" id="cine-you-name"></span>
+      <span class="cine-title" id="cine-you-title"></span>
     </div>
-
-    <div class="di-closeup di-close-you">
-      <img class="di-head" id="di-you-head" alt="" />
-      <div class="di-cu-info">
-        <div class="di-cu-name" id="di-you-name"></div>
-        <div class="di-cu-title" id="di-you-title"></div>
-      </div>
-    </div>
-    <div class="di-closeup di-close-opp">
-      <img class="di-head" id="di-opp-head" alt="" />
-      <div class="di-cu-info">
-        <div class="di-cu-name" id="di-opp-name"></div>
-        <div class="di-cu-title" id="di-opp-title"></div>
-      </div>
-    </div>
-
-    <div class="di-versus">
-      <div class="di-vs">VS</div>
-      <div class="di-tag" data-i18n="duelTag"></div>
+    <div class="cine-tag" id="cine-opp-tag">
+      <span class="cine-name" id="cine-opp-name"></span>
+      <span class="cine-title" id="cine-opp-title"></span>
     </div>
   </div>
 

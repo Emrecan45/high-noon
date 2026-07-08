@@ -1,11 +1,11 @@
 export function eloTitleKey(elo) {
-  if (elo >= 1300) {
+  if (elo >= 2000) {
     return "title.legend";
   }
-  if (elo >= 1150) {
+  if (elo >= 1500) {
     return "title.desperado";
   }
-  if (elo >= 1050) {
+  if (elo >= 1200) {
     return "title.marksman";
   }
   return "title.greenhorn";

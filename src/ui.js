@@ -254,38 +254,6 @@ export function createUi() {
     };
   }
 
-  function duelIntro(info, onDone) {
-    const node = el("screen-duelintro");
-    el("di-you-fig").src = info.you.figure;
-    el("di-opp-fig").src = info.opp.figure;
-    el("di-you-head").src = info.you.head;
-    el("di-opp-head").src = info.opp.head;
-    el("di-you-name").textContent = info.you.name;
-    el("di-you-title").textContent = info.you.title;
-    el("di-opp-name").textContent = info.opp.name;
-    el("di-opp-title").textContent = info.opp.title;
-    node.classList.remove("hidden", "p-walk", "p-you", "p-opp", "p-vs");
-    void node.offsetWidth;
-    node.classList.add("p-walk");
-    setTimeout(function () {
-      node.classList.remove("p-walk");
-      node.classList.add("p-you");
-    }, 2300);
-    setTimeout(function () {
-      node.classList.remove("p-you");
-      node.classList.add("p-opp");
-    }, 3600);
-    setTimeout(function () {
-      node.classList.remove("p-opp");
-      node.classList.add("p-vs");
-    }, 4900);
-    setTimeout(function () {
-      node.classList.remove("p-vs");
-      node.classList.add("hidden");
-      onDone();
-    }, 6100);
-  }
-
   function opponentCards(personas, cb) {
     const container = el("opponent-cards");
     container.innerHTML = "";
@@ -305,6 +273,42 @@ export function createUi() {
 
   function searchTick(seconds) {
     el("search-timer").textContent = seconds + " s";
+  }
+
+  function announce(title, name, ms, onDone) {
+    el("announce-title").textContent = title;
+    el("announce-name").textContent = name;
+    el("screen-announce").classList.remove("hidden");
+    const node = el("screen-announce");
+    node.classList.remove("show");
+    void node.offsetWidth;
+    node.classList.add("show");
+    setTimeout(function () {
+      node.classList.remove("show");
+      setTimeout(function () {
+        node.classList.add("hidden");
+      }, 500);
+      onDone();
+    }, ms);
+  }
+
+  function duelIntro(info, ms, onDone) {
+    el("di-you-name").textContent = info.you.name;
+    el("di-you-title").textContent = info.you.title;
+    el("di-you-fig").src = info.you.portrait;
+    el("di-opp-name").textContent = info.opp.name;
+    el("di-opp-title").textContent = info.opp.title;
+    el("di-opp-fig").src = info.opp.portrait;
+    const node = el("screen-duelintro");
+    node.classList.remove("hidden");
+    node.classList.remove("show");
+    void node.offsetWidth;
+    node.classList.add("show");
+    setTimeout(function () {
+      node.classList.add("hidden");
+      node.classList.remove("show");
+      onDone();
+    }, ms);
   }
 
   return {
@@ -328,8 +332,9 @@ export function createUi() {
     roundEnd: roundEnd,
     perkChoice: perkChoice,
     matchEnd: matchEnd,
-    duelIntro: duelIntro,
     opponentCards: opponentCards,
-    searchTick: searchTick
+    searchTick: searchTick,
+    announce: announce,
+    duelIntro: duelIntro
   };
 }

@@ -25,17 +25,17 @@
 
 **▶ Jouer maintenant : [emrecan45.github.io/high-noon](https://emrecan45.github.io/high-noon/)**
 
-Aucune installation : le jeu tourne directement dans le navigateur, sur ordinateur comme sur **mobile et tablette** (visée tactile et boutons dédiés).
+Aucune installation : le jeu tourne directement dans le navigateur, sur ordinateur comme sur **mobile et tablette** (visée tactile et boutons dédiés). Sur mobile, l'interface reprend **exactement la mise en page PC**, simplement réduite pour tenir à l'écran (pas de réagencement), commandes tactiles conservées.
 
 
 
 ## 🎮 Gameplay
 
-- **La présentation du duel** : avant le premier échange, une intro cinématique met les deux pistoleros face à face, pseudo et rang affichés au-dessus, sur fond de soleil de plomb - pour planter l'ambiance.
+- **La présentation du duel** : en ligne, un écran **« Adversaire trouvé »** annonce le rival par-dessus le matchmaking ; puis une présentation **face-à-face** montre les deux pistoleros (portrait 3D, pseudo et rang) séparés par un grand **VS**, suivie d'une **intro dans l'arène** où les deux pistoleros s'avancent l'un vers l'autre (vraie animation de marche, caméra qui resserre sur les têtes, pseudo affiché au-dessus). Contre l'IA, la présentation s'enchaîne directement, sans annonce.
 - **Le signal** : tirer avant la cloche = tir anticipé, manche perdue.
 - **La visée compte** : une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Un tir manqué impose un rechargement.
 - **Le dégainé désaxe la visée** : au signal, le viseur remonte avec un décalage aléatoire et flotte en permanence (respiration du bras) - il faut rattraper la cible avant de tirer.
-- **L'esquive** : 2 pas de côté par manche (touches Q/D ou A/E), un vrai déplacement latéral engagé (bascule du corps et du regard). On peut tirer pendant l'esquive, mais le viseur tremble fort. Si l'adversaire tire pendant ton pas de côté, il rate. S'il attend la fin, tu es à sa merci.
+- **L'esquive** : 2 pas de côté par manche (touches Q/D ou A/E). C'est un vrai pas latéral qui te **déplace pour de bon** - tu restes décalé, tu ne reviens pas à ta position. On peut tirer pendant l'esquive, mais le viseur tremble fort. Si l'adversaire tire pendant ton pas de côté, il rate. S'il attend la fin, tu es à sa merci.
 - **Le soleil aveugle** : des éblouissements aléatoires peuvent te blinder avant le signal si tu regardes dans sa direction. Détourne les yeux pour t'en protéger.
 - **La brume cache** : par bancs, elle dissimule l'adversaire par intermittence puis se dissipe - pareil pour les deux joueurs en ligne.
 - **La kill cam** : le tir décisif passe au ralenti, l'écran vire sépia, le son s'étouffe et la caméra zoome sur le duelliste qui s'effondre.
@@ -95,6 +95,10 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 | 🌵 El Rápido | Le plus rapide de l'Ouest, vise la tête |
 | 🥃 Doc Silence | Lent au signal, mais ne rate jamais une faute |
 
+Chaque pistolero IA arbore une **tenue qui lui est propre** (couleurs, arme et accessoires signature), introuvable en boutique.
+
+Si un adversaire en ligne quitte ou reste inactif, la manche n'est plus bloquée : **victoire par forfait** accordée automatiquement.
+
 
 
 ## 🕹️ Contrôles
@@ -128,12 +132,12 @@ Deux garde-fous réseau : impossible de **s'affronter soi-même** (deux onglets 
 
 Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase. En **duel classé**, pseudo, tenue et **rang** (Novice, Tireur, Desperado, Légende de l'Ouest, selon les points accumulés) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, rang, points). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
 
-Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points de rang et pièces divisés par deux au deuxième duel, plus aucun point de rang à partir du troisième.
+Le classement repose sur des **points de duel cumulés** : une victoire en rapporte d'autant plus que l'adversaire est fort, une défaite n'en coûte qu'une poignée et le total ne descend jamais sous le seuil de départ (1000). Les **rangs** sont des paliers de ce total, pour un système lisible qui monte surtout à la victoire (plutôt qu'un Elo qui zigzague). Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points et pièces divisés par deux au deuxième duel, plus aucun point à partir du troisième.
 
-| Résultat | Pièces | Points de rang (K=32) |
+| Résultat | Pièces | Points de duel |
 |--|--|--|
-| 🏆 Victoire classée | +40 🪙 | montent |
-| 💀 Défaite classée | +10 🪙 | descendent |
+| 🏆 Victoire classée | +40 🪙 | +14 à +40 (selon l'adversaire) |
+| 💀 Défaite classée | +10 🪙 | -8 (jamais sous 1000) |
 | 🤖 Victoire contre l'IA | +8 🪙 | - |
 | 🤖 Défaite contre l'IA | +2 🪙 | - |
 
@@ -143,7 +147,7 @@ Le rang, les pièces et les achats sont gérés côté serveur par des fonctions
 
 ## 🤠 Profil, tenues & accessoires
 
-Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil, titré par ton **pseudo** (repris de CrazyGames, non modifiable) : le pistolero en **3D** à gauche (revolver au holster), à droite les statistiques de carrière (duels, précision, tirs à la tête, série de victoires). Les portraits de l'accueil, des amis et du classement sont **rendus depuis le même modèle 3D** que le personnage en jeu, pour un look cohérent partout. Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
+Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil en une seule colonne, titré par ton **pseudo** (repris de CrazyGames, non modifiable) : les statistiques de carrière (duels, précision, tirs à la tête, série de victoires), puis le pistolero en **3D** (revolver au holster) et le bouton Modifier. Les portraits de l'accueil, des amis et du classement sont **rendus depuis le même modèle 3D** que le personnage en jeu, pour un look cohérent partout. Un bouton **Modifier** ouvre la garde-robe : le pistolero tourne au centre pendant qu'on l'habille avec une **tenue** (8 tenues qui recolorent chapeau, chemise, pantalon, bandana), une **arme** (6 revolvers recolorés, visibles en vue subjective comme sur l'adversaire) et des **accessoires** cumulables par emplacement (moustache, barbe, cigare, cache-œil, étoile de shérif, poncho, plume). Le tout est visible par l'adversaire en ligne. Les pièces gagnées s'affichent en permanence en haut à droite.
 
 ## 📅 Défis quotidiens & hebdomadaires
 

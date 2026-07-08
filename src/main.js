@@ -12,7 +12,7 @@ import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, 
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
 import { initAccount, getProfile, ensureAccount, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
-import { SKINS, skinById, portraitDataUrl } from "./skins.js";
+import { SKINS, skinById, portraitDataUrl, aiSkinFor } from "./skins.js";
 import { ACCESSORIES, accessoryById, accessoryIconDataUrl } from "./accessories.js";
 import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
 import { eloTitleKey } from "./titles.js";
@@ -22,6 +22,9 @@ import pkg from "../package.json";
 const arena = createArena(document.getElementById("game"));
 const cowboy = createCowboy();
 arena.opponentAnchor.add(cowboy.group);
+const playerBody = createCowboy();
+playerBody.group.visible = false;
+arena.scene.add(playerBody.group);
 const viewmodel = createViewmodel(arena.camera);
 const ui = createUi();
 const audio = new AudioEngine();
@@ -47,6 +50,31 @@ function el(id) {
 
 applyStatic();
 el("version-tag").textContent = "v" + pkg.version.split(".").slice(0, 2).join(".");
+
+const DESIGN_W = 1160;
+const DESIGN_H = 720;
+function layoutStage() {
+  const stage = el("stage");
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (vw >= DESIGN_W && vh >= DESIGN_H) {
+    document.body.classList.remove("ui-scaled");
+    stage.style.transform = "";
+    stage.style.width = "";
+    stage.style.height = "";
+    return;
+  }
+  const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
+  document.body.classList.add("ui-scaled");
+  const w = vw / scale;
+  const h = vh / scale;
+  stage.style.width = w + "px";
+  stage.style.height = h + "px";
+  stage.style.transform = "scale(" + scale + ")";
+}
+layoutStage();
+window.addEventListener("resize", layoutStage);
+window.addEventListener("orientationchange", layoutStage);
 
 function buildOpponentCards() {
   ui.opponentCards(PERSONAS, function (persona) {
@@ -83,13 +111,19 @@ sfxSlider.addEventListener("input", function () {
 });
 
 let audioBooted = false;
+let menuMusicAllowed = false;
 function bootAudio() {
   if (audioBooted) {
     return;
   }
   audioBooted = true;
   audio.ensure();
-  music.start();
+  maybeStartMenuMusic();
+}
+function maybeStartMenuMusic() {
+  if (audioBooted && menuMusicAllowed && activeDuel === null) {
+    music.start();
+  }
 }
 document.addEventListener("pointerdown", bootAudio, { once: true, capture: true });
 document.addEventListener("touchstart", bootAudio, { once: true, capture: true, passive: true });
@@ -442,6 +476,12 @@ for (const weapon of WEAPONS) {
 for (const acc of ACCESSORIES) {
   wheelItems.push({ kind: "accessory", ref: acc.id, nameKey: acc.nameKey, icon: accessoryIconDataUrl(acc.id, 64) });
 }
+for (let i = wheelItems.length - 1; i > 0; i--) {
+  const j = Math.floor(Math.random() * (i + 1));
+  const tmp = wheelItems[i];
+  wheelItems[i] = wheelItems[j];
+  wheelItems[j] = tmp;
+}
 const wheelImages = [];
 let wheelImagesLoaded = 0;
 for (const item of wheelItems) {
@@ -674,6 +714,17 @@ function setFriendsMsg(text) {
   }
 }
 
+function setAddMsg(text, ok) {
+  const node = el("friend-addmsg");
+  if (text === "") {
+    node.classList.add("hidden");
+    return;
+  }
+  node.textContent = text;
+  node.classList.remove("hidden");
+  node.classList.toggle("ok-text", ok === true);
+}
+
 function renderFriends() {
   const list = el("friends-list");
   list.innerHTML = "";
@@ -769,25 +820,25 @@ function renderFriends() {
 el("btn-friend-add").addEventListener("click", async function () {
   bootAudio();
   const pseudo = el("friend-input").value.trim();
-  if (pseudo.length < 3) {
+  if (pseudo.length < 1) {
     return;
   }
   const profile = await accountReady();
   if (profile === null) {
-    setFriendsMsg(t("accountError"));
+    setAddMsg(t("accountError"), false);
     return;
   }
   const result = await sendFriendRequest(pseudo);
   if (result.ok) {
     el("friend-input").value = "";
-    setFriendsMsg(t("friendsSent"));
+    setAddMsg(t("friendsSent"), true);
     refreshFriends();
   } else if (result.reason === "notfound") {
-    setFriendsMsg(t("friendsNotFound"));
+    setAddMsg(t("friendsNotFound"), false);
   } else if (result.reason === "already") {
-    setFriendsMsg(t("friendsAlready"));
+    setAddMsg(t("friendsAlready"), false);
   } else {
-    setFriendsMsg(t("accountError"));
+    setAddMsg(t("accountError"), false);
   }
 });
 
@@ -835,6 +886,12 @@ function backToMenu() {
   cowboy.setWeapon(weaponById("iron").colors);
   viewmodel.holster();
   arena.applyModifier({ id: "noon", sway: 0 }, 19);
+  arena.playerRig.position.set(0, 1.6, 7);
+  arena.camera.position.set(0, 0, 0);
+  arena.camera.rotation.set(0, 0, 0);
+  arena.camera.fov = 70;
+  arena.camera.updateProjectionMatrix();
+  el("backdrop").classList.remove("hidden");
   ui.hudVisible(false);
   music.setMode("menu");
   ui.showScreen("screen-title");
@@ -875,12 +932,12 @@ function handleResult(ranked) {
         return;
       }
       if (ranked) {
-        let deltaStr = String(result.elo_delta);
+        let deltaStr = result.elo_delta + " pts";
         if (result.elo_delta >= 0) {
-          deltaStr = "+" + result.elo_delta;
+          deltaStr = "+" + result.elo_delta + " pts";
         }
         reward.innerHTML =
-          '<div class="me-rank">' + t("mRank", { rank: result.elo, delta: deltaStr }) + "</div>" +
+          '<div class="me-rank">' + t(eloTitleKey(result.elo)) + " · " + deltaStr + "</div>" +
           "<div>+" + result.coins_delta + " 🪙</div>";
       } else {
         reward.textContent = "+" + result.coins_delta + " 🪙";
@@ -891,9 +948,11 @@ function handleResult(ranked) {
 }
 
 function startAiDuel(persona) {
-  cowboy.setSkin(skinById("drifter").colors);
-  cowboy.setAccessories([]);
-  cowboy.setWeapon(weaponById("iron").colors);
+  el("backdrop").classList.add("hidden");
+  const aiSkin = aiSkinFor(persona.id);
+  cowboy.setSkin(aiSkin.colors);
+  cowboy.setAccessories(aiSkin.acc);
+  cowboy.setWeapon(weaponById(aiSkin.weapon).colors);
   applyMyWeapon();
   const ai = new AiOpponent(persona, createRng(randomSeed()));
   activeDuel = new Duel({
@@ -911,6 +970,9 @@ function startAiDuel(persona) {
     profile: duelProfile(),
     onResult: handleResult(false),
     onCombat: startCombatMusic,
+    oppColors: aiSkin.colors,
+    oppAcc: aiSkin.acc,
+    playerBody: playerBody,
     onExit: backToMenu
   });
   activeDuel.start();
@@ -919,10 +981,12 @@ function startAiDuel(persona) {
 
 function startCombatMusic() {
   bootAudio();
+  music.start();
   music.setMode("combat");
 }
 
 function startNetDuel(room, ranked, friendly) {
+  el("backdrop").classList.add("hidden");
   applyMyWeapon();
   let onResult = handleResult(ranked);
   if (friendly) {
@@ -943,6 +1007,7 @@ function startNetDuel(room, ranked, friendly) {
     profile: duelProfile(),
     onResult: onResult,
     onCombat: startCombatMusic,
+    playerBody: playerBody,
     onExit: backToMenu
   });
   activeDuel.start();
@@ -970,6 +1035,7 @@ function startSearch() {
   el("search-title").textContent = t("searchTitle");
   el("search-timer").classList.remove("hidden");
   el("friend-block").classList.add("hidden");
+  el("btn-search-cancel").classList.remove("hidden");
   ui.showScreen("screen-search");
   ui.searchTick(0);
   let seconds = 0;
@@ -986,6 +1052,7 @@ function startSearch() {
   matchmaker.search({
     onMatched: function (room) {
       stopSearch();
+      el("btn-search-cancel").classList.add("hidden");
       startNetDuel(room, true, false);
     },
     onPairFailed: function () {},
@@ -1042,6 +1109,7 @@ function openFriendRoom(rawCode, hosting) {
       friendCode = null;
       hideInviteButton();
       stopSearch();
+      el("btn-search-cancel").classList.add("hidden");
       startNetDuel(room, false, true);
     },
     onError: function () {
@@ -1134,7 +1202,7 @@ function renderBoard(rows) {
     nameWrap.appendChild(title);
     const elo = document.createElement("span");
     elo.className = "board-elo";
-    elo.textContent = entry.elo;
+    elo.textContent = entry.elo + " pts";
     row.appendChild(rank);
     row.appendChild(img);
     row.appendChild(nameWrap);
@@ -1386,6 +1454,38 @@ function loop() {
   updateViewer(dt);
 }
 
+let bootPct = 0;
+let bootTimer = null;
+
+function setBootPct(value) {
+  bootPct = value;
+  const label = el("boot-pct");
+  const fill = el("boot-bar-fill");
+  if (label !== null) {
+    label.textContent = Math.round(value) + "%";
+  }
+  if (fill !== null) {
+    fill.style.width = value + "%";
+  }
+}
+
+function startBootProgress() {
+  setBootPct(0);
+  bootTimer = setInterval(function () {
+    if (bootPct < 90) {
+      setBootPct(bootPct + Math.max(0.6, (90 - bootPct) * 0.07));
+    }
+  }, 90);
+}
+
+function finishBootProgress() {
+  if (bootTimer !== null) {
+    clearInterval(bootTimer);
+    bootTimer = null;
+  }
+  setBootPct(100);
+}
+
 async function boot() {
   await initSdk();
   loadingStart();
@@ -1422,6 +1522,12 @@ async function boot() {
     initSocial();
   }
   loadingStop();
+  finishBootProgress();
+  setTimeout(function () {
+    el("boot-loading").classList.add("hidden");
+  }, 240);
+  menuMusicAllowed = true;
+  maybeStartMenuMusic();
   let joinCode = getInviteParam("roomId");
   if (joinCode === null) {
     const params = new URLSearchParams(location.search);
@@ -1440,5 +1546,6 @@ async function boot() {
 }
 
 ui.showScreen("screen-title");
+startBootProgress();
 loop();
 boot();

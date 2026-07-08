@@ -39,12 +39,38 @@ body.killcam #game {
   display: none !important;
 }
 
+#stage {
+  display: contents;
+}
+
+#backdrop {
+  display: none;
+}
+
+body.ui-scaled #backdrop {
+  display: block;
+  position: fixed;
+  inset: 0;
+  background: #140c06;
+  z-index: 1;
+  pointer-events: none;
+}
+
+body.ui-scaled #stage {
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+  z-index: 2;
+}
+
 .screen {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 100dvh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -184,7 +210,7 @@ h2 {
 .footer-note {
   position: absolute;
   bottom: 16px;
-  font-size: 13px;
+  font-size: 15px;
   color: #9a7c52;
 }
 
@@ -605,24 +631,102 @@ body.touch #gunstate {
   margin-top: 2px;
 }
 
-#screen-duelintro {
+#screen-announce {
+  z-index: 45;
+  background: rgba(12, 7, 3, 0.88);
+}
+
+.announce-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.announce-title {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 68px;
+  color: #e8b64c;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 0 #5a3410, 0 0 30px rgba(232, 182, 76, 0.7);
+}
+
+.announce-name {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: 34px;
+  color: #f3e4c2;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+#screen-announce.show .announce-title {
+  animation: caPop 0.5s ease both;
+}
+
+#screen-announce.show .announce-name {
+  animation: caPop 0.5s 0.12s ease both;
+}
+
+@keyframes caPop {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+#cine-overlay {
   position: fixed;
   inset: 0;
   z-index: 55;
   overflow: hidden;
+  pointer-events: none;
+}
+
+#cine-overlay.hidden {
+  display: none;
+}
+
+.cine-tag {
+  position: absolute;
+  transform: translate(-50%, -100%);
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  background:
-    radial-gradient(circle at 50% 118%, rgba(232, 150, 60, 0.5), transparent 62%),
-    linear-gradient(#2a1a0c, #120803 72%);
+  gap: 1px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  white-space: nowrap;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.95);
+}
+
+.cine-name {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: clamp(20px, 3vw, 36px);
+  color: #f3e4c2;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.cine-title {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: clamp(10px, 1.4vw, 14px);
+  color: #e8b64c;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+#screen-duelintro {
+  z-index: 45;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 34%, #6b451c 0%, #2a1a0c 55%, #140c06 100%);
 }
 
 .di-bar {
   position: absolute;
   left: 0;
   right: 0;
-  height: 11vh;
+  height: 9%;
   background: #000;
   z-index: 3;
 }
@@ -637,180 +741,157 @@ body.touch #gunstate {
 
 .di-sun {
   position: absolute;
-  bottom: -32vh;
+  top: 22%;
   left: 50%;
-  width: 72vh;
-  height: 72vh;
-  transform: translateX(-50%);
+  width: 260px;
+  height: 260px;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 205, 110, 0.55), rgba(232, 150, 60, 0.14) 55%, transparent 70%);
-  z-index: 1;
+  background: radial-gradient(circle, rgba(255, 244, 214, 0.95) 0%, rgba(255, 214, 140, 0.5) 45%, rgba(255, 214, 140, 0) 72%);
+  pointer-events: none;
 }
 
-.di-walk {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
+.di-stage {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  gap: min(12vw, 160px);
-  padding-bottom: 9vh;
-  opacity: 0;
-  transition: opacity 0.5s ease;
-}
-
-#screen-duelintro.p-walk .di-walk,
-#screen-duelintro.p-vs .di-walk {
-  opacity: 1;
-}
-
-.di-fig {
-  width: clamp(140px, 21vw, 270px);
-  height: auto;
-  filter: drop-shadow(0 14px 24px rgba(0, 0, 0, 0.65));
-}
-
-.di-fig-opp {
-  transform: scaleX(-1);
-}
-
-#screen-duelintro.p-walk .di-fig-you {
-  animation: diWalkYou 2.4s ease-out both;
-}
-
-#screen-duelintro.p-walk .di-fig-opp {
-  animation: diWalkOpp 2.4s ease-out both;
-}
-
-.di-closeup {
-  position: absolute;
-  inset: 0;
+  gap: 30px;
   z-index: 4;
+}
+
+.di-side {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
-  opacity: 0;
+  gap: 4px;
+  width: 300px;
 }
 
-.di-close-you {
-  background: radial-gradient(circle at 42% 45%, rgba(232, 150, 60, 0.28), transparent 60%);
-}
-
-.di-close-opp {
-  background: radial-gradient(circle at 58% 45%, rgba(180, 44, 32, 0.28), transparent 60%);
-}
-
-#screen-duelintro.p-you .di-close-you {
-  animation: diCloseInL 0.5s ease both;
-}
-
-#screen-duelintro.p-opp .di-close-opp {
-  animation: diCloseInR 0.5s ease both;
-}
-
-.di-head {
-  width: clamp(170px, 30vw, 300px);
-  height: auto;
-  border-radius: 14px;
-  filter: drop-shadow(0 14px 30px rgba(0, 0, 0, 0.7));
-}
-
-.di-cu-info {
-  text-align: center;
-}
-
-.di-cu-name {
+.di-name {
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(28px, 6vw, 56px);
+  font-size: 34px;
   color: #f3e4c2;
   text-transform: uppercase;
   letter-spacing: 1px;
-  text-shadow: 0 3px 0 #3a2008, 0 0 22px rgba(232, 182, 76, 0.6);
+  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.9);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.di-cu-title {
-  font-family: "Special Elite", Georgia, serif;
-  font-size: clamp(12px, 2vw, 18px);
+.di-title {
+  font-size: 15px;
   color: #e8b64c;
   letter-spacing: 3px;
   text-transform: uppercase;
-  margin-top: 4px;
 }
 
-.di-versus {
-  position: absolute;
-  inset: 0;
-  z-index: 5;
+.di-fig {
+  width: 230px;
+  height: 230px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.6));
+}
+
+.di-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-#screen-duelintro.p-vs .di-versus {
-  opacity: 1;
-}
-
-#screen-duelintro.p-vs .di-vs {
-  animation: diPop 0.5s ease both;
+  gap: 6px;
 }
 
 .di-vs {
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(40px, 8vw, 84px);
-  color: #e8b64c;
-  text-shadow: 0 4px 0 #5a3410, 0 0 28px rgba(232, 182, 76, 0.75);
+  font-size: 76px;
+  color: #d64a28;
+  text-shadow: 0 4px 0 #3a1108, 0 0 26px rgba(214, 74, 40, 0.6);
 }
 
 .di-tag {
-  font-family: "Special Elite", Georgia, serif;
-  font-size: clamp(11px, 1.6vw, 15px);
-  letter-spacing: 3px;
-  color: #cdb491;
+  font-size: 15px;
+  color: #cfa36a;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
-@keyframes diWalkYou {
-  0% { transform: translateX(-45vw) translateY(0); }
-  25% { transform: translateX(-33vw) translateY(-9px); }
-  50% { transform: translateX(-22vw) translateY(0); }
-  75% { transform: translateX(-11vw) translateY(-9px); }
-  100% { transform: translateX(0) translateY(0); }
+#screen-duelintro .di-you {
+  transform: translateX(-60px);
+  opacity: 0;
 }
 
-@keyframes diWalkOpp {
-  0% { transform: scaleX(-1) translateX(-45vw) translateY(0); }
-  25% { transform: scaleX(-1) translateX(-33vw) translateY(-9px); }
-  50% { transform: scaleX(-1) translateX(-22vw) translateY(0); }
-  75% { transform: scaleX(-1) translateX(-11vw) translateY(-9px); }
-  100% { transform: scaleX(-1) translateX(0) translateY(0); }
+#screen-duelintro .di-opp {
+  transform: translateX(60px);
+  opacity: 0;
 }
 
-@keyframes diCloseInL {
-  from { opacity: 0; transform: translateX(-8vw); }
-  to { opacity: 1; transform: translateX(0); }
+#screen-duelintro .di-vs {
+  transform: scale(0);
 }
 
-@keyframes diCloseInR {
-  from { opacity: 0; transform: translateX(8vw); }
-  to { opacity: 1; transform: translateX(0); }
+#screen-duelintro.show .di-you,
+#screen-duelintro.show .di-opp {
+  transform: translateX(0);
+  opacity: 1;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.5s ease;
 }
 
-@keyframes diPop {
-  from { opacity: 0; transform: scale(0.3); }
-  to { opacity: 1; transform: scale(1); }
+#screen-duelintro.show .di-vs {
+  transform: scale(1);
+  transition: transform 0.5s 0.45s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
 .players-online {
-  font-size: 13px;
+  font-size: 15px;
   color: #9a7c52;
   letter-spacing: 1px;
+}
+
+#boot-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+  background: radial-gradient(ellipse at center, #2a1a0c 0%, #120803 100%);
+}
+
+#boot-loading.hidden {
+  display: none;
+}
+
+.boot-logo {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: clamp(40px, 9vw, 92px);
+  color: #e8b64c;
+  letter-spacing: 3px;
+  text-shadow: 0 4px 0 #5a3410, 0 0 30px rgba(232, 182, 76, 0.4);
+}
+
+.boot-bar {
+  width: min(320px, 70vw);
+  height: 12px;
+  background: rgba(232, 182, 76, 0.18);
+  border: 2px solid #7a4c15;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+#boot-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #c68a2e, #e8b64c);
+  transition: width 0.16s ease;
+}
+
+#boot-pct {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 22px;
+  color: #e8b64c;
+  letter-spacing: 2px;
 }
 
 .home-footer {
@@ -843,7 +924,7 @@ body.touch #gunstate {
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   color: #9a7c52;
 }
 
@@ -863,10 +944,10 @@ body.touch #gunstate {
 
 #challenges-bar {
   position: absolute;
-  top: max(96px, calc(env(safe-area-inset-top) + 88px));
-  bottom: max(18px, calc(env(safe-area-inset-bottom) + 14px));
+  top: max(112px, calc(env(safe-area-inset-top) + 104px));
   right: max(16px, env(safe-area-inset-right));
-  width: 262px;
+  width: 264px;
+  max-height: min(62vh, calc(100dvh - 230px));
   background: rgba(20, 12, 6, 0.88);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -917,7 +998,7 @@ body.touch #gunstate {
 }
 
 #challenges-bar .ch-msg {
-  font-size: 13px;
+  font-size: 15px;
   color: #cdb491;
   text-align: center;
 }
@@ -935,23 +1016,6 @@ body.touch #gunstate {
   border: 3px solid #7a4c15;
   cursor: pointer;
   z-index: 30;
-}
-
-@media (max-width: 1080px) {
-  #challenges-bar:not(.open) {
-    display: none;
-  }
-
-  #challenges-bar.open {
-    position: fixed;
-    z-index: 40;
-  }
-
-  #challenges-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
 }
 
 .ch-tabs {
@@ -1009,7 +1073,7 @@ body.touch #gunstate {
 }
 
 .ch-label {
-  font-size: 14px;
+  font-size: 15px;
   color: #f3e4c2;
 }
 
@@ -1026,12 +1090,12 @@ body.touch #gunstate {
 }
 
 .ch-prog {
-  font-size: 11px;
+  font-size: 13px;
   color: #9a7c52;
 }
 
 .ch-reward {
-  font-size: 14px;
+  font-size: 15px;
   color: #ffd977;
   white-space: nowrap;
 }
@@ -1139,89 +1203,6 @@ body.touch #gunstate {
   min-width: 0;
 }
 
-@media (max-height: 640px) {
-  .screen {
-    gap: 12px;
-  }
-
-  .menu {
-    gap: 8px;
-  }
-
-  .btn {
-    font-size: 16px;
-    padding: 10px 14px;
-    width: 260px;
-  }
-
-  .btn-small {
-    font-size: 13px;
-    padding: 8px 10px;
-    width: 190px;
-  }
-
-  .btn-row .btn-small {
-    width: auto;
-    padding: 8px 10px;
-  }
-
-  .cards {
-    gap: 10px;
-  }
-
-  .card {
-    width: 160px;
-    padding: 12px 10px;
-    gap: 5px;
-  }
-
-  .card .card-icon {
-    font-size: 28px;
-  }
-
-  .card .card-name {
-    font-size: 15px;
-  }
-
-  .card .card-desc {
-    font-size: 11px;
-    line-height: 1.3;
-  }
-
-  .help-text {
-    max-height: 44vh;
-    font-size: 13px;
-    gap: 8px;
-  }
-
-  #topbar {
-    gap: 10px;
-    top: 8px;
-    right: 10px;
-  }
-
-  #topbar .vol {
-    font-size: 13px;
-  }
-
-  #topbar input[type="range"] {
-    width: 56px;
-  }
-
-  #lang-select {
-    font-size: 11px;
-    padding: 2px 4px;
-  }
-
-  .footer-note {
-    bottom: 6px;
-  }
-
-  #version-tag {
-    bottom: 6px;
-  }
-}
-
 @media (max-height: 480px) {
   #score {
     top: 4px;
@@ -1252,20 +1233,11 @@ body.touch #gunstate {
   }
 }
 
-@media (max-width: 420px) {
-  .cards {
-    gap: 8px;
-  }
-
-  .card {
-    width: 42vw;
-  }
-}
-
 #profile-chip {
   position: absolute;
   top: max(14px, env(safe-area-inset-top));
   left: max(16px, env(safe-area-inset-left));
+  width: 244px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1397,15 +1369,19 @@ body.touch #gunstate {
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 6px 26px;
-  width: 100%;
-  font-size: 14px;
+  gap: 8px 30px;
+  width: min(400px, 92vw);
+  font-size: 16px;
   color: #cdb491;
   background: rgba(26, 16, 7, 0.6);
   border: 2px solid #4a3018;
   border-radius: 8px;
-  padding: 12px 18px;
+  padding: 14px 20px;
   text-align: left;
+}
+
+#matchend-recap {
+  width: 100%;
 }
 
 .stats-grid .stat-value {
@@ -1524,69 +1500,9 @@ body.touch #gunstate {
   color: #e8b64c;
 }
 
-@media (max-height: 640px) {
-  #profile-chip {
-    top: 8px;
-    left: 10px;
-    font-size: 13px;
-    gap: 8px;
-    padding: 5px 12px 5px 6px;
-  }
-
-  #profile-chip img {
-    width: 38px;
-    height: 38px;
-  }
-
-  #chip-pseudo {
-    font-size: 14px;
-  }
-
-  #coins-badge {
-    top: 46px;
-    font-size: 17px;
-    padding: 5px 11px;
-  }
-
-  #friends-bar {
-    top: 74px;
-    max-height: calc(100dvh - 130px);
-  }
-
-  #friends-toggle {
-    top: 70px;
-  }
-
-  .card .skin-portrait {
-    width: 48px;
-    height: 48px;
-  }
-
-  #board-list {
-    max-height: 46vh;
-  }
-}
-
-.profile-layout {
-  display: flex;
-  gap: 26px;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 92vw;
-}
-
-.profile-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
 #profile-view {
-  width: min(260px, 78vw);
-  height: min(340px, 44vh);
+  width: min(230px, 70vw);
+  height: min(300px, 40vh);
   background: rgba(20, 12, 6, 0.55);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1599,17 +1515,9 @@ body.touch #gunstate {
   display: block;
 }
 
-.profile-right {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: stretch;
-  width: min(360px, 92vw);
-}
-
 #inv-view {
-  width: min(240px, 64vw);
-  height: min(280px, 34vh);
+  width: min(200px, 52vw);
+  height: min(200px, 26vh);
   background: rgba(20, 12, 6, 0.55);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1621,28 +1529,26 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(760px, 94vw);
-  max-height: 34vh;
-  overflow-y: auto;
+  width: min(840px, 96vw);
   padding: 4px;
 }
 
 .inv-label {
   font-family: "Rye", "Special Elite", serif;
   color: #e8b64c;
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: 2px;
 }
 
 .inv-row {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .inv-item {
-  width: 66px;
+  width: 74px;
   padding: 6px 4px;
   background: linear-gradient(#3a2412, #241608);
   border: 2px solid #7a4c15;
@@ -1655,13 +1561,13 @@ body.touch #gunstate {
 }
 
 .inv-item img {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   image-rendering: pixelated;
 }
 
 .inv-item .inv-name {
-  font-size: 9px;
+  font-size: 11px;
   color: #cdb491;
   text-align: center;
   line-height: 1.1;
@@ -1714,11 +1620,25 @@ body.touch #gunstate {
   border-radius: 8px;
 }
 
-#btn-home-ad {
+#challenges-bar #btn-home-ad {
+  flex-shrink: 0;
   width: auto;
   min-width: 0;
   font-size: 12px;
-  padding: 8px 14px;
+  padding: 8px 12px;
+  margin-top: 2px;
+  align-self: stretch;
+}
+
+#friend-addmsg {
+  font-size: 13px;
+  color: #ff9a7c;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+#friend-addmsg.ok-text {
+  color: #8fd48a;
 }
 
 #friends-bar {
@@ -1761,7 +1681,7 @@ body.touch #gunstate {
   flex: 1;
   min-width: 0;
   font-family: "Special Elite", Georgia, serif;
-  font-size: 13px;
+  font-size: 15px;
   color: #f3e4c2;
   background: rgba(20, 12, 6, 0.85);
   border: 2px solid #7a4c15;
@@ -1773,12 +1693,12 @@ body.touch #gunstate {
 .friend-add .btn-small {
   width: auto;
   min-width: 0;
-  font-size: 11px;
-  padding: 6px 8px;
+  font-size: 13px;
+  padding: 7px 10px;
 }
 
 #friends-msg {
-  font-size: 12px;
+  font-size: 14px;
   color: #cdb491;
   flex-shrink: 0;
 }
@@ -1816,7 +1736,7 @@ body.touch #gunstate {
 }
 
 .friend-name {
-  font-size: 13px;
+  font-size: 15px;
   color: #f3e4c2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1824,7 +1744,7 @@ body.touch #gunstate {
 }
 
 .friend-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: #9a7c52;
 }
 
@@ -1845,8 +1765,8 @@ body.touch #gunstate {
   background: linear-gradient(#e8b64c, #c68a2e);
   color: #2a1706;
   font-family: "Rye", "Special Elite", serif;
-  font-size: 10px;
-  padding: 4px 6px;
+  font-size: 12px;
+  padding: 5px 8px;
   border-radius: 4px;
   cursor: pointer;
   flex-shrink: 0;
@@ -1877,23 +1797,6 @@ body.touch #gunstate {
   z-index: 30;
 }
 
-@media (max-width: 1080px) {
-  #friends-bar:not(.open) {
-    display: none;
-  }
-
-  #friends-bar.open {
-    position: fixed;
-    z-index: 40;
-  }
-
-  #friends-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-}
-
 #toast {
   position: fixed;
   top: max(12px, env(safe-area-inset-top));
@@ -1918,32 +1821,3 @@ body.touch #gunstate {
   padding: 6px 10px;
 }
 
-@media (max-height: 640px) {
-  .profile-layout {
-    gap: 12px;
-  }
-
-  #profile-view {
-    height: min(280px, 52vh);
-  }
-
-  .stats-grid {
-    font-size: 12px;
-    padding: 6px 12px;
-    gap: 2px 16px;
-  }
-
-  .inv-item {
-    width: 54px;
-  }
-
-  .inv-item img {
-    width: 32px;
-    height: 32px;
-  }
-
-  #friends-bar {
-    top: 56px;
-    bottom: 12px;
-  }
-}
