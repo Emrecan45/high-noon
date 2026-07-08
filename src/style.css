@@ -76,7 +76,7 @@ body.ui-scaled #stage {
   align-items: center;
   justify-content: center;
   gap: 22px;
-  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  padding: max(24px, calc(env(safe-area-inset-top) / var(--ui-scale, 1))) max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1))) max(24px, calc(env(safe-area-inset-bottom) / var(--ui-scale, 1))) max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
   text-align: center;
   background:
     radial-gradient(ellipse at center, rgba(58, 36, 18, 0.92) 0%, rgba(20, 12, 6, 0.97) 100%);
@@ -96,8 +96,8 @@ body.ui-scaled #stage {
 
 #topbar {
   position: absolute;
-  top: max(14px, env(safe-area-inset-top));
-  right: max(16px, env(safe-area-inset-right));
+  top: max(14px, calc(env(safe-area-inset-top) / var(--ui-scale, 1)));
+  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
   display: flex;
   gap: 18px;
   align-items: center;
@@ -944,10 +944,10 @@ body.touch #gunstate {
 
 #challenges-bar {
   position: absolute;
-  top: max(112px, calc(env(safe-area-inset-top) + 104px));
-  right: max(16px, env(safe-area-inset-right));
+  top: max(112px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 104px));
+  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
   width: 264px;
-  max-height: min(62vh, calc(100dvh - 230px));
+  max-height: min(calc(62vh / var(--ui-scale, 1)), calc(calc(100dvh / var(--ui-scale, 1)) - 230px));
   background: rgba(20, 12, 6, 0.88);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1006,8 +1006,8 @@ body.touch #gunstate {
 #challenges-toggle {
   display: none;
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  top: max(90px, calc(env(safe-area-inset-top) + 82px));
+  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
+  top: max(90px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 82px));
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -1235,9 +1235,9 @@ body.touch #gunstate {
 
 #profile-chip {
   position: absolute;
-  top: max(14px, env(safe-area-inset-top));
-  left: max(16px, env(safe-area-inset-left));
-  width: 244px;
+  top: max(14px, calc(env(safe-area-inset-top) / var(--ui-scale, 1)));
+  left: max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  width: 280px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -1292,8 +1292,8 @@ body.touch #gunstate {
 
 #coins-badge {
   position: fixed;
-  top: max(58px, calc(env(safe-area-inset-top) + 48px));
-  right: max(16px, env(safe-area-inset-right));
+  top: max(58px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 48px));
+  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1643,10 +1643,10 @@ body.touch #gunstate {
 
 #friends-bar {
   position: absolute;
-  top: max(96px, calc(env(safe-area-inset-top) + 88px));
-  bottom: max(18px, calc(env(safe-area-inset-bottom) + 14px));
-  left: max(16px, env(safe-area-inset-left));
-  width: 244px;
+  top: max(96px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 88px));
+  bottom: max(18px, calc(calc(env(safe-area-inset-bottom) / var(--ui-scale, 1)) + 14px));
+  left: max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  width: 280px;
   background: rgba(20, 12, 6, 0.88);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1741,11 +1741,16 @@ body.touch #gunstate {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 100%;
 }
 
 .friend-sub {
-  font-size: 12px;
+  font-size: 11px;
   color: #9a7c52;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 .friend-row .dot {
@@ -1785,8 +1790,8 @@ body.touch #gunstate {
 #friends-toggle {
   display: none;
   position: fixed;
-  left: max(16px, env(safe-area-inset-left));
-  top: max(90px, calc(env(safe-area-inset-top) + 82px));
+  left: max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  top: max(90px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 82px));
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -1799,25 +1804,30 @@ body.touch #gunstate {
 
 #toast {
   position: fixed;
-  top: max(12px, env(safe-area-inset-top));
+  top: 40%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 60;
-  background: rgba(26, 16, 7, 0.96);
-  border: 2px solid #e8b64c;
-  border-radius: 10px;
-  padding: 10px 16px;
+  background: rgba(26, 16, 7, 0.98);
+  border: 3px solid #e8b64c;
+  border-radius: 12px;
+  padding: 24px 32px;
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 16px;
   align-items: center;
-  font-size: 14px;
-  max-width: 92vw;
+  font-size: 18px;
+  font-family: "Rye", "Special Elite", serif;
+  color: #f3e4c2;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+  max-width: 90vw;
+  text-align: center;
 }
 
 #toast .btn-small {
   width: auto;
   min-width: 0;
-  font-size: 11px;
-  padding: 6px 10px;
+  font-size: 14px;
+  padding: 10px 20px;
 }
 

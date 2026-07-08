@@ -8,7 +8,7 @@ import { createMusic } from "./music.js";
 import { AiOpponent, PERSONAS } from "./ai.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
-import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, listenChallenges, sendChallenge } from "./net.js";
+import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, onlineState, setOnlineState, listenChallenges, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
 import { initAccount, getProfile, ensureAccount, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved } from "./account.js";
@@ -34,9 +34,13 @@ const isTouch = window.matchMedia("(pointer: coarse)").matches;
 let activeDuel = null;
 let matchmaker = null;
 let searchInterval = null;
+let searchTransitionTimer = null;
 let friendRoom = null;
 let friendCode = null;
+let pendingChallengeCode = null;
+let roomWaitTimer = null;
 let copyTimer = null;
+let addMsgTimer = null;
 let socialReady = false;
 let friendsCache = [];
 let toastTimer = null;
@@ -59,6 +63,7 @@ function layoutStage() {
   const vh = window.innerHeight;
   if (vw >= DESIGN_W && vh >= DESIGN_H) {
     document.body.classList.remove("ui-scaled");
+    document.body.style.removeProperty("--ui-scale");
     stage.style.transform = "";
     stage.style.width = "";
     stage.style.height = "";
@@ -66,6 +71,7 @@ function layoutStage() {
   }
   const scale = Math.min(vw / DESIGN_W, vh / DESIGN_H);
   document.body.classList.add("ui-scaled");
+  document.body.style.setProperty("--ui-scale", scale);
   const w = vw / scale;
   const h = vh / scale;
   stage.style.width = w + "px";
@@ -173,7 +179,7 @@ function adMuteOff() {
   }
 }
 
-function showToast(text, onAccept) {
+function showToast(text, onAccept, onDecline, durationMs = 6000, onTimeout = null) {
   const toast = el("toast");
   el("toast-text").textContent = text;
   if (onAccept) {
@@ -183,7 +189,10 @@ function showToast(text, onAccept) {
       hideToast();
       onAccept();
     };
-    el("toast-decline").onclick = hideToast;
+    el("toast-decline").onclick = function () {
+      hideToast();
+      if (onDecline) onDecline();
+    };
   } else {
     el("toast-accept").classList.add("hidden");
     el("toast-decline").classList.add("hidden");
@@ -192,7 +201,12 @@ function showToast(text, onAccept) {
   if (toastTimer !== null) {
     clearTimeout(toastTimer);
   }
-  toastTimer = setTimeout(hideToast, 15000);
+  toastTimer = setTimeout(function () {
+    hideToast();
+    if (onTimeout) {
+      onTimeout();
+    }
+  }, durationMs);
 }
 
 function hideToast() {
@@ -209,7 +223,7 @@ function renderProfileChip() {
   if (profile !== null) {
     el("chip-head").src = portraitDataUrl(profile.skin, 128);
     el("chip-pseudo").textContent = profile.pseudo;
-    el("chip-elo").textContent = t(eloTitleKey(profile.elo));
+    el("chip-elo").textContent = t(eloTitleKey(profile.elo)) + " · " + profile.elo + " pts";
   } else {
     el("chip-head").src = portraitDataUrl("drifter", 128);
     el("chip-pseudo").textContent = localPseudo();
@@ -318,7 +332,7 @@ function renderStatsBlock() {
   const profile = getProfile();
   const block = el("stats-block");
   block.innerHTML = "";
-  statRow(block, t("statsTitle"), t(eloTitleKey(profile.elo)));
+  statRow(block, t("statsTitle"), t(eloTitleKey(profile.elo)) + " · " + profile.elo + " pts");
   statRow(block, t("statsMatches"), t("statsMatchesValue", { w: profile.wins, l: profile.losses }));
   let accuracy = "-";
   let headPct = "-";
@@ -637,13 +651,13 @@ el("btn-home-ad").addEventListener("click", function () {
       onError: function () {
         adMuteOff();
         el("btn-home-ad").disabled = false;
-        showToast(t("shopAdFail"), null);
+        showToast(t("shopAdFail"), null, null, 4000);
       }
     });
   });
 });
 
-function initSocial() {
+async function initSocial() {
   const profile = getProfile();
   if (socialReady || profile === null) {
     return;
@@ -652,10 +666,10 @@ function initSocial() {
   goOnline(profile.id, function () {
     renderFriends();
     updatePlayersOnline();
-  });
-  listenChallenges(profile.id, onChallenge);
+  }, refreshFriends);
+  listenChallenges(profile.id, onChallenge, onChallengeReply, refreshFriends);
   refreshFriends();
-  refreshChallenges();
+  await refreshChallenges();
   updatePlayersOnline();
   setInterval(refreshFriends, 30000);
 }
@@ -716,6 +730,10 @@ function setFriendsMsg(text) {
 
 function setAddMsg(text, ok) {
   const node = el("friend-addmsg");
+  if (addMsgTimer !== null) {
+    clearTimeout(addMsgTimer);
+    addMsgTimer = null;
+  }
   if (text === "") {
     node.classList.add("hidden");
     return;
@@ -723,6 +741,10 @@ function setAddMsg(text, ok) {
   node.textContent = text;
   node.classList.remove("hidden");
   node.classList.toggle("ok-text", ok === true);
+  addMsgTimer = setTimeout(function () {
+    node.classList.add("hidden");
+    addMsgTimer = null;
+  }, 4000);
 }
 
 function renderFriends() {
@@ -749,14 +771,11 @@ function renderFriends() {
     row.appendChild(main);
     if (entry.cg) {
       const online = entry.profileId !== null && isOnline(entry.profileId);
+      const ready = entry.profileId !== null && online && onlineState(entry.profileId) !== "game" && onlineState(entry.profileId) !== "matchmaking";
       if (entry.elo !== null) {
-        let stateText = t("offline");
-        if (online) {
-          stateText = t("online");
-        }
-        sub.textContent = t(eloTitleKey(entry.elo)) + " · " + stateText;
+        sub.textContent = t(eloTitleKey(entry.elo));
       } else {
-        sub.textContent = t("offline");
+        sub.textContent = "";
       }
       const dot = document.createElement("span");
       dot.className = "dot";
@@ -764,10 +783,14 @@ function renderFriends() {
         dot.classList.add("on");
       }
       row.appendChild(dot);
-      if (online) {
+      if (ready) {
         row.appendChild(friendButton(t("friendsChallenge"), false, function () {
           challengeOnline(entry.profileId);
         }));
+      } else if (online) {
+        const duelBtn = friendButton(t("friendsChallenge"), false, function () {});
+        duelBtn.disabled = true;
+        row.appendChild(duelBtn);
       } else {
         row.appendChild(friendButton(t("friendsInvite"), false, function () {
           inviteAnyFriend();
@@ -778,25 +801,25 @@ function renderFriends() {
       if (entry.incoming) {
         row.appendChild(friendButton("✓", false, async function () {
           await respondFriendRequest(entry.fid, true);
+          notifyFriendsChange(entry.id);
           refreshFriends();
         }));
         row.appendChild(friendButton("✕", true, async function () {
           await respondFriendRequest(entry.fid, false);
+          notifyFriendsChange(entry.id);
           refreshFriends();
         }));
       } else {
         row.appendChild(friendButton("✕", true, async function () {
           await removeFriend(entry.fid);
+          notifyFriendsChange(entry.id);
           refreshFriends();
         }));
       }
     } else {
       const online = isOnline(entry.id);
-      let stateText = t("offline");
-      if (online) {
-        stateText = t("online");
-      }
-      sub.textContent = t(eloTitleKey(entry.elo)) + " · " + stateText;
+      const ready = online && onlineState(entry.id) !== "game" && onlineState(entry.id) !== "matchmaking";
+      sub.textContent = t(eloTitleKey(entry.elo));
       const dot = document.createElement("span");
       dot.className = "dot";
       if (online) {
@@ -806,12 +829,18 @@ function renderFriends() {
       const duelBtn = friendButton(t("friendsChallenge"), false, function () {
         challengeOnline(entry.id);
       });
-      duelBtn.disabled = !online;
+      duelBtn.disabled = !ready;
       row.appendChild(duelBtn);
-      row.appendChild(friendButton("✕", true, async function () {
-        await removeFriend(entry.fid);
-        refreshFriends();
-      }));
+      const btnDel = friendButton("✕", true, function() {});
+      btnDel.onclick = function () {
+        showToast(t("friendDeleteConfirm"), function () {
+          removeFriend(entry.fid).then(function () {
+            notifyFriendsChange(entry.id);
+            refreshFriends();
+          });
+        }, null, 8000);
+      };
+      row.appendChild(btnDel);
     }
     list.appendChild(row);
   }
@@ -832,6 +861,9 @@ el("btn-friend-add").addEventListener("click", async function () {
   if (result.ok) {
     el("friend-input").value = "";
     setAddMsg(t("friendsSent"), true);
+    if (result.target) {
+      notifyFriendsChange(result.target);
+    }
     refreshFriends();
   } else if (result.reason === "notfound") {
     setAddMsg(t("friendsNotFound"), false);
@@ -848,38 +880,67 @@ el("friends-toggle").addEventListener("click", function () {
 
 function challengeOnline(profileId) {
   const profile = getProfile();
-  if (profile === null || activeDuel !== null || profileId === null) {
+  if (profile === null || activeDuel !== null || friendRoom !== null) {
     return;
   }
   const code = makeFriendCode();
-  sendChallenge(profileId, { code: code, from: profile.pseudo });
-  openFriendRoom(code, true);
-  el("search-title").textContent = t("challengeSent");
+  pendingChallengeCode = code;
+  setOnlineState("matchmaking");
+  sendChallenge(profileId, { code: code, from: profile.pseudo, senderId: profile.id });
+  openFriendRoom(code, true, true);
 }
 
 function inviteAnyFriend() {
   if (activeDuel !== null) {
     return;
   }
+  setOnlineState("matchmaking");
   openFriendRoom(makeFriendCode(), true);
 }
 
 function onChallenge(payload) {
-  if (activeDuel !== null || friendRoom !== null) {
+  const code = payload.code;
+  const decline = function () {
+    sendChallengeReply(payload.senderId, { accepted: false, code: code });
+  };
+  if (activeDuel !== null || friendRoom !== null || matchmaker !== null || searchInterval !== null) {
+    decline();
     return;
   }
   const from = String(payload.from).slice(0, 16);
-  const code = payload.code;
-  ui.showScreen("screen-title");
   showToast(t("challengeFrom", { name: from }), function () {
     accountReady().then(function () {
+      setOnlineState("matchmaking");
       openFriendRoom(code, false);
+      sendChallengeReply(payload.senderId, { accepted: true, code: code });
     });
-  });
+  }, decline, 8000, decline);
+}
+
+function onChallengeReply(payload) {
+  const code = String(payload.code);
+  if (payload.accepted === false) {
+    if (activeDuel !== null || friendRoom === null || code !== friendCode) {
+      return;
+    }
+    stopSearch();
+    setOnlineState("menu");
+    ui.showScreen("screen-title");
+    pendingChallengeCode = null;
+    hideInviteButton();
+    el("friend-block").classList.add("hidden");
+    el("search-timer").classList.add("hidden");
+    el("search-found-name").classList.add("hidden");
+    el("btn-search-cancel").classList.add("hidden");
+    showToast(t("challengeDeclined"), null, null, 4000);
+  } else if (payload.accepted === true && code === pendingChallengeCode) {
+    pendingChallengeCode = null;
+  }
 }
 
 function backToMenu() {
   activeDuel = null;
+  setOnlineState("menu");
   cowboy.reset();
   cowboy.setSkin(skinById("drifter").colors);
   cowboy.setAccessories([]);
@@ -949,6 +1010,7 @@ function handleResult(ranked) {
 
 function startAiDuel(persona) {
   el("backdrop").classList.add("hidden");
+  setOnlineState("game");
   const aiSkin = aiSkinFor(persona.id);
   cowboy.setSkin(aiSkin.colors);
   cowboy.setAccessories(aiSkin.acc);
@@ -987,6 +1049,7 @@ function startCombatMusic() {
 
 function startNetDuel(room, ranked, friendly) {
   el("backdrop").classList.add("hidden");
+  setOnlineState("game");
   applyMyWeapon();
   let onResult = handleResult(ranked);
   if (friendly) {
@@ -1014,28 +1077,43 @@ function startNetDuel(room, ranked, friendly) {
   refreshCoins();
 }
 
-function stopSearch() {
+function stopSearch(keepFriendRoom = false) {
+  if (roomWaitTimer !== null) {
+    clearTimeout(roomWaitTimer);
+    roomWaitTimer = null;
+  }
   if (searchInterval !== null) {
     clearInterval(searchInterval);
     searchInterval = null;
+  }
+  if (searchTransitionTimer !== null) {
+    clearTimeout(searchTransitionTimer);
+    searchTransitionTimer = null;
   }
   if (matchmaker !== null) {
     matchmaker.cancel();
     matchmaker = null;
   }
   if (friendRoom !== null) {
-    friendRoom.cancel();
+    if (!keepFriendRoom) {
+      friendRoom.cancel();
+    }
     friendRoom = null;
     friendCode = null;
     hideInviteButton();
   }
+  if (activeDuel === null) {
+    setOnlineState("menu");
+  }
 }
 
 function startSearch() {
+  setOnlineState("matchmaking");
   el("search-title").textContent = t("searchTitle");
   el("search-timer").classList.remove("hidden");
   el("friend-block").classList.add("hidden");
   el("btn-search-cancel").classList.remove("hidden");
+  el("search-found-name").classList.add("hidden");
   ui.showScreen("screen-search");
   ui.searchTick(0);
   let seconds = 0;
@@ -1053,7 +1131,12 @@ function startSearch() {
     onMatched: function (room) {
       stopSearch();
       el("btn-search-cancel").classList.add("hidden");
-      startNetDuel(room, true, false);
+      el("search-title").textContent = t("opponentFound");
+      el("search-found-name").classList.add("hidden");
+      searchTransitionTimer = setTimeout(function () {
+        searchTransitionTimer = null;
+        startNetDuel(room, true, false);
+      }, 2000);
     },
     onPairFailed: function () {},
     onError: function () {
@@ -1080,22 +1163,26 @@ function makeFriendCode() {
   return code.slice(0, 6);
 }
 
-function openFriendRoom(rawCode, hosting) {
+function openFriendRoom(rawCode, hosting, isChallenge = false) {
   const code = String(rawCode).toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 24);
   if (code.length < 4) {
     ui.showScreen("screen-title");
     return;
   }
+  setOnlineState("matchmaking");
   if (hosting) {
-    el("search-title").textContent = t("friendWait");
-    el("friend-block").classList.remove("hidden");
-    el("friend-code").textContent = code.toUpperCase();
-    showInviteButton(code);
+    el("search-title").textContent = isChallenge ? t("challengeSent") : t("friendWait");
+    el("friend-block").classList.toggle("hidden", isChallenge);
+    if (!isChallenge) {
+      el("friend-code").textContent = code.toUpperCase();
+      showInviteButton(code);
+    }
   } else {
     el("search-title").textContent = t("friendJoining");
     el("friend-block").classList.add("hidden");
   }
   el("search-timer").classList.add("hidden");
+  el("btn-search-cancel").classList.remove("hidden");
   ui.showScreen("screen-search");
   friendCode = code;
   let roomPid = null;
@@ -1105,11 +1192,10 @@ function openFriendRoom(rawCode, hosting) {
   }
   friendRoom = createPrivateRoom(code, {
     onMatched: function (room) {
-      friendRoom = null;
-      friendCode = null;
-      hideInviteButton();
-      stopSearch();
+      stopSearch(true);
       el("btn-search-cancel").classList.add("hidden");
+      el("friend-block").classList.add("hidden");
+      pendingChallengeCode = null;
       startNetDuel(room, false, true);
     },
     onError: function () {
@@ -1118,6 +1204,21 @@ function openFriendRoom(rawCode, hosting) {
       alert(t("connectError"));
     }
   }, roomPid);
+  if (roomWaitTimer !== null) {
+    clearTimeout(roomWaitTimer);
+    roomWaitTimer = null;
+  }
+  if (isChallenge || !hosting) {
+    roomWaitTimer = setTimeout(function () {
+      roomWaitTimer = null;
+      if (friendRoom === null || activeDuel !== null) {
+        return;
+      }
+      stopSearch();
+      ui.showScreen("screen-title");
+      showToast(t("challengeNoReply"), null, null, 4000);
+    }, hosting ? 20000 : 15000);
+  }
 }
 
 el("btn-friend-copy").addEventListener("click", function () {
@@ -1504,11 +1605,8 @@ async function boot() {
   try {
     await initAccount();
   } catch (err) {}
-  if (netAvailable() && getProfile() === null && isCrazyGames()) {
-    const cgUser = await getCgUser();
-    if (cgUser !== null) {
-      await ensureAccount();
-    }
+  if (netAvailable() && getProfile() === null) {
+    await ensureAccount();
   }
   el("profile-chip").classList.remove("loading");
   renderProfileChip();
@@ -1519,7 +1617,7 @@ async function boot() {
     el("challenges-toggle").classList.remove("hidden");
     renderFriends();
     renderChallenges();
-    initSocial();
+    await initSocial();
   }
   loadingStop();
   finishBootProgress();

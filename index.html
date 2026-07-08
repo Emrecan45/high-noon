@@ -180,8 +180,10 @@
 
   <div id="toast" class="hidden">
     <span id="toast-text"></span>
-    <button id="toast-accept" class="btn btn-small" data-i18n="accept"></button>
-    <button id="toast-decline" class="btn btn-small" data-i18n="decline"></button>
+    <div style="display: flex; gap: 16px; margin-top: 4px;">
+      <button id="toast-accept" class="btn btn-small" data-i18n="accept"></button>
+      <button id="toast-decline" class="btn btn-small" data-i18n="decline"></button>
+    </div>
   </div>
 
   <div id="screen-board" class="screen hidden">
@@ -193,7 +195,8 @@
 
   <div id="screen-search" class="screen hidden">
     <h2 id="search-title" data-i18n="searchTitle"></h2>
-    <p id="search-timer" class="search-timer">0 s</p>
+    <p id="search-timer" class="search-timer">00:00</p>
+    <h2 id="search-found-name" class="hidden" style="color: #6fd06f; margin: 16px 0;"></h2>
     <div id="friend-block" class="hidden">
       <p class="screen-hint" data-i18n="friendHint"></p>
       <p id="friend-code" class="friend-code"></p>
@@ -255,8 +258,7 @@
       <h2 id="matchend-title"></h2>
       <p id="matchend-detail"></p>
       <div id="matchend-recap" class="stats-grid hidden"></div>
-      <div class="menu">
-        <button id="btn-rematch" class="btn" data-i18n="rematch"></button>
+      <div class="mend-buttons">
         <button id="btn-menu" class="btn btn-small" data-i18n="menu"></button>
       </div>
     </div>
@@ -265,6 +267,10 @@
   <div id="cine-overlay" class="hidden">
     <div class="di-bar di-top"></div>
     <div class="di-bar di-bottom"></div>
+    <div id="cine-announce" class="cine-announce hidden">
+      <div class="ca-title" id="ca-title"></div>
+      <div class="ca-name" id="ca-name"></div>
+    </div>
     <div class="cine-tag" id="cine-you-tag">
       <span class="cine-name" id="cine-you-name"></span>
       <span class="cine-title" id="cine-you-title"></span>

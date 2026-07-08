@@ -279,41 +279,24 @@ export class Duel {
   }
 
   presentDuel() {
-    const self = this;
     this.state = "present";
-    if (this.net === null) {
-      this.showIntro();
-      return;
-    }
-    this.waitForHello(function () {
-      if (self.disposed || self.state === "matchend") {
-        return;
-      }
-      self.ui.hudVisible(false);
-      self.audio.duelBell();
-      self.ui.announce(t("opponentFound"), self.opponentName, 2600, function () {
-        if (self.disposed || self.state === "matchend") {
-          return;
-        }
-        self.showIntro();
-      });
-    });
+    this.showIntro();
   }
 
-  waitForHello(cb) {
-    const self = this;
-    const started = performance.now();
-    const check = function () {
-      if (self.disposed) {
-        return;
-      }
-      if (self.helloReceived || performance.now() - started > 3500) {
-        cb();
-        return;
-      }
-      setTimeout(check, 100);
-    };
-    check();
+  syncIntroInfo() {
+    if (this.state !== "present") {
+      return;
+    }
+    const node = document.getElementById("screen-duelintro");
+    if (node.classList.contains("hidden")) {
+      return;
+    }
+    document.getElementById("di-you-name").textContent = this.myProfile.pseudo;
+    document.getElementById("di-you-title").textContent = t(eloTitleKey(this.myProfile.elo));
+    document.getElementById("di-you-fig").src = portraitDataUrl(this.myProfile.skin, 340);
+    document.getElementById("di-opp-name").textContent = this.opponentName;
+    document.getElementById("di-opp-title").textContent = this.oppSubtitle();
+    document.getElementById("di-opp-fig").src = this.oppPortrait();
   }
 
   oppSubtitle() {
@@ -425,6 +408,15 @@ export class Duel {
 
   updateCinematic(now, dt) {
     const el = now - this.cineStart;
+    if (el < 0) {
+      this.playerBody.group.position.z = YOU_START_Z;
+      this.arena.opponentAnchor.position.z = OPP_START_Z;
+      this.playerBody.update(dt);
+      this.placeCamera(12, 4.2, 4, 0, 1.5, 0);
+      document.getElementById("cine-you-tag").style.opacity = "0";
+      document.getElementById("cine-opp-tag").style.opacity = "0";
+      return;
+    }
     let w = el / CINE_WALK;
     if (w > 1) {
       w = 1;
@@ -1242,6 +1234,7 @@ export class Duel {
       this.cowboy.setAccessories(payload.acc);
       this.cowboy.setWeapon(weaponById(payload.weapon).colors);
       this.ui.setOppTag(this.opponentName + " · " + t(eloTitleKey(this.oppElo)).toUpperCase());
+      this.syncIntroInfo();
       this.helloReceived = true;
       this.startHeartbeat();
     } else if (type === "ping") {
@@ -1446,11 +1439,19 @@ export class Duel {
       document.exitPointerLock();
     }
     this.ui.hudVisible(false);
-    this.ui.matchEnd(t("fled"), t("fledDetail"), function () {
+    this.ui.matchEnd(
+      t("fled"),
+      {
+        flavor: t("fledDetail"),
+        score: ""
+      },
+      function () {
       self.exit();
-    }, function () {
+      },
+      function () {
       self.exit();
-    });
+      }
+    );
   }
 
   update(now, dt) {

@@ -369,7 +369,7 @@ export async function listFriends() {
 
 export async function sendFriendRequest(pseudo) {
   const supabase = getClient();
-  const { error } = await supabase.rpc("send_friend_request", { p_pseudo: pseudo });
+  const { data, error } = await supabase.rpc("send_friend_request", { p_pseudo: pseudo });
   if (error !== null) {
     if (error.message.indexOf("not found") !== -1) {
       return { ok: false, reason: "notfound" };
@@ -379,7 +379,7 @@ export async function sendFriendRequest(pseudo) {
     }
     return { ok: false, reason: "network" };
   }
-  return { ok: true };
+  return { ok: true, target: data !== null && data.target ? data.target : null };
 }
 
 export async function respondFriendRequest(fid, accept) {

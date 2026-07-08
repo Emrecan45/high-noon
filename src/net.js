@@ -247,10 +247,11 @@ export function createMatchmaker(myProfileId) {
 
 let onlineChannel = null;
 let onlineIds = new Set();
+let onlineStates = new Map();
 let onlineHandler = function () {};
 let personalChannel = null;
 
-export function goOnline(profileId, onSync) {
+export function goOnline(profileId, onSync, onFriendUpdate) {
   if (onlineChannel !== null) {
     return;
   }
@@ -260,25 +261,57 @@ export function goOnline(profileId, onSync) {
     config: { presence: { key: profileId } }
   });
   onlineChannel.on("presence", { event: "sync" }, function () {
-    onlineIds = new Set(Object.keys(onlineChannel.presenceState()));
+    const state = onlineChannel.presenceState();
+    onlineIds = new Set(Object.keys(state));
+    onlineStates = new Map();
+    for (const id of Object.keys(state)) {
+      const metas = state[id];
+      const meta = metas && metas.length > 0 ? metas[0] : null;
+      onlineStates.set(id, meta && typeof meta.state === "string" ? meta.state : "menu");
+    }
     onlineHandler();
   });
   onlineChannel.subscribe(function (status) {
     if (status === "SUBSCRIBED") {
-      onlineChannel.track({ at: Date.now() });
+      onlineChannel.track({ at: Date.now(), state: "menu" });
     }
   });
+
+  if (onFriendUpdate) {
+    supabase.channel("hn-friends-" + profileId)
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships", filter: `requester=eq.${profileId}` }, function () {
+        onFriendUpdate();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships", filter: `addressee=eq.${profileId}` }, function () {
+        onFriendUpdate();
+      })
+      .subscribe();
+  }
 }
 
 export function isOnline(profileId) {
   return onlineIds.has(profileId);
 }
 
+export function onlineState(profileId) {
+  if (!onlineStates.has(profileId)) {
+    return null;
+  }
+  return onlineStates.get(profileId);
+}
+
+export function setOnlineState(state) {
+  if (onlineChannel === null) {
+    return;
+  }
+  onlineChannel.track({ at: Date.now(), state: state });
+}
+
 export function onlineCount() {
   return onlineIds.size;
 }
 
-export function listenChallenges(profileId, handler) {
+export function listenChallenges(profileId, handler, replyHandler, friendsHandler) {
   if (personalChannel !== null) {
     return;
   }
@@ -287,25 +320,34 @@ export function listenChallenges(profileId, handler) {
   personalChannel.on("broadcast", { event: "challenge" }, function (msg) {
     handler(msg.payload);
   });
+  if (replyHandler) {
+    personalChannel.on("broadcast", { event: "challenge_reply" }, function (msg) {
+      replyHandler(msg.payload);
+    });
+  }
+  if (friendsHandler) {
+    personalChannel.on("broadcast", { event: "friends" }, function () {
+      friendsHandler();
+    });
+  }
   personalChannel.subscribe();
 }
 
+function sendToUser(profileId, event, payload) {
+  const channel = getClient().channel("hn-user-" + profileId);
+  channel.httpSend(event, payload).catch(function () {});
+}
+
 export function sendChallenge(profileId, payload) {
-  const supabase = getClient();
-  const channel = supabase.channel("hn-user-" + profileId);
-  channel.subscribe(function (status) {
-    if (status === "SUBSCRIBED") {
-      channel.send({
-        type: "broadcast",
-        event: "challenge",
-        payload: payload
-      }).then(function () {
-        setTimeout(function () {
-          supabase.removeChannel(channel);
-        }, 1500);
-      });
-    }
-  });
+  sendToUser(profileId, "challenge", payload);
+}
+
+export function sendChallengeReply(profileId, payload) {
+  sendToUser(profileId, "challenge_reply", payload);
+}
+
+export function notifyFriendsChange(profileId) {
+  sendToUser(profileId, "friends", { at: Date.now() });
 }
 
 export function createPrivateRoom(code, callbacks, myProfileId) {
@@ -435,18 +477,22 @@ export function createPrivateRoom(code, callbacks, myProfileId) {
       }
       sendSeed();
       tryStart();
-    } else if (seed === null && seedAsker === null) {
-      seedAsker = setInterval(function () {
-        if (seed !== null || started || cancelled) {
-          stopSeedAsker();
-          return;
-        }
-        room.send({
-          type: "broadcast",
-          event: "duel",
-          payload: { kind: "need-seed", data: {} }
-        });
-      }, 700);
+    } else if (seed === null) {
+      if (seedAsker === null) {
+        seedAsker = setInterval(function () {
+          if (seed !== null || started || cancelled) {
+            stopSeedAsker();
+            return;
+          }
+          room.send({
+            type: "broadcast",
+            event: "duel",
+            payload: { kind: "need-seed", data: {} }
+          });
+        }, 700);
+      }
+    } else {
+      tryStart();
     }
   });
 

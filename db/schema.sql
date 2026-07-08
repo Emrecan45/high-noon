@@ -121,6 +121,24 @@ create table if not exists public.friendships (
   unique (requester, addressee)
 );
 
+-- Realtime sur friendships : replica identity full pour que les filtres
+-- (requester=eq.X / addressee=eq.X) matchent aussi les DELETE.
+alter table public.friendships replica identity full;
+
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'friendships'
+     ) then
+    alter publication supabase_realtime add table public.friendships;
+  end if;
+end
+$$;
+
 alter table public.profiles enable row level security;
 alter table public.skins enable row level security;
 alter table public.profile_skins enable row level security;

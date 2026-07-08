@@ -4,9 +4,10 @@ const PATCH = {
       "Duel intro: \"opponent found\", a face-off, then the gunslingers walk up in the arena",
       "Duel points and ranks on the leaderboard",
       "Special outfits for the AI gunslingers",
-      "Interface scaled down for mobile (same layout as on PC)",
+      "Interface scaled down for mobile and safe area notches",
       "Win by forfeit when your opponent leaves",
-      "Daily and weekly challenges, combat music and a real sidestep"
+      "Daily and weekly challenges, combat music and a real sidestep",
+      "Real-time friend invitations and cleaner friend list"
     ] },
     { date: "July 6, 2026", version: "1.2", items: [
       "Slow-motion sepia kill cam",
@@ -33,9 +34,10 @@ const PATCH = {
       "Présentation du duel : « adversaire trouvé », face-à-face puis avancée des pistoleros dans l'arène",
       "Points de duel et rangs au classement",
       "Tenues spéciales pour les pistoleros IA",
-      "Interface réduite pour le mobile (même mise en page que sur PC)",
+      "Interface optimisée pour mobile et encoches (Safe Area)",
       "Victoire par forfait quand l'adversaire quitte",
-      "Défis quotidiens et hebdomadaires, musique de combat et vrai pas de côté"
+      "Défis quotidiens et hebdomadaires, musique de combat et vrai pas de côté",
+      "Invitations d'amis en temps réel par popup et nettoyage de la liste d'amis"
     ] },
     { date: "6 juillet 2026", version: "1.2", items: [
       "Kill cam au ralenti avec zoom sépia",

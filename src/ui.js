@@ -245,10 +245,6 @@ export function createUi() {
       fillRecap(detail.stats);
     }
     showScreen("screen-matchend");
-    el("btn-rematch").onclick = function () {
-      hideScreens();
-      onRematch();
-    };
     el("btn-menu").onclick = function () {
       onMenu();
     };
