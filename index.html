@@ -126,15 +126,9 @@
 
   <div id="screen-profile" class="screen hidden">
     <h2 id="profile-name"></h2>
-    <div class="profile-layout">
-      <div class="profile-left">
-        <div id="profile-view"></div>
-        <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
-      </div>
-      <div class="profile-right">
-        <div id="stats-block" class="stats-grid"></div>
-      </div>
-    </div>
+    <div id="stats-block" class="stats-grid"></div>
+    <div id="profile-view"></div>
+    <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
     <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
@@ -235,6 +229,10 @@
   <div id="cine-overlay" class="hidden">
     <div class="di-bar di-top"></div>
     <div class="di-bar di-bottom"></div>
+    <div id="cine-announce" class="cine-announce hidden">
+      <div class="ca-title" id="ca-title"></div>
+      <div class="ca-name" id="ca-name"></div>
+    </div>
     <div class="cine-tag" id="cine-you-tag">
       <span class="cine-name" id="cine-you-name"></span>
       <span class="cine-title" id="cine-you-title"></span>

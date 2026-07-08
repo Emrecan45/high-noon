@@ -184,7 +184,7 @@ h2 {
 .footer-note {
   position: absolute;
   bottom: 16px;
-  font-size: 13px;
+  font-size: 15px;
   color: #9a7c52;
 }
 
@@ -664,8 +664,48 @@ body.touch #gunstate {
   text-transform: uppercase;
 }
 
+.cine-announce {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.cine-announce.hidden {
+  display: none;
+}
+
+.ca-title {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: clamp(32px, 6vw, 68px);
+  color: #e8b64c;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 4px 0 #5a3410, 0 0 30px rgba(232, 182, 76, 0.7);
+  animation: caPop 0.5s ease both;
+}
+
+.ca-name {
+  font-family: "Special Elite", Georgia, serif;
+  font-size: clamp(18px, 3vw, 34px);
+  color: #f3e4c2;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes caPop {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 .players-online {
-  font-size: 13px;
+  font-size: 15px;
   color: #9a7c52;
   letter-spacing: 1px;
 }
@@ -737,7 +777,7 @@ body.touch #gunstate {
   align-items: center;
   flex-wrap: wrap;
   justify-content: center;
-  font-size: 12px;
+  font-size: 14px;
   color: #9a7c52;
 }
 
@@ -811,7 +851,7 @@ body.touch #gunstate {
 }
 
 #challenges-bar .ch-msg {
-  font-size: 13px;
+  font-size: 15px;
   color: #cdb491;
   text-align: center;
 }
@@ -903,7 +943,7 @@ body.touch #gunstate {
 }
 
 .ch-label {
-  font-size: 14px;
+  font-size: 15px;
   color: #f3e4c2;
 }
 
@@ -920,12 +960,12 @@ body.touch #gunstate {
 }
 
 .ch-prog {
-  font-size: 11px;
+  font-size: 13px;
   color: #9a7c52;
 }
 
 .ch-reward {
-  font-size: 14px;
+  font-size: 15px;
   color: #ffd977;
   white-space: nowrap;
 }
@@ -1291,15 +1331,19 @@ body.touch #gunstate {
 .stats-grid {
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 6px 26px;
-  width: 100%;
-  font-size: 14px;
+  gap: 8px 30px;
+  width: min(400px, 92vw);
+  font-size: 16px;
   color: #cdb491;
   background: rgba(26, 16, 7, 0.6);
   border: 2px solid #4a3018;
   border-radius: 8px;
-  padding: 12px 18px;
+  padding: 14px 20px;
   text-align: left;
+}
+
+#matchend-recap {
+  width: 100%;
 }
 
 .stats-grid .stat-value {
@@ -1461,26 +1505,9 @@ body.touch #gunstate {
   }
 }
 
-.profile-layout {
-  display: flex;
-  gap: 26px;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 92vw;
-}
-
-.profile-left {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
 #profile-view {
-  width: min(260px, 78vw);
-  height: min(340px, 44vh);
+  width: min(230px, 70vw);
+  height: min(300px, 40vh);
   background: rgba(20, 12, 6, 0.55);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1493,17 +1520,9 @@ body.touch #gunstate {
   display: block;
 }
 
-.profile-right {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  align-items: stretch;
-  width: min(360px, 92vw);
-}
-
 #inv-view {
-  width: min(240px, 64vw);
-  height: min(280px, 34vh);
+  width: min(200px, 52vw);
+  height: min(200px, 26vh);
   background: rgba(20, 12, 6, 0.55);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1515,28 +1534,26 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(760px, 94vw);
-  max-height: 34vh;
-  overflow-y: auto;
+  width: min(840px, 96vw);
   padding: 4px;
 }
 
 .inv-label {
   font-family: "Rye", "Special Elite", serif;
   color: #e8b64c;
-  font-size: 16px;
+  font-size: 17px;
   letter-spacing: 2px;
 }
 
 .inv-row {
   display: flex;
-  gap: 8px;
+  gap: 9px;
   flex-wrap: wrap;
   justify-content: center;
 }
 
 .inv-item {
-  width: 66px;
+  width: 74px;
   padding: 6px 4px;
   background: linear-gradient(#3a2412, #241608);
   border: 2px solid #7a4c15;
@@ -1549,13 +1566,13 @@ body.touch #gunstate {
 }
 
 .inv-item img {
-  width: 42px;
-  height: 42px;
+  width: 46px;
+  height: 46px;
   image-rendering: pixelated;
 }
 
 .inv-item .inv-name {
-  font-size: 9px;
+  font-size: 11px;
   color: #cdb491;
   text-align: center;
   line-height: 1.1;
@@ -1655,7 +1672,7 @@ body.touch #gunstate {
   flex: 1;
   min-width: 0;
   font-family: "Special Elite", Georgia, serif;
-  font-size: 13px;
+  font-size: 15px;
   color: #f3e4c2;
   background: rgba(20, 12, 6, 0.85);
   border: 2px solid #7a4c15;
@@ -1667,12 +1684,12 @@ body.touch #gunstate {
 .friend-add .btn-small {
   width: auto;
   min-width: 0;
-  font-size: 11px;
-  padding: 6px 8px;
+  font-size: 13px;
+  padding: 7px 10px;
 }
 
 #friends-msg {
-  font-size: 12px;
+  font-size: 14px;
   color: #cdb491;
   flex-shrink: 0;
 }
@@ -1710,7 +1727,7 @@ body.touch #gunstate {
 }
 
 .friend-name {
-  font-size: 13px;
+  font-size: 15px;
   color: #f3e4c2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1718,7 +1735,7 @@ body.touch #gunstate {
 }
 
 .friend-sub {
-  font-size: 10px;
+  font-size: 12px;
   color: #9a7c52;
 }
 
@@ -1739,8 +1756,8 @@ body.touch #gunstate {
   background: linear-gradient(#e8b64c, #c68a2e);
   color: #2a1706;
   font-family: "Rye", "Special Elite", serif;
-  font-size: 10px;
-  padding: 4px 6px;
+  font-size: 12px;
+  padding: 5px 8px;
   border-radius: 4px;
   cursor: pointer;
   flex-shrink: 0;
@@ -1813,27 +1830,27 @@ body.touch #gunstate {
 }
 
 @media (max-height: 640px) {
-  .profile-layout {
-    gap: 12px;
+  #profile-view {
+    height: min(220px, 40vh);
   }
 
-  #profile-view {
-    height: min(280px, 52vh);
+  #inv-view {
+    height: min(150px, 22vh);
   }
 
   .stats-grid {
-    font-size: 12px;
-    padding: 6px 12px;
-    gap: 2px 16px;
+    font-size: 14px;
+    padding: 8px 14px;
+    gap: 4px 18px;
   }
 
   .inv-item {
-    width: 54px;
+    width: 62px;
   }
 
   .inv-item img {
-    width: 32px;
-    height: 32px;
+    width: 38px;
+    height: 38px;
   }
 
   #friends-bar {
