@@ -62,6 +62,14 @@ export function createMusic(audio) {
   let loopStart = 0;
   let loopIndex = 0;
   let cfg = MENU;
+  let bus = null;
+
+  function makeBus() {
+    const g = audio.ctx.createGain();
+    g.gain.value = 1;
+    g.connect(audio.musicGain);
+    return g;
+  }
 
   function twang(start, freq) {
     const ctx = audio.ctx;
@@ -77,7 +85,7 @@ export function createMusic(audio) {
     g.gain.setValueAtTime(0.0001, start);
     g.gain.exponentialRampToValueAtTime(0.26, start + 0.015);
     g.gain.exponentialRampToValueAtTime(0.0001, start + cfg.beat * 2.6);
-    g.connect(audio.musicGain);
+    g.connect(bus);
     osc.connect(filter);
     filter.connect(g);
     osc.start(start);
@@ -100,7 +108,7 @@ export function createMusic(audio) {
     g.gain.linearRampToValueAtTime(0.12, start + 0.1);
     g.gain.setValueAtTime(0.12, start + dur * cfg.beat - 0.12);
     g.gain.linearRampToValueAtTime(0.0001, start + dur * cfg.beat);
-    g.connect(audio.musicGain);
+    g.connect(bus);
     osc.connect(g);
     osc.start(start);
     osc.stop(start + dur * cfg.beat + 0.05);
@@ -118,7 +126,7 @@ export function createMusic(audio) {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.045, start);
     g.gain.exponentialRampToValueAtTime(0.0001, start + 0.05);
-    g.connect(audio.musicGain);
+    g.connect(bus);
     src.connect(filter);
     filter.connect(g);
     src.start(start);
@@ -134,7 +142,7 @@ export function createMusic(audio) {
     g.gain.setValueAtTime(0.0001, start);
     g.gain.exponentialRampToValueAtTime(0.24, start + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, start + 0.16);
-    g.connect(audio.musicGain);
+    g.connect(bus);
     osc.connect(g);
     osc.start(start);
     osc.stop(start + 0.2);
@@ -154,7 +162,7 @@ export function createMusic(audio) {
     g.gain.linearRampToValueAtTime(0.14, start + 0.4);
     g.gain.setValueAtTime(0.14, start + dur - 0.4);
     g.gain.linearRampToValueAtTime(0.0001, start + dur);
-    g.connect(audio.musicGain);
+    g.connect(bus);
     osc.connect(filter);
     filter.connect(g);
     osc.start(start);
@@ -180,7 +188,7 @@ export function createMusic(audio) {
     g.gain.linearRampToValueAtTime(0.1, start + 0.12);
     g.gain.setValueAtTime(0.1, start + dur * cfg.beat - 0.14);
     g.gain.linearRampToValueAtTime(0.0001, start + dur * cfg.beat);
-    g.connect(audio.musicGain);
+    g.connect(bus);
     osc.connect(filter);
     filter.connect(g);
     osc.start(start);
@@ -238,6 +246,7 @@ export function createMusic(audio) {
     }
     audio.ensure();
     started = true;
+    bus = makeBus();
     loopStart = audio.ctx.currentTime + 0.1;
     loopIndex = 0;
     tick();
@@ -263,7 +272,17 @@ export function createMusic(audio) {
     cfg = next;
     loopIndex = 0;
     if (started && audio.ctx !== null) {
-      loopStart = audio.ctx.currentTime + 0.1;
+      const now = audio.ctx.currentTime;
+      if (bus !== null) {
+        const old = bus;
+        old.gain.setValueAtTime(old.gain.value, now);
+        old.gain.linearRampToValueAtTime(0.0001, now + 0.14);
+        setTimeout(function () {
+          old.disconnect();
+        }, 500);
+      }
+      bus = makeBus();
+      loopStart = now + 0.12;
     }
   }
 
