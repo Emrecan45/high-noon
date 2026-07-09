@@ -178,7 +178,7 @@ Le jeu intègre le **SDK CrazyGames v3** : événements de cycle de jeu (`gamepl
 ## 🛠️ Stack technique
 
 - **Three.js** : rendu 3D, modèles low-poly 100% générés (aucun asset externe)
-- **Web Audio API** : sons et musique entièrement synthétisés (cloche, coups de feu, ricochets, sifflements), avec une piste de menu et une piste de combat distinctes
+- **Web Audio API** : musiques et bruitages en vrais enregistrements libres (CC0/domaine public) décodés et mixés en Web Audio, petits sons d'interface synthétisés
 - **Supabase Realtime** : matchmaking et réseau du duel en ligne
 - **Supabase Auth + Postgres** : comptes anonymes, rang, pièces, roue, amis et classement (RLS)
 - **SDK CrazyGames** : pubs, liaison de compte et cycle de jeu sur CrazyGames
@@ -236,4 +236,18 @@ high-noon/
 
 ## 🎨 Crédits
 
-Ce projet est **100% généré** : aucun asset graphique ou sonore externe (modèles Three.js, textures, sons et musique synthétisés en Web Audio). Polices : [Rye](https://fonts.google.com/specimen/Rye) et [Special Elite](https://fonts.google.com/specimen/Special+Elite) via Google Fonts.
+Tout le **visuel est 100% généré** : modèles 3D, textures et portraits sont produits par code (Three.js), aucune image externe. Polices : [Rye](https://fonts.google.com/specimen/Rye) et [Special Elite](https://fonts.google.com/specimen/Special+Elite) via Google Fonts.
+
+L'audio utilise des enregistrements sous licences libres :
+
+| Son | Source | Licence |
+|--|--|--|
+| Musiques d'accueil et du désert | « The Cowboy's Theme » / « Desert Theme » par Umplix ([OpenGameArt](https://opengameart.org/content/wild-west-music)) | CC0 |
+| Musique de combat | « Western ShowDown » par [HoliznaCC0](https://holiznacc0.bandcamp.com/album/left-overs) | CC0 |
+| Coup de feu | « Black Powder » par kurt ([OpenGameArt](https://opengameart.org/content/gunshots)) | CC0 |
+| Bruitages (portes, cloches, clics, chutes) | « 100 CC0 SFX » par rubberduck ([OpenGameArt](https://opengameart.org/content/100-cc0-sfx)) | CC0 |
+| Impacts et pas | « Impact Sounds » par [Kenney](https://kenney.nl/assets/impact-sounds) | CC0 |
+| Piano de saloon | « Maple Leaf Rag » de Scott Joplin, enregistrement de 1899 ([Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Scott_Joplin_-_Maple_Leaf_Rag_(1899).ogg)) | Domaine public |
+| Hennissement | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Wiehern.ogg) | Domaine public |
+
+Les sons d'interface (clics, pièces, roue) restent synthétisés en Web Audio.

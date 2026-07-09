@@ -1,3 +1,51 @@
+import gunshotUrl from "./assets/audio/gunshot.wav";
+import shotFarUrl from "./assets/audio/shot_far.ogg";
+import bellSmallUrl from "./assets/audio/bell_small.ogg";
+import bellChurchUrl from "./assets/audio/bell_church.ogg";
+import bodyFallUrl from "./assets/audio/body_fall.ogg";
+import ricochetPingUrl from "./assets/audio/ricochet_ping.ogg";
+import clickDryUrl from "./assets/audio/click_dry.ogg";
+import gunCockUrl from "./assets/audio/gun_cock.ogg";
+import doorSlamUrl from "./assets/audio/door_slam.ogg";
+import horseWhinnyUrl from "./assets/audio/horse_whinny.ogg";
+import impactWoodUrl from "./assets/audio/impact_wood.ogg";
+import impactGlassUrl from "./assets/audio/impact_glass.ogg";
+import stepDirt0Url from "./assets/audio/step_dirt_0.ogg";
+import stepDirt1Url from "./assets/audio/step_dirt_1.ogg";
+import stepDirt2Url from "./assets/audio/step_dirt_2.ogg";
+import stepDirt3Url from "./assets/audio/step_dirt_3.ogg";
+import stepDirt4Url from "./assets/audio/step_dirt_4.ogg";
+import stepWood0Url from "./assets/audio/step_wood_0.ogg";
+import stepWood1Url from "./assets/audio/step_wood_1.ogg";
+import stepWood2Url from "./assets/audio/step_wood_2.ogg";
+import stepWood3Url from "./assets/audio/step_wood_3.ogg";
+import stepWood4Url from "./assets/audio/step_wood_4.ogg";
+
+const SAMPLE_URLS = {
+  gunshot: gunshotUrl,
+  shotFar: shotFarUrl,
+  bellSmall: bellSmallUrl,
+  bellChurch: bellChurchUrl,
+  bodyFall: bodyFallUrl,
+  ricochetPing: ricochetPingUrl,
+  clickDry: clickDryUrl,
+  gunCock: gunCockUrl,
+  doorSlam: doorSlamUrl,
+  horseWhinny: horseWhinnyUrl,
+  impactWood: impactWoodUrl,
+  impactGlass: impactGlassUrl,
+  stepDirt0: stepDirt0Url,
+  stepDirt1: stepDirt1Url,
+  stepDirt2: stepDirt2Url,
+  stepDirt3: stepDirt3Url,
+  stepDirt4: stepDirt4Url,
+  stepWood0: stepWood0Url,
+  stepWood1: stepWood1Url,
+  stepWood2: stepWood2Url,
+  stepWood3: stepWood3Url,
+  stepWood4: stepWood4Url
+};
+
 function storedVolume(key, fallback) {
   const raw = localStorage.getItem(key);
   if (raw === null) {
@@ -18,6 +66,8 @@ export class AudioEngine {
     this.musicGain = null;
     this.sfxVolume = storedVolume("hn-sfx-vol", 0.9);
     this.musicVolume = storedVolume("hn-music-vol", 0.45);
+    this.buffers = new Map();
+    this.samplesRequested = false;
   }
 
   ensure() {
@@ -33,10 +83,55 @@ export class AudioEngine {
       this.musicGain = this.ctx.createGain();
       this.musicGain.gain.value = this.musicVolume;
       this.musicGain.connect(this.master);
+      this.loadSamples();
     }
     if (this.ctx.state === "suspended") {
       this.ctx.resume();
     }
+  }
+
+  loadSamples() {
+    if (this.samplesRequested) {
+      return;
+    }
+    this.samplesRequested = true;
+    const self = this;
+    for (const name of Object.keys(SAMPLE_URLS)) {
+      fetch(SAMPLE_URLS[name])
+        .then(function (res) {
+          return res.arrayBuffer();
+        })
+        .then(function (raw) {
+          return self.ctx.decodeAudioData(raw);
+        })
+        .then(function (buffer) {
+          self.buffers.set(name, buffer);
+        })
+        .catch(function () {});
+    }
+  }
+
+  playSample(name, opts) {
+    const buffer = this.buffers.get(name);
+    if (buffer === undefined) {
+      return false;
+    }
+    const o = opts || {};
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    if (o.rate) {
+      src.playbackRate.value = o.rate;
+    }
+    const g = this.ctx.createGain();
+    let gain = 1;
+    if (o.gain !== undefined) {
+      gain = o.gain;
+    }
+    g.gain.value = gain;
+    g.connect(this.sfxGain);
+    src.connect(g);
+    src.start(this.now(), o.offset || 0);
+    return true;
   }
 
   muffle(active) {
@@ -90,20 +185,24 @@ export class AudioEngine {
   bell() {
     this.ensure();
     const t = this.now();
+    this.playSample("bellSmall", { gain: 0.7, rate: 1.1 });
     const freqs = [880, 1244, 1760];
     for (let i = 0; i < freqs.length; i++) {
       const osc = this.ctx.createOscillator();
       osc.type = "sine";
       osc.frequency.value = freqs[i];
-      const g = this.envGain(t, 0.28 / (i + 1), 1.4);
+      const g = this.envGain(t, 0.22 / (i + 1), 1.2);
       osc.connect(g);
       osc.start(t);
-      osc.stop(t + 1.5);
+      osc.stop(t + 1.3);
     }
   }
 
   gunshot() {
     this.ensure();
+    if (this.playSample("gunshot", { gain: 0.8, rate: 0.96 + Math.random() * 0.08, offset: 0.1 })) {
+      return;
+    }
     const t = this.now();
     const src = this.ctx.createBufferSource();
     src.buffer = this.noiseBuffer(0.4);
@@ -127,6 +226,9 @@ export class AudioEngine {
 
   distantShot() {
     this.ensure();
+    if (this.playSample("shotFar", { gain: 0.55, rate: 0.92 + Math.random() * 0.1 })) {
+      return;
+    }
     const t = this.now();
     const src = this.ctx.createBufferSource();
     src.buffer = this.noiseBuffer(0.3);
@@ -141,6 +243,9 @@ export class AudioEngine {
 
   dryClick() {
     this.ensure();
+    if (this.playSample("clickDry", { gain: 0.8, rate: 1.2 })) {
+      return;
+    }
     const t = this.now();
     const osc = this.ctx.createOscillator();
     osc.type = "square";
@@ -153,6 +258,9 @@ export class AudioEngine {
 
   reloadClick(step) {
     this.ensure();
+    if (this.playSample("gunCock", { gain: 0.7, rate: 1 + step * 0.08 })) {
+      return;
+    }
     const t = this.now();
     const osc = this.ctx.createOscillator();
     osc.type = "square";
@@ -166,11 +274,12 @@ export class AudioEngine {
   ricochet() {
     this.ensure();
     const t = this.now();
+    this.playSample("ricochetPing", { gain: 0.7, rate: 0.9 + Math.random() * 0.25 });
     const osc = this.ctx.createOscillator();
     osc.type = "sawtooth";
     osc.frequency.setValueAtTime(2600, t);
     osc.frequency.exponentialRampToValueAtTime(500, t + 0.28);
-    const g = this.envGain(t, 0.14, 0.3);
+    const g = this.envGain(t, 0.1, 0.3);
     osc.connect(g);
     osc.start(t);
     osc.stop(t + 0.32);
@@ -209,6 +318,9 @@ export class AudioEngine {
 
   bang() {
     this.ensure();
+    if (this.playSample("doorSlam", { gain: 0.7, rate: 0.9 + Math.random() * 0.15 })) {
+      return;
+    }
     const t = this.now();
     const src = this.ctx.createBufferSource();
     src.buffer = this.noiseBuffer(0.25);
@@ -227,6 +339,21 @@ export class AudioEngine {
     knock.connect(kg);
     knock.start(t);
     knock.stop(t + 0.18);
+  }
+
+  woodHit() {
+    this.ensure();
+    this.playSample("impactWood", { gain: 0.6, rate: 0.9 + Math.random() * 0.2 });
+  }
+
+  glassHit() {
+    this.ensure();
+    this.playSample("impactGlass", { gain: 0.6, rate: 0.95 + Math.random() * 0.1 });
+  }
+
+  horse() {
+    this.ensure();
+    this.playSample("horseWhinny", { gain: 3, rate: 0.95 + Math.random() * 0.1 });
   }
 
   reveal() {
@@ -290,6 +417,9 @@ export class AudioEngine {
 
   duelBell() {
     this.ensure();
+    if (this.playSample("bellChurch", { gain: 0.9, rate: 0.62 })) {
+      return;
+    }
     const t = this.now();
     const freqs = [196, 293.66, 98];
     for (let i = 0; i < freqs.length; i++) {
@@ -305,6 +435,10 @@ export class AudioEngine {
 
   step() {
     this.ensure();
+    const idx = Math.floor(Math.random() * 5);
+    if (this.playSample("stepDirt" + idx, { gain: 1.4, rate: 0.95 + Math.random() * 0.1 })) {
+      return;
+    }
     const t = this.now();
     const src = this.ctx.createBufferSource();
     src.buffer = this.noiseBuffer(0.12);
@@ -323,6 +457,12 @@ export class AudioEngine {
     knock.connect(kg);
     knock.start(t);
     knock.stop(t + 0.14);
+  }
+
+  stepWood() {
+    this.ensure();
+    const idx = Math.floor(Math.random() * 5);
+    this.playSample("stepWood" + idx, { gain: 1.2, rate: 0.95 + Math.random() * 0.1 });
   }
 
   footsteps() {
@@ -436,11 +576,12 @@ export class AudioEngine {
   thud() {
     this.ensure();
     const t = this.now();
+    this.playSample("bodyFall", { gain: 1, rate: 0.85 + Math.random() * 0.1 });
     const osc = this.ctx.createOscillator();
     osc.type = "sine";
     osc.frequency.setValueAtTime(160, t);
     osc.frequency.exponentialRampToValueAtTime(50, t + 0.2);
-    const g = this.envGain(t, 0.5, 0.25);
+    const g = this.envGain(t, 0.35, 0.25);
     osc.connect(g);
     osc.start(t);
     osc.stop(t + 0.3);
