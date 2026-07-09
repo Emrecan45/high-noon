@@ -18,7 +18,8 @@ const STRINGS = {
       "<p><strong>Round modifiers.</strong> Dusk, fog, gusts: every round changes the conditions. The duel's distance also varies silently from round to round.</p>" +
       "<p><strong>First to 3 rounds wins.</strong></p>" +
       "<p><strong>Comeback.</strong> The loser of a round picks one of three random perks for the rest of the duel.</p>" +
-      "<p><strong>Ranked & outfits.</strong> You get a gunslinger name automatically (your CrazyGames name if you're logged in). Click your card at the top left to see your profile and spend your coins on outfits. Climb the leaderboard in ranked duels (they pay far more than the AI), or challenge a friend with an invite link - friendly duels are just for honor.</p>",
+      "<p><strong>Ranked & outfits.</strong> You get a gunslinger name automatically (your CrazyGames name if you're logged in). Click your card at the top left to see your profile and spend your coins on outfits. Climb the leaderboard in ranked duels (they pay far more than the AI), or challenge a friend with an invite link - friendly duels are just for honor.</p>" +
+      "<p><strong>Training camp.</strong> While matchmaking looks for an opponent, warm up against the camp dummy - the real duel starts the moment a rival is found.</p>",
     searchTitle: "Looking for an opponent…",
     cancel: "CANCEL",
     btnContinue: "CONTINUE",
@@ -228,7 +229,8 @@ const STRINGS = {
       "<p><strong>Manches à modificateurs.</strong> Crépuscule, brume, rafales : chaque manche change les conditions. La distance du duel varie aussi silencieusement à chaque manche.</p>" +
       "<p><strong>Premier à 3 manches gagnées.</strong></p>" +
       "<p><strong>Remontada.</strong> Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour le reste du duel.</p>" +
-      "<p><strong>Classé & tenues.</strong> Un nom de pistolero t'est attribué automatiquement (ton pseudo CrazyGames si tu es connecté). Clique sur ta carte en haut à gauche pour voir ton profil et dépenser tes pièces en tenues. Grimpe au classement en duel classé (bien plus payant que l'IA), ou défie un ami avec un lien d'invitation - les duels amicaux ne rapportent que l'honneur.</p>",
+      "<p><strong>Classé & tenues.</strong> Un nom de pistolero t'est attribué automatiquement (ton pseudo CrazyGames si tu es connecté). Clique sur ta carte en haut à gauche pour voir ton profil et dépenser tes pièces en tenues. Grimpe au classement en duel classé (bien plus payant que l'IA), ou défie un ami avec un lien d'invitation - les duels amicaux ne rapportent que l'honneur.</p>" +
+      "<p><strong>Camp d'entraînement.</strong> Pendant la recherche d'adversaire, échauffe-toi contre le mannequin du camp - le vrai duel démarre dès qu'un rival est trouvé.</p>",
     searchTitle: "Recherche d'un adversaire…",
     cancel: "ANNULER",
     btnContinue: "CONTINUER",
@@ -438,7 +440,8 @@ const STRINGS = {
       "<p><strong>Rondas con modificadores.</strong> Crepúsculo, niebla, ráfagas: cada ronda cambia las condiciones. La distancia del duelo también varía en silencio.</p>" +
       "<p><strong>Gana el primero en llegar a 3 rondas.</strong></p>" +
       "<p><strong>Remontada.</strong> El perdedor de una ronda elige una ventaja entre tres al azar, para el resto del duelo.</p>" +
-      "<p><strong>Clasificatoria y atuendos.</strong> Recibes un nombre de pistolero automáticamente (tu nombre de CrazyGames si has iniciado sesión). Haz clic en tu tarjeta arriba a la izquierda para ver tu perfil y gastar tus monedas en atuendos. Sube en la clasificación en duelos clasificatorios (pagan mucho más que la IA), o desafía a un amigo con un enlace - los duelos amistosos son solo por honor.</p>",
+      "<p><strong>Clasificatoria y atuendos.</strong> Recibes un nombre de pistolero automáticamente (tu nombre de CrazyGames si has iniciado sesión). Haz clic en tu tarjeta arriba a la izquierda para ver tu perfil y gastar tus monedas en atuendos. Sube en la clasificación en duelos clasificatorios (pagan mucho más que la IA), o desafía a un amigo con un enlace - los duelos amistosos son solo por honor.</p>" +
+      "<p><strong>Campo de entrenamiento.</strong> Mientras el matchmaking busca rival, calienta contra el muñeco del campamento - el duelo real empieza en cuanto aparece un rival.</p>",
     searchTitle: "Buscando un rival…",
     cancel: "CANCELAR",
     btnContinue: "CONTINUAR",
@@ -647,7 +650,8 @@ const STRINGS = {
       "<p><strong>Runden-Modifikatoren.</strong> Dämmerung, Nebel, Böen: jede Runde ändert die Bedingungen. Auch die Duell-Distanz variiert still von Runde zu Runde.</p>" +
       "<p><strong>Wer zuerst 3 Runden gewinnt, siegt.</strong></p>" +
       "<p><strong>Comeback.</strong> Der Verlierer einer Runde wählt einen von drei zufälligen Vorteilen für den Rest des Duells.</p>" +
-      "<p><strong>Rangliste & Outfits.</strong> Du bekommst automatisch einen Revolverhelden-Namen (deinen CrazyGames-Namen, wenn du eingeloggt bist). Klicke auf deine Karte oben links, um dein Profil zu sehen und Münzen für Outfits auszugeben. Klettere in Ranglisten-Duellen die Rangliste hoch (sie zahlen viel mehr als die KI) oder fordere einen Freund per Einladungslink heraus - Freundschaftsduelle sind reine Ehrensache.</p>",
+      "<p><strong>Rangliste & Outfits.</strong> Du bekommst automatisch einen Revolverhelden-Namen (deinen CrazyGames-Namen, wenn du eingeloggt bist). Klicke auf deine Karte oben links, um dein Profil zu sehen und Münzen für Outfits auszugeben. Klettere in Ranglisten-Duellen die Rangliste hoch (sie zahlen viel mehr als die KI) oder fordere einen Freund per Einladungslink heraus - Freundschaftsduelle sind reine Ehrensache.</p>" +
+      "<p><strong>Trainingslager.</strong> Während die Gegnersuche läuft, wärm dich am Übungsdummy auf - das echte Duell startet, sobald ein Gegner gefunden ist.</p>",
     searchTitle: "Suche einen Gegner…",
     cancel: "ABBRECHEN",
     btnContinue: "WEITER",
@@ -856,7 +860,8 @@ const STRINGS = {
       "<p><strong>Rodadas com modificadores.</strong> Crepúsculo, névoa, rajadas: cada rodada muda as condições. A distância do duelo também varia em silêncio.</p>" +
       "<p><strong>Vence quem fizer 3 rodadas primeiro.</strong></p>" +
       "<p><strong>Virada.</strong> O perdedor de uma rodada escolhe uma vantagem entre três sorteadas, para o resto do duelo.</p>" +
-      "<p><strong>Ranqueada e trajes.</strong> Você recebe um nome de pistoleiro automaticamente (seu nome do CrazyGames se estiver logado). Clique no seu cartão no canto superior esquerdo para ver seu perfil e gastar suas moedas em trajes. Suba no ranking nos duelos ranqueados (pagam muito mais que a IA), ou desafie um amigo com um link de convite - duelos amistosos valem só a honra.</p>",
+      "<p><strong>Ranqueada e trajes.</strong> Você recebe um nome de pistoleiro automaticamente (seu nome do CrazyGames se estiver logado). Clique no seu cartão no canto superior esquerdo para ver seu perfil e gastar suas moedas em trajes. Suba no ranking nos duelos ranqueados (pagam muito mais que a IA), ou desafie um amigo com um link de convite - duelos amistosos valem só a honra.</p>" +
+      "<p><strong>Campo de treino.</strong> Enquanto o matchmaking procura oponente, aquece contra o boneco do acampamento - o duelo real começa assim que houver rival.</p>",
     searchTitle: "Procurando um oponente…",
     cancel: "CANCELAR",
     btnContinue: "CONTINUAR",
@@ -1065,7 +1070,8 @@ const STRINGS = {
       "<p><strong>Модификаторы раундов.</strong> Сумерки, туман, порывы ветра: каждый раунд меняет условия. Дистанция дуэли тоже незаметно меняется.</p>" +
       "<p><strong>Побеждает первый, взявший 3 раунда.</strong></p>" +
       "<p><strong>Камбэк.</strong> Проигравший раунд выбирает одно из трёх случайных преимуществ до конца дуэли.</p>" +
-      "<p><strong>Рейтинг и наряды.</strong> Имя стрелка выдаётся автоматически (твой ник CrazyGames, если ты вошёл). Кликни по своей карточке слева сверху, чтобы открыть профиль и потратить монеты на наряды. Поднимайся в таблице лидеров в рейтинговых дуэлях (они платят куда больше ИИ) или вызови друга по ссылке - дружеские дуэли только ради чести.</p>",
+      "<p><strong>Рейтинг и наряды.</strong> Имя стрелка выдаётся автоматически (твой ник CrazyGames, если ты вошёл). Кликни по своей карточке слева сверху, чтобы открыть профиль и потратить монеты на наряды. Поднимайся в таблице лидеров в рейтинговых дуэлях (они платят куда больше ИИ) или вызови друга по ссылке - дружеские дуэли только ради чести.</p>" +
+      "<p><strong>Тренировочный лагерь.</strong> Пока идёт поиск соперника, разомнись на манекене лагеря - настоящая дуэль начнётся, как только найдётся соперник.</p>",
     searchTitle: "Поиск противника…",
     cancel: "ОТМЕНА",
     btnContinue: "ПРОДОЛЖИТЬ",
@@ -1274,7 +1280,8 @@ const STRINGS = {
       "<p><strong>Raunt değiştiricileri.</strong> Alacakaranlık, sis, rüzgar: her raunt koşulları değiştirir. Düello mesafesi de sessizce değişir.</p>" +
       "<p><strong>3 raundu ilk kazanan yener.</strong></p>" +
       "<p><strong>Geri dönüş.</strong> Raundu kaybeden, düellonun geri kalanı için rastgele üç avantajdan birini seçer.</p>" +
-      "<p><strong>Dereceli ve kıyafetler.</strong> Sana otomatik bir silahşor adı verilir (giriş yaptıysan CrazyGames adın). Profilini görmek ve altınlarını kıyafetlere harcamak için sol üstteki kartına tıkla. Dereceli düellolarda sıralamada yüksel (yapay zekadan çok daha fazla kazandırır) ya da davet bağlantısıyla bir arkadaşına meydan oku - dostluk düelloları sadece onur içindir.</p>",
+      "<p><strong>Dereceli ve kıyafetler.</strong> Sana otomatik bir silahşor adı verilir (giriş yaptıysan CrazyGames adın). Profilini görmek ve altınlarını kıyafetlere harcamak için sol üstteki kartına tıkla. Dereceli düellolarda sıralamada yüksel (yapay zekadan çok daha fazla kazandırır) ya da davet bağlantısıyla bir arkadaşına meydan oku - dostluk düelloları sadece onur içindir.</p>" +
+      "<p><strong>Antrenman kampı.</strong> Eşleştirme rakip ararken kampın mankenine karşı ısın - gerçek düello rakip bulunur bulunmaz başlar.</p>",
     searchTitle: "Rakip aranıyor…",
     cancel: "İPTAL",
     btnContinue: "DEVAM",
