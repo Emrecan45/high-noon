@@ -44,6 +44,20 @@ export const PERSONAS = [
   }
 ];
 
+export const TRAINING_PERSONA = {
+  id: "training",
+  icon: "🎯",
+  name: "Old Jed",
+  descKey: "persona.training.desc",
+  reaction: [320, 480],
+  aim: [240, 400],
+  accHead: 0.12,
+  accBody: 0.42,
+  misfireChance: 0.12,
+  dodgeChance: 0.2,
+  patience: 0.3
+};
+
 const DODGE_DURATION = 750;
 const BASE_RELOAD = 1300;
 const DRAW_LEAD = 260;

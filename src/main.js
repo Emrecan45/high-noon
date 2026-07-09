@@ -5,7 +5,7 @@ import { createViewmodel } from "./viewmodel.js";
 import { createUi } from "./ui.js";
 import { AudioEngine } from "./audio.js";
 import { createMusic } from "./music.js";
-import { AiOpponent, PERSONAS } from "./ai.js";
+import { AiOpponent, PERSONAS, TRAINING_PERSONA } from "./ai.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, onlineState, setOnlineState, listenChallenges, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
@@ -39,6 +39,7 @@ let friendRoom = null;
 let friendCode = null;
 let pendingChallengeCode = null;
 let roomWaitTimer = null;
+let trainingActive = false;
 let copyTimer = null;
 let addMsgTimer = null;
 let socialReady = false;
@@ -938,9 +939,7 @@ function onChallengeReply(payload) {
   }
 }
 
-function backToMenu() {
-  activeDuel = null;
-  setOnlineState("menu");
+function resetDuelScene() {
   cowboy.reset();
   cowboy.setSkin(skinById("drifter").colors);
   cowboy.setAccessories([]);
@@ -954,6 +953,12 @@ function backToMenu() {
   arena.camera.updateProjectionMatrix();
   el("backdrop").classList.remove("hidden");
   ui.hudVisible(false);
+}
+
+function backToMenu() {
+  activeDuel = null;
+  setOnlineState("menu");
+  resetDuelScene();
   music.setMode("menu");
   ui.showScreen("screen-title");
   renderProfileChip();
@@ -1112,6 +1117,7 @@ function startSearch() {
   el("search-title").textContent = t("searchTitle");
   el("search-timer").classList.remove("hidden");
   el("friend-block").classList.add("hidden");
+  el("training-block").classList.remove("hidden");
   el("btn-search-cancel").classList.remove("hidden");
   el("search-found-name").classList.add("hidden");
   ui.showScreen("screen-search");
@@ -1126,13 +1132,23 @@ function startSearch() {
   searchInterval = setInterval(function () {
     seconds += 1;
     ui.searchTick(seconds);
+    updateTrainingBadge(seconds);
   }, 1000);
   matchmaker.search({
     onMatched: function (room) {
       stopSearch();
+      const wasTraining = trainingActive;
+      if (wasTraining) {
+        endTrainingForMatch();
+      }
       el("btn-search-cancel").classList.add("hidden");
+      el("training-block").classList.add("hidden");
       el("search-title").textContent = t("opponentFound");
       el("search-found-name").classList.add("hidden");
+      if (wasTraining) {
+        el("search-timer").classList.add("hidden");
+        ui.showScreen("screen-search");
+      }
       searchTransitionTimer = setTimeout(function () {
         searchTransitionTimer = null;
         startNetDuel(room, true, false);
@@ -1140,11 +1156,92 @@ function startSearch() {
     },
     onPairFailed: function () {},
     onError: function () {
+      const wasTraining = trainingActive;
       stopSearch();
-      ui.showScreen("screen-title");
-      alert(t("connectError"));
+      el("training-status").classList.add("hidden");
+      if (!wasTraining) {
+        ui.showScreen("screen-title");
+        alert(t("connectError"));
+      }
     }
   });
+}
+
+function updateTrainingBadge(seconds) {
+  if (!trainingActive) {
+    return;
+  }
+  el("training-status-text").textContent = t("searchTitle") + " " + seconds + " s";
+}
+
+function startTrainingDuel() {
+  if (activeDuel !== null || matchmaker === null) {
+    return;
+  }
+  trainingActive = true;
+  el("backdrop").classList.add("hidden");
+  const aiSkin = aiSkinFor(TRAINING_PERSONA.id);
+  cowboy.setSkin(aiSkin.colors);
+  cowboy.setAccessories(aiSkin.acc);
+  cowboy.setWeapon(weaponById(aiSkin.weapon).colors);
+  applyMyWeapon();
+  const ai = new AiOpponent(TRAINING_PERSONA, createRng(randomSeed()));
+  activeDuel = new Duel({
+    arena: arena,
+    ui: ui,
+    audio: audio,
+    cowboy: cowboy,
+    viewmodel: viewmodel,
+    mode: "ai",
+    ai: ai,
+    net: null,
+    matchSeed: randomSeed(),
+    isTouch: isTouch,
+    ranked: false,
+    profile: duelProfile(),
+    onResult: null,
+    onCombat: startCombatMusic,
+    oppColors: aiSkin.colors,
+    oppAcc: aiSkin.acc,
+    playerBody: playerBody,
+    onExit: exitTraining
+  });
+  el("training-status-text").textContent = t("searchTitle");
+  el("training-status").classList.remove("hidden");
+  activeDuel.start();
+  refreshCoins();
+}
+
+function endTrainingForMatch() {
+  trainingActive = false;
+  el("training-status").classList.add("hidden");
+  const duel = activeDuel;
+  activeDuel = null;
+  if (duel !== null) {
+    duel.dispose();
+  }
+  resetDuelScene();
+  music.setMode("menu");
+}
+
+function exitTraining() {
+  trainingActive = false;
+  el("training-status").classList.add("hidden");
+  activeDuel = null;
+  if (matchmaker !== null) {
+    resetDuelScene();
+    music.setMode("menu");
+    el("search-title").textContent = t("searchTitle");
+    el("search-timer").classList.remove("hidden");
+    el("friend-block").classList.add("hidden");
+    el("training-block").classList.remove("hidden");
+    el("btn-search-cancel").classList.remove("hidden");
+    el("search-found-name").classList.add("hidden");
+    ui.showScreen("screen-search");
+    refreshCoins();
+  } else {
+    backToMenu();
+  }
 }
 
 function buildFriendLink(code) {
@@ -1181,6 +1278,7 @@ function openFriendRoom(rawCode, hosting, isChallenge = false) {
     el("search-title").textContent = t("friendJoining");
     el("friend-block").classList.add("hidden");
   }
+  el("training-block").classList.add("hidden");
   el("search-timer").classList.add("hidden");
   el("btn-search-cancel").classList.remove("hidden");
   ui.showScreen("screen-search");
@@ -1261,6 +1359,11 @@ if (isTouch) {
 el("btn-search-cancel").addEventListener("click", function () {
   stopSearch();
   ui.showScreen("screen-title");
+});
+
+el("btn-training").addEventListener("click", function () {
+  bootAudio();
+  startTrainingDuel();
 });
 
 function renderBoard(rows) {

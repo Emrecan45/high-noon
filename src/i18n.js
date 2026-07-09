@@ -204,7 +204,10 @@ const STRINGS = {
     "perk.spurs.desc": "You can dodge again much sooner.",
     "persona.nervous.desc": "Draws very fast but cracks under pressure. Frequent early draws.",
     "persona.rapido.desc": "The fastest gun in the West, aims for the head, sometimes misses everything.",
-    "persona.patient.desc": "Slow on the signal, but never misses a mistake. Punishes dodges."
+    "persona.patient.desc": "Slow on the signal, but never misses a mistake. Punishes dodges.",
+    "persona.training.desc": "The camp's sparring dummy. Shoots back, pays nothing.",
+    btnTraining: "TRAINING CAMP",
+    trainingHint: "Warm up while you wait - the duel starts as soon as an opponent is found."
   },
   fr: {
     tagline: "Duel au soleil",
@@ -411,7 +414,10 @@ const STRINGS = {
     "perk.spurs.desc": "Tu peux ré-esquiver bien plus vite.",
     "persona.nervous.desc": "Dégaine très vite mais craque sous la pression. Tir anticipé fréquent.",
     "persona.rapido.desc": "Le plus rapide de l'Ouest. Vise la tête, rate parfois tout.",
-    "persona.patient.desc": "Lent au signal, mais ne rate jamais une faute. Punit les esquives."
+    "persona.patient.desc": "Lent au signal, mais ne rate jamais une faute. Punit les esquives.",
+    "persona.training.desc": "Le sparring du camp. Il riposte, mais ne rapporte rien.",
+    btnTraining: "CAMP D'ENTRAÎNEMENT",
+    trainingHint: "Échauffe-toi en attendant - le duel démarre dès qu'un adversaire est trouvé."
   },
   es: {
     tagline: "Duelo bajo el sol",
@@ -617,7 +623,10 @@ const STRINGS = {
     "perk.spurs.desc": "Puedes volver a esquivar mucho antes.",
     "persona.nervous.desc": "Desenfunda muy rápido pero se quiebra bajo presión. Se anticipa a menudo.",
     "persona.rapido.desc": "El más rápido del Oeste. Apunta a la cabeza, a veces falla todo.",
-    "persona.patient.desc": "Lento a la señal, pero no perdona un error. Castiga las esquivas."
+    "persona.patient.desc": "Lento a la señal, pero no perdona un error. Castiga las esquivas.",
+    "persona.training.desc": "El muñeco de entrenamiento del campamento. Dispara, pero no paga nada.",
+    btnTraining: "CAMPO DE ENTRENAMIENTO",
+    trainingHint: "Calienta mientras esperas - el duelo empieza en cuanto haya rival."
   },
   de: {
     tagline: "Duell in der Sonne",
@@ -823,7 +832,10 @@ const STRINGS = {
     "perk.spurs.desc": "Du kannst viel schneller wieder ausweichen.",
     "persona.nervous.desc": "Zieht sehr schnell, bricht aber unter Druck. Häufige Frühstarts.",
     "persona.rapido.desc": "Der schnellste Colt des Westens. Zielt auf den Kopf, verfehlt manchmal alles.",
-    "persona.patient.desc": "Langsam beim Signal, aber verzeiht keinen Fehler. Bestraft Ausweichrollen."
+    "persona.patient.desc": "Langsam beim Signal, aber verzeiht keinen Fehler. Bestraft Ausweichrollen.",
+    "persona.training.desc": "Der Sparringspartner des Lagers. Schießt zurück, zahlt nichts.",
+    btnTraining: "TRAININGSLAGER",
+    trainingHint: "Wärm dich beim Warten auf - das Duell startet, sobald ein Gegner gefunden ist."
   },
   pt: {
     tagline: "Duelo ao sol",
@@ -1029,7 +1041,10 @@ const STRINGS = {
     "perk.spurs.desc": "Você pode esquivar de novo bem mais cedo.",
     "persona.nervous.desc": "Saca muito rápido mas quebra sob pressão. Antecipa com frequência.",
     "persona.rapido.desc": "O mais rápido do Oeste. Mira na cabeça, às vezes erra tudo.",
-    "persona.patient.desc": "Lento no sinal, mas não perdoa um erro. Pune as esquivas."
+    "persona.patient.desc": "Lento no sinal, mas não perdoa um erro. Pune as esquivas.",
+    "persona.training.desc": "O boneco de treino do acampamento. Atira de volta, não paga nada.",
+    btnTraining: "CAMPO DE TREINO",
+    trainingHint: "Aquece enquanto esperas - o duelo começa assim que houver oponente."
   },
   ru: {
     tagline: "Дуэль под солнцем",
@@ -1235,7 +1250,10 @@ const STRINGS = {
     "perk.spurs.desc": "Ты можешь уклоняться снова гораздо раньше.",
     "persona.nervous.desc": "Выхватывает очень быстро, но ломается под давлением. Частые фальстарты.",
     "persona.rapido.desc": "Самый быстрый на Западе. Целит в голову, иногда мажет всё.",
-    "persona.patient.desc": "Медлит на сигнале, но не прощает ошибок. Наказывает уклонения."
+    "persona.patient.desc": "Медлит на сигнале, но не прощает ошибок. Наказывает уклонения.",
+    "persona.training.desc": "Тренировочный манекен лагеря. Стреляет в ответ, ничего не платит.",
+    btnTraining: "ТРЕНИРОВОЧНЫЙ ЛАГЕРЬ",
+    trainingHint: "Разомнись в ожидании - дуэль начнётся, как только найдётся соперник."
   },
   tr: {
     tagline: "Güneşte düello",
@@ -1441,7 +1459,10 @@ const STRINGS = {
     "perk.spurs.desc": "Çok daha erken tekrar kaçabilirsin.",
     "persona.nervous.desc": "Çok hızlı çeker ama baskı altında çöker. Sık sık erken çeker.",
     "persona.rapido.desc": "Vahşi Batı'nın en hızlısı. Kafaya nişan alır, bazen her şeyi ıskalar.",
-    "persona.patient.desc": "Sinyalde yavaştır ama hiçbir hatayı affetmez. Kaçışları cezalandırır."
+    "persona.patient.desc": "Sinyalde yavaştır ama hiçbir hatayı affetmez. Kaçışları cezalandırır.",
+    "persona.training.desc": "Kampın antrenman mankeni. Karşılık verir ama hiçbir şey kazandırmaz.",
+    btnTraining: "ANTRENMAN KAMPI",
+    trainingHint: "Beklerken ısın - rakip bulunur bulunmaz düello başlar."
   }
 };
 
