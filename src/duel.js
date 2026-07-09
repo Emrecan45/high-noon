@@ -26,10 +26,12 @@ const SPURS_RECOVERY = 120;
 const ROUND_TIMEOUT = 12000;
 const FORFEIT_TIMEOUT = 12000;
 const PING_INTERVAL = 2500;
-const SWAY_BASE = 0.028;
+const SWAY_BASE = 0.011;
 const DODGE_SWAY = 0.05;
-const DRAW_WOBBLE_MS = 700;
-const DRAW_WOBBLE_AMP = 0.055;
+const DRAW_PITCH = -0.32;
+const DRAW_YAW = 0.12;
+const RECOIL_PITCH = 0.055;
+const WIND_DRIFT = 0.045;
 
 export class Duel {
   constructor(deps) {
@@ -89,9 +91,6 @@ export class Duel {
     this.shake = 0;
     this.swayX = 0;
     this.swayY = 0;
-    this.kickX = 0;
-    this.kickY = 0;
-    this.drawWobbleUntil = 0;
     this.glare = 0;
     this.dodgeSwayAmount = 0;
     this.locked = false;
@@ -719,9 +718,6 @@ export class Duel {
     this.aimYaw = 0;
     this.aimPitch = -0.04;
     this.glare = 0;
-    this.drawWobbleUntil = 0;
-    this.kickX = 0;
-    this.kickY = 0;
     this.dodgeSwayAmount = 0;
     this.ui.setGlare(0);
 
@@ -764,13 +760,12 @@ export class Duel {
     this.ui.setSub("");
     this.ui.crosshair(true);
     this.viewmodel.draw();
-    this.kickX = (Math.random() - 0.5) * 0.16;
-    this.kickY = 0.09 + Math.random() * 0.07;
+    let drawScale = 1;
     if (this.playerPerks.has("draw")) {
-      this.kickX *= 0.5;
-      this.kickY *= 0.5;
+      drawScale = 0.55;
     }
-    this.drawWobbleUntil = now + DRAW_WOBBLE_MS;
+    this.aimYaw = DRAW_YAW * drawScale;
+    this.aimPitch = DRAW_PITCH * drawScale;
   }
 
   startFireResend() {
@@ -834,6 +829,7 @@ export class Duel {
     this.shake = 1;
 
     const part = this.castShot();
+    this.aimPitch = Math.min(0.45, this.aimPitch + RECOIL_PITCH);
     this.matchStats.shots += 1;
     if (part === "head") {
       this.matchStats.heads += 1;
@@ -1603,10 +1599,7 @@ export class Duel {
 
     let amp = SWAY_BASE;
     if (this.playerPerks.has("calm")) {
-      amp *= 0.55;
-    }
-    if (this.round !== null && this.round.modifier.sway > 0) {
-      amp *= 2.2;
+      amp *= 0.5;
     }
     let dodgeSwayTarget = 0;
     if (this.round !== null && now < this.round.playerDodgeUntil) {
@@ -1614,20 +1607,13 @@ export class Duel {
     }
     this.dodgeSwayAmount += (dodgeSwayTarget - this.dodgeSwayAmount) * Math.min(1, dt * 6);
     amp += this.dodgeSwayAmount;
-    let kickFactor = 0;
-    if (now < this.drawWobbleUntil) {
-      kickFactor = (this.drawWobbleUntil - now) / DRAW_WOBBLE_MS;
-      let wobble = DRAW_WOBBLE_AMP;
-      if (this.playerPerks.has("draw")) {
-        wobble *= 0.5;
-      }
-      amp += kickFactor * wobble;
-    }
     const time = now / 1000;
-    this.swayX = (Math.sin(time * 1.15) + Math.sin(time * 2.4 + 1.7) * 0.6) * amp;
-    this.swayY = (Math.cos(time * 1.75) + Math.sin(time * 2.9 + 0.5) * 0.5) * amp * 0.75;
-    this.swayX += this.kickX * kickFactor;
-    this.swayY += this.kickY * kickFactor;
+    let driftX = 0;
+    if (this.round !== null && this.round.modifier.sway > 0) {
+      driftX = Math.sin(time * 0.5) * WIND_DRIFT;
+    }
+    this.swayX = Math.sin(time * 0.85) * amp + driftX;
+    this.swayY = Math.sin(time * 1.35 + 1.1) * amp * 0.7;
     this.ui.moveCrosshair(this.swayX, this.swayY);
 
     let killTracking = false;
