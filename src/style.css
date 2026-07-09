@@ -1831,3 +1831,20 @@ body.touch #gunstate {
   padding: 10px 20px;
 }
 
+.training-status {
+  position: fixed;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  left: calc(14px + env(safe-area-inset-left, 0px));
+  z-index: 55;
+  background: rgba(24, 14, 7, 0.85);
+  border: 2px solid #6b4a24;
+  border-radius: 999px;
+  padding: 7px 20px;
+  font-family: "Special Elite", serif;
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: #e8b64c;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
