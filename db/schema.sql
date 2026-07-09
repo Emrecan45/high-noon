@@ -1,6 +1,3 @@
--- High Noon - schema complet et idempotent.
--- A executer dans le SQL Editor Supabase, sur une base neuve comme existante.
-
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   pseudo text not null,
@@ -121,8 +118,6 @@ create table if not exists public.friendships (
   unique (requester, addressee)
 );
 
--- Realtime sur friendships : replica identity full pour que les filtres
--- (requester=eq.X / addressee=eq.X) matchent aussi les DELETE.
 alter table public.friendships replica identity full;
 
 do $$

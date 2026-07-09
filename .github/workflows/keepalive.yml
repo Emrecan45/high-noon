@@ -1,6 +1,5 @@
 name: Keep Supabase alive
 
-# Ping quotidien pour eviter la mise en veille du projet Supabase gratuit.
 on:
   schedule:
     - cron: "23 6 * * *"
