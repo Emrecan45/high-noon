@@ -19,6 +19,10 @@
 |:-:|:-:|
 | ![Menu](docs/screenshot_menu.png) | ![Gameplay](docs/screenshot_game.png) |
 
+| Face-à-face | Camp d'entraînement |
+|:-:|:-:|
+| ![Face-à-face](docs/screenshot_faceoff.png) | ![Camp d'entraînement](docs/screenshot_training.png) |
+
 
 
 ## 🌐 Jouer dans le navigateur
@@ -95,7 +99,7 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 | 🌵 El Rápido | Le plus rapide de l'Ouest, vise la tête |
 | 🥃 Doc Silence | Lent au signal, mais ne rate jamais une faute |
 
-Chaque pistolero IA arbore une **tenue qui lui est propre** (couleurs, arme et accessoires signature), introuvable en boutique.
+Chaque pistolero IA arbore une **tenue qui lui est propre** (couleurs, arme et accessoires signature), introuvable en boutique. Un quatrième pistolero, **Old Jed**, ne se rencontre qu'au camp d'entraînement.
 
 Si un adversaire en ligne quitte ou reste inactif, la manche n'est plus bloquée : **victoire par forfait** accordée automatiquement.
 
@@ -122,7 +126,7 @@ Le duel en ligne passe par **Supabase Realtime** : matchmaking par présence (le
 
 Le signal du duel est **imposé par l'hôte** : quand les deux joueurs sont prêts, l'hôte déclenche le « FEU ! » et le diffuse, l'autre client le calque à l'instant près - fini les manches désynchronisées où l'un tire pendant que l'autre attend.
 
-**Le cercle d'amis** : une **barre latérale pleine hauteur à gauche** de l'accueil (façon Fortnite), sous la carte joueur, avec l'ajout d'ami épinglé tout en bas. Sur CrazyGames, elle liste directement tes **amis CrazyGames** (via `user.listFriends()`) avec leur avatar - un bouton DUEL si l'ami joue déjà et est en ligne, sinon INVITER via le système d'invitation CrazyGames. Hors CrazyGames, tu ajoutes des amis par pseudo. Un défi envoie une notification en temps réel qui s'affiche sur l'accueil de l'ami, et le duel démarre dès qu'il accepte.
+**Le cercle d'amis** : une **barre latérale pleine hauteur à gauche** de l'accueil (façon Fortnite), sous la carte joueur, avec l'ajout d'ami épinglé tout en bas. Sur CrazyGames, elle liste directement tes **amis CrazyGames** (via `user.listFriends()`) avec leur avatar - un bouton DUEL si l'ami joue déjà et est en ligne, sinon INVITER via le système d'invitation CrazyGames. Hors CrazyGames, tu ajoutes des amis par pseudo. Toutes les actions d'amis (demande, acceptation, refus, suppression) se propagent **en temps réel** : la liste de l'autre joueur se met à jour instantanément. Un défi envoie une notification en temps réel sur l'accueil de l'ami : le duel démarre dès qu'il accepte, et un refus (ou une absence de réponse) te sort aussitôt de l'attente avec une alerte.
 
 Deux garde-fous réseau : impossible de **s'affronter soi-même** (deux onglets du même compte ne s'apparient jamais, l'identité de compte étant portée par la présence), et une fois les deux joueurs prêts (premier focus), le déroulé de la partie est **imposé** et continue même si un onglet perd le focus ou passe en arrière-plan.
 
@@ -131,6 +135,8 @@ Deux garde-fous réseau : impossible de **s'affronter soi-même** (deux onglets 
 ## 🏆 Mode classé
 
 Chaque joueur reçoit automatiquement un pseudo (« Player1234 », ou son pseudo CrazyGames s'il est connecté là-bas) porté par un compte anonyme Supabase. En **duel classé**, pseudo, tenue et **rang** (Novice, Tireur, Desperado, Légende de l'Ouest, selon les points accumulés) sont visibles par l'adversaire, et le **classement** affiche les 20 meilleurs pistoleros (tête du skin, pseudo, rang, points). Chaque match rapporte des pièces - le classé paie bien plus que l'IA, et les duels amicaux ne rapportent rien du tout.
+
+**Camp d'entraînement** : pendant la recherche d'adversaire, un bouton lance un duel d'échauffement contre **Old Jed**, le mannequin du camp - sans rang ni pièces. Le chrono de recherche reste affiché en jeu et le duel classé démarre tout seul dès qu'un adversaire est trouvé ; quitter l'entraînement ramène sur l'écran de recherche sans perdre sa place dans la file.
 
 Le classement repose sur des **points de duel cumulés** : une victoire en rapporte d'autant plus que l'adversaire est fort, une défaite n'en coûte qu'une poignée et le total ne descend jamais sous le seuil de départ (1000). Les **rangs** sont des paliers de ce total, pour un système lisible qui monte surtout à la victoire (plutôt qu'un Elo qui zigzague). Un garde-fou **anti-matchs arrangés** réduit les gains quand on rejoue le même adversaire dans la journée : points et pièces divisés par deux au deuxième duel, plus aucun point à partir du troisième.
 
@@ -189,7 +195,7 @@ npm install
 npm run dev
 ```
 
-Le duel en ligne, les comptes et le classé demandent un projet [Supabase](https://supabase.com) : renseigner l'URL et la clé publishable dans `src/config.js`, exécuter `db/schema.sql` dans le SQL Editor et activer les anonymous sign-ins. Sans ça, le jeu reste jouable contre l'IA.
+Le duel en ligne, les comptes et le classé demandent un projet [Supabase](https://supabase.com) : renseigner l'URL et la clé publishable dans `src/config.js`, exécuter `db/schema.sql` dans le SQL Editor (idempotent - il active aussi la réplication temps réel de la table `friendships`) et activer les anonymous sign-ins. Sans ça, le jeu reste jouable contre l'IA.
 
 
 
@@ -205,7 +211,7 @@ high-noon/
 │   ├── net.js          # Matchmaking (casual + classé) et protocole réseau
 │   ├── account.js      # Comptes, profil, rang, pièces, amis (Supabase)
 │   ├── skins.js        # Catalogue de tenues et portraits 3D générés
-│   ├── pages.js        # Notes de version et textes légaux (FR/EN)
+│   ├── pages.js        # Notes de version et textes légaux (7 langues)
 │   ├── sdk.js          # Intégration du SDK CrazyGames
 │   ├── scene.js        # Arène 3D, éclairages, modificateurs de manche
 │   ├── cowboy.js        # Personnage adverse et ses animations

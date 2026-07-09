@@ -1,13 +1,12 @@
 const PATCH = {
   en: [
-    { date: "July 7, 2026", version: "1.3", items: [
-      "Duel intro: \"opponent found\", a face-off, then the gunslingers walk up in the arena",
-      "Duel points and ranks on the leaderboard",
-      "Special outfits for the AI gunslingers",
-      "Interface scaled down for mobile and safe area notches",
-      "Win by forfeit when your opponent leaves",
-      "Daily and weekly challenges, combat music and a real sidestep",
-      "Real-time friend invitations and cleaner friend list"
+    { date: "July 9, 2026", version: "1.3", items: [
+      "Training camp while matchmaking searches",
+      "Cinematic duel intro: face-off, then the walk-up",
+      "Daily and weekly challenges",
+      "Friends, invites and challenges in real time",
+      "Ranks on the leaderboard and special AI outfits",
+      "Combat music, real sidestep, forfeit win, mobile UI"
     ] },
     { date: "July 6, 2026", version: "1.2", items: [
       "Slow-motion sepia kill cam",
@@ -30,14 +29,13 @@ const PATCH = {
     ] }
   ],
   fr: [
-    { date: "7 juillet 2026", version: "1.3", items: [
-      "Présentation du duel : « adversaire trouvé », face-à-face puis avancée des pistoleros dans l'arène",
-      "Points de duel et rangs au classement",
-      "Tenues spéciales pour les pistoleros IA",
-      "Interface optimisée pour mobile et encoches (Safe Area)",
-      "Victoire par forfait quand l'adversaire quitte",
-      "Défis quotidiens et hebdomadaires, musique de combat et vrai pas de côté",
-      "Invitations d'amis en temps réel par popup et nettoyage de la liste d'amis"
+    { date: "9 juillet 2026", version: "1.3", items: [
+      "Camp d'entraînement pendant la recherche d'adversaire",
+      "Intro de duel cinématique : face-à-face puis avancée",
+      "Défis quotidiens et hebdomadaires",
+      "Amis, invitations et défis en temps réel",
+      "Rangs au classement et tenues spéciales pour les IA",
+      "Musique de combat, vrai pas de côté, victoire par forfait, UI mobile"
     ] },
     { date: "6 juillet 2026", version: "1.2", items: [
       "Kill cam au ralenti avec zoom sépia",
@@ -60,13 +58,13 @@ const PATCH = {
     ] }
   ],
   es: [
-    { date: "7 de julio de 2026", version: "1.3", items: [
-      "Presentación del duelo: «rival encontrado», cara a cara y avance de los pistoleros en la arena",
-      "Puntos de duelo y rangos en la clasificación",
-      "Atuendos especiales para los pistoleros de IA",
-      "Interfaz reducida para móvil (misma disposición que en PC)",
-      "Victoria por abandono cuando el rival se va",
-      "Desafíos diarios y semanales, música de combate y paso lateral real"
+    { date: "9 de julio de 2026", version: "1.3", items: [
+      "Campo de entrenamiento mientras buscas rival",
+      "Presentación cinematográfica del duelo: cara a cara y avance",
+      "Desafíos diarios y semanales",
+      "Amigos, invitaciones y retos en tiempo real",
+      "Rangos en la clasificación y atuendos especiales para la IA",
+      "Música de combate, paso lateral real, victoria por abandono, interfaz móvil"
     ] },
     { date: "6 de julio de 2026", version: "1.2", items: [
       "Kill cam a cámara lenta en sepia",
@@ -89,13 +87,13 @@ const PATCH = {
     ] }
   ],
   de: [
-    { date: "7. Juli 2026", version: "1.3", items: [
-      "Duell-Vorstellung: „Gegner gefunden“, Face-off und Anmarsch der Revolverhelden in der Arena",
-      "Duellpunkte und Ränge in der Bestenliste",
-      "Besondere Outfits für die KI-Revolverhelden",
-      "Oberfläche für Mobilgeräte verkleinert (gleiches Layout wie am PC)",
-      "Sieg durch Aufgabe, wenn der Gegner geht",
-      "Tägliche und wöchentliche Aufgaben, Kampfmusik und echter Seitenschritt"
+    { date: "9. Juli 2026", version: "1.3", items: [
+      "Trainingslager während der Gegnersuche",
+      "Filmreife Duell-Vorstellung: Face-off und Anmarsch",
+      "Tägliche und wöchentliche Aufgaben",
+      "Freunde, Einladungen und Duelle in Echtzeit",
+      "Ränge in der Bestenliste und besondere KI-Outfits",
+      "Kampfmusik, echter Seitenschritt, Sieg durch Aufgabe, mobile Oberfläche"
     ] },
     { date: "6. Juli 2026", version: "1.2", items: [
       "Zeitlupen-Kill-Cam in Sepia",
@@ -118,13 +116,13 @@ const PATCH = {
     ] }
   ],
   pt: [
-    { date: "7 de julho de 2026", version: "1.3", items: [
-      "Apresentação do duelo: «oponente encontrado», o confronto e o avanço dos pistoleiros na arena",
-      "Pontos de duelo e patentes na classificação",
-      "Trajes especiais para os pistoleiros de IA",
-      "Interface reduzida para o celular (mesmo layout do PC)",
-      "Vitória por desistência quando o oponente sai",
-      "Desafios diários e semanais, música de combate e passo lateral real"
+    { date: "9 de julho de 2026", version: "1.3", items: [
+      "Campo de treino enquanto procuras oponente",
+      "Apresentação cinematográfica do duelo: confronto e avanço",
+      "Desafios diários e semanais",
+      "Amigos, convites e desafios em tempo real",
+      "Patentes na classificação e trajes especiais para a IA",
+      "Música de combate, passo lateral real, vitória por desistência, interface móvel"
     ] },
     { date: "6 de julho de 2026", version: "1.2", items: [
       "Kill cam em câmera lenta sépia",
@@ -147,13 +145,13 @@ const PATCH = {
     ] }
   ],
   ru: [
-    { date: "7 июля 2026", version: "1.3", items: [
-      "Представление дуэли: «соперник найден», лицом к лицу и сближение стрелков на арене",
-      "Очки дуэли и ранги в таблице лидеров",
-      "Особые наряды для стрелков с ИИ",
-      "Интерфейс уменьшен для мобильных (та же раскладка, что на ПК)",
-      "Победа при выходе соперника из боя",
-      "Ежедневные и еженедельные задания, боевая музыка и настоящий шаг в сторону"
+    { date: "9 июля 2026", version: "1.3", items: [
+      "Тренировочный лагерь во время поиска соперника",
+      "Кинематографичное представление дуэли: лицом к лицу и сближение",
+      "Ежедневные и еженедельные задания",
+      "Друзья, приглашения и вызовы в реальном времени",
+      "Ранги в таблице лидеров и особые наряды ИИ",
+      "Боевая музыка, шаг в сторону, победа при выходе соперника, мобильный интерфейс"
     ] },
     { date: "6 июля 2026", version: "1.2", items: [
       "Замедленная сепия кил-кам",
@@ -176,13 +174,13 @@ const PATCH = {
     ] }
   ],
   tr: [
-    { date: "7 Temmuz 2026", version: "1.3", items: [
-      "Düello tanıtımı: «rakip bulundu», yüz yüze ve silahşorların arenada yaklaşması",
-      "Düello puanları ve sıralamada rütbeler",
-      "Yapay zekâ silahşorları için özel kıyafetler",
-      "Arayüz mobil için küçültüldü (PC ile aynı yerleşim)",
-      "Rakip ayrıldığında hükmen galibiyet",
-      "Günlük ve haftalık görevler, savaş müziği ve gerçek yan adım"
+    { date: "9 Temmuz 2026", version: "1.3", items: [
+      "Rakip aranırken antrenman kampı",
+      "Sinematik düello tanıtımı: yüz yüze ve yaklaşma",
+      "Günlük ve haftalık görevler",
+      "Gerçek zamanlı arkadaşlar, davetler ve meydan okumalar",
+      "Sıralamada rütbeler ve yapay zekâya özel kıyafetler",
+      "Savaş müziği, gerçek yan adım, hükmen galibiyet, mobil arayüz"
     ] },
     { date: "6 Temmuz 2026", version: "1.2", items: [
       "Ağır çekim sepya kill cam",
