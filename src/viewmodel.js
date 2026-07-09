@@ -141,12 +141,15 @@ export function createViewmodel(camera) {
     if (state.mode === "holstered") {
       group.position.lerp(holsterPos, Math.min(1, dt * 10));
     } else if (state.mode === "drawing") {
-      const t = (state.time - state.drawStart) / 0.13;
+      const t = (state.time - state.drawStart) / 0.18;
       if (t >= 1) {
         state.mode = "ready";
         group.position.copy(basePos);
+        gun.rotation.x = 0;
       } else {
-        group.position.lerpVectors(holsterPos, basePos, t);
+        const e = t * (2 - t);
+        group.position.lerpVectors(holsterPos, basePos, e);
+        gun.rotation.x = (1 - e) * 0.85;
       }
     } else if (state.mode === "reloading") {
       const progress = (state.time - state.reloadStart) / Math.max(0.01, state.reloadUntil - state.reloadStart);
