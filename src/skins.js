@@ -76,6 +76,11 @@ export const AI_SKINS = {
     colors: { skin: 0xd0b294, shirt: 0x241a2e, pants: 0x14101c, hat: 0x0e0a14, bandana: 0x8a4f8a },
     weapon: "ivory",
     acc: ["beard", "eyepatch"]
+  },
+  training: {
+    colors: { skin: 0xc9a06a, shirt: 0xb59a5c, pants: 0x8a7042, hat: 0xd8c48a, bandana: 0x7a2f24 },
+    weapon: "iron",
+    acc: ["feather"]
   }
 };
 
