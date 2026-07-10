@@ -5,18 +5,20 @@ let lastMidgameAt = 0;
 const MIDGAME_COOLDOWN = 90000;
 
 export async function initSdk() {
+  const local = location.hostname === "localhost" || location.hostname === "127.0.0.1";
   if (window.CrazyGames && window.CrazyGames.SDK) {
     sdk = window.CrazyGames.SDK;
   }
   if (sdk === null) {
+    onCg = local;
     return;
   }
   try {
     await sdk.init();
-    onCg = sdk.environment === "crazygames";
+    onCg = sdk.environment === "crazygames" || local;
   } catch (err) {
     sdk = null;
-    onCg = false;
+    onCg = local;
   }
 }
 
@@ -93,14 +95,38 @@ export function requestRewardedAd(hooks) {
     hooks.onError();
     return;
   }
+  let started = false;
+  let settled = false;
+  function finish() {
+    if (!settled) {
+      settled = true;
+      hooks.onFinish();
+    }
+  }
+  function fail() {
+    if (!settled) {
+      settled = true;
+      hooks.onError();
+    }
+  }
+  setTimeout(function () {
+    if (!started) {
+      fail();
+    }
+  }, 8000);
   try {
     sdk.ad.requestAd("rewarded", {
-      adStarted: hooks.onStart,
-      adFinished: hooks.onFinish,
-      adError: hooks.onError
+      adStarted: function () {
+        started = true;
+        if (hooks.onStart) {
+          hooks.onStart();
+        }
+      },
+      adFinished: finish,
+      adError: fail
     });
   } catch (err) {
-    hooks.onError();
+    fail();
   }
 }
 

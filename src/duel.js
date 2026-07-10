@@ -1,12 +1,11 @@
 import * as THREE from "three";
 import { createRng, roundSeed, rangeFrom } from "./rng.js";
-import { pickModifier, pickDistance } from "./modifiers.js";
+import { MODIFIERS, DISTANCE_TIERS, pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
 import { skinById, portraitDataUrl, portraitColorsDataUrl } from "./skins.js";
 import { weaponById } from "./weapons.js";
-import { eloTitleKey } from "./titles.js";
 import { gameplayStart, gameplayStop, happyTime } from "./sdk.js";
 
 const WIN_SCORE = 3;
@@ -26,10 +25,12 @@ const SPURS_RECOVERY = 120;
 const ROUND_TIMEOUT = 12000;
 const FORFEIT_TIMEOUT = 12000;
 const PING_INTERVAL = 2500;
-const SWAY_BASE = 0.028;
+const SWAY_BASE = 0.011;
 const DODGE_SWAY = 0.05;
-const DRAW_WOBBLE_MS = 700;
-const DRAW_WOBBLE_AMP = 0.055;
+const DRAW_PITCH = -0.32;
+const DRAW_YAW = 0.12;
+const RECOIL_PITCH = 0.055;
+const WIND_DRIFT = 0.045;
 
 export class Duel {
   constructor(deps) {
@@ -75,7 +76,7 @@ export class Duel {
     this.helloReceived = false;
     this.lastOppMsgAt = 0;
     this.pingTimer = null;
-    this.oppElo = 1000;
+    this.oppElo = 100;
     this.oppId = null;
     this.oppSkin = "drifter";
     this.opponentName = t("theOpponent");
@@ -89,9 +90,6 @@ export class Duel {
     this.shake = 0;
     this.swayX = 0;
     this.swayY = 0;
-    this.kickX = 0;
-    this.kickY = 0;
-    this.drawWobbleUntil = 0;
     this.glare = 0;
     this.dodgeSwayAmount = 0;
     this.locked = false;
@@ -105,7 +103,20 @@ export class Duel {
     this.fireResend = null;
     this.bgTimer = null;
     this.bgLast = 0;
+    this.forceModifierId = deps.forceModifier || null;
+    this.forceDistanceId = deps.forceDistance || null;
+    this.storyLine = deps.storyLine || null;
+    this.quickEnd = deps.quickEnd || null;
+    this.startingOppPerks = deps.oppPerks || null;
+    this.prevTopId = deps.prevTopId || null;
     this.resetMatch();
+  }
+
+  decorateName(name, id) {
+    if (this.prevTopId !== null && id !== null && id === this.prevTopId) {
+      return "🏆 " + name;
+    }
+    return name;
   }
 
   resetMatch() {
@@ -114,6 +125,14 @@ export class Duel {
     this.roundIndex = 0;
     this.playerPerks = new Set();
     this.oppPerkIds = new Set();
+    if (this.startingOppPerks) {
+      for (const id of this.startingOppPerks) {
+        this.oppPerkIds.add(id);
+        if (this.ai !== null && this.ai !== undefined) {
+          this.ai.perks.add(id);
+        }
+      }
+    }
     this.state = "idle";
     this.round = null;
     this.lastModifierId = null;
@@ -209,7 +228,7 @@ export class Duel {
       }
     });
     this.addListener(document.getElementById("lock-prompt"), "click", function () {
-      canvas.requestPointerLock();
+      self.retryLock(performance.now() + 2600);
     });
 
     if (this.isTouch) {
@@ -267,6 +286,11 @@ export class Duel {
           elo: this.myProfile.elo
         });
       }
+      this.helloTimer = setTimeout(function () {
+        if (!self.disposed && self.oppId === null) {
+          self.cancelDuel();
+        }
+      }, 9000);
       this.ui.setOppTag("");
     } else {
       this.net = null;
@@ -291,26 +315,33 @@ export class Duel {
     if (node.classList.contains("hidden")) {
       return;
     }
-    document.getElementById("di-you-name").textContent = this.myProfile.pseudo;
-    document.getElementById("di-you-title").textContent = t(eloTitleKey(this.myProfile.elo));
-    document.getElementById("di-you-fig").src = portraitDataUrl(this.myProfile.skin, 340);
-    document.getElementById("di-opp-name").textContent = this.opponentName;
+    document.getElementById("di-you-name").textContent = this.decorateName(this.myProfile.pseudo, this.myProfile.id);
+    document.getElementById("di-you-title").textContent = this.ptsLabel(this.myProfile.elo);
+    document.getElementById("di-you-fig").src = portraitDataUrl(this.myProfile.skin, 340, this.myProfile.acc);
+    document.getElementById("di-opp-name").textContent = this.decorateName(this.opponentName, this.oppId);
     document.getElementById("di-opp-title").textContent = this.oppSubtitle();
     document.getElementById("di-opp-fig").src = this.oppPortrait();
+  }
+
+  ptsLabel(elo) {
+    if (!Number.isFinite(Number(elo))) {
+      return "";
+    }
+    return Number(elo) + " $";
   }
 
   oppSubtitle() {
     if (this.mode === "ai") {
       return t("duelOutlaw");
     }
-    return t(eloTitleKey(this.oppElo));
+    return this.ptsLabel(this.oppElo);
   }
 
   oppPortrait() {
     if (this.oppColors !== null) {
       return portraitColorsDataUrl(this.oppColors, this.oppAcc, 340);
     }
-    return portraitDataUrl(this.oppSkin, 340);
+    return portraitDataUrl(this.oppSkin, 340, this.oppAcc);
   }
 
   showIntro() {
@@ -325,16 +356,22 @@ export class Duel {
     this.audio.duelBell();
     const info = {
       you: {
-        name: this.myProfile.pseudo,
-        title: t(eloTitleKey(this.myProfile.elo)),
-        portrait: portraitDataUrl(this.myProfile.skin, 340)
+        name: this.decorateName(this.myProfile.pseudo, this.myProfile.id),
+        title: this.ptsLabel(this.myProfile.elo),
+        portrait: portraitDataUrl(this.myProfile.skin, 340, this.myProfile.acc)
       },
       opp: {
-        name: this.opponentName,
+        name: this.decorateName(this.opponentName, this.oppId),
         title: this.oppSubtitle(),
         portrait: this.oppPortrait()
       }
     };
+    if (!this.combatStarted) {
+      this.combatStarted = true;
+      if (this.onCombat !== null) {
+        this.onCombat();
+      }
+    }
     this.ui.duelIntro(info, 3200, function () {
       if (self.disposed || self.state === "matchend") {
         return;
@@ -364,9 +401,9 @@ export class Duel {
     this.playerBody.group.visible = true;
     this.playerBody.setWalk(false);
 
-    document.getElementById("cine-you-name").textContent = this.myProfile.pseudo;
-    document.getElementById("cine-you-title").textContent = t(eloTitleKey(this.myProfile.elo));
-    document.getElementById("cine-opp-name").textContent = this.opponentName;
+    document.getElementById("cine-you-name").textContent = this.decorateName(this.myProfile.pseudo, this.myProfile.id);
+    document.getElementById("cine-you-title").textContent = this.ptsLabel(this.myProfile.elo);
+    document.getElementById("cine-opp-name").textContent = this.decorateName(this.opponentName, this.oppId);
     document.getElementById("cine-opp-title").textContent = this.oppSubtitle();
     document.getElementById("cine-overlay").classList.remove("hidden");
 
@@ -377,9 +414,9 @@ export class Duel {
 
     this.audio.wind();
     this.introTimers = [];
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 400));
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 1200));
-    this.introTimers.push(setTimeout(function () { self.audio.footsteps(); }, 2000));
+    for (let s = 0; s < 6; s++) {
+      this.introTimers.push(setTimeout(function () { self.audio.stepSoft(); }, 380 + s * 400));
+    }
     this.introTimers.push(setTimeout(function () { self.audio.duelBell(); }, 2900));
     this.introTimers.push(setTimeout(function () { self.audio.duelSting(); }, 4100));
   }
@@ -412,7 +449,7 @@ export class Duel {
       this.playerBody.group.position.z = YOU_START_Z;
       this.arena.opponentAnchor.position.z = OPP_START_Z;
       this.playerBody.update(dt);
-      this.placeCamera(12, 4.2, 4, 0, 1.5, 0);
+      this.placeCamera(4.2, 3.4, 4.5, 0, 1.5, 0);
       document.getElementById("cine-you-tag").style.opacity = "0";
       document.getElementById("cine-opp-tag").style.opacity = "0";
       return;
@@ -440,19 +477,19 @@ export class Duel {
     let tz = 0;
     if (el < CINE_WALK) {
       const s = ease;
-      camx = 11 + (7 - 11) * s;
-      camy = 3.8 + (2.4 - 3.8) * s;
-      camz = 1.5 + (0.5 - 1.5) * s;
+      camx = 4.2 + (3.4 - 4.2) * s;
+      camy = 3.2 + (2.3 - 3.2) * s;
+      camz = 2.6 + (0.5 - 2.6) * s;
       ty = 1.4 + (1.55 - 1.4) * s;
-      tz = 0;
+      tz = 1.8 * (1 - s);
     } else {
       let p = (el - CINE_WALK) / (CINE_TOTAL - CINE_WALK);
       if (p > 1) {
         p = 1;
       }
       const s = p * p * (3 - 2 * p);
-      camx = 7 + (5 - 7) * s;
-      camy = 2.4 + (1.95 - 2.4) * s;
+      camx = 3.4 + (2.6 - 3.4) * s;
+      camy = 2.3 + (1.95 - 2.3) * s;
       camz = 0.5 + (0 - 0.5) * s;
       ty = 1.55 + (1.62 - 1.55) * s;
       tz = 0;
@@ -603,17 +640,99 @@ export class Duel {
       this.readySent = false;
       this.ui.setBig("", null, 0);
       this.ui.setSub(t("waitingOpp"));
+      this.startSyncDeadline();
       if (this.isTouch || this.locked) {
         this.sendReadyNow();
       } else if (this.focusedOnce) {
-        this.sendReadyNow();
-        this.ui.showScreen("lock-prompt");
+        this.requestLock();
       } else {
         this.ui.showScreen("lock-prompt");
       }
     } else {
       this.beginRound();
     }
+  }
+
+  startSyncDeadline() {
+    const self = this;
+    this.clearSyncDeadline();
+    let left = 30;
+    this.syncCountdown = setInterval(function () {
+      if (self.disposed || self.state !== "sync") {
+        self.clearSyncDeadline();
+        return;
+      }
+      left -= 1;
+      if (left <= 0) {
+        self.clearSyncDeadline();
+        self.onOpponentLeft();
+        return;
+      }
+      if (left <= 20 && self.readySent) {
+        self.ui.setSub(t("waitingOpp") + " " + left + " s");
+      }
+    }, 1000);
+  }
+
+  clearSyncDeadline() {
+    if (this.syncCountdown) {
+      clearInterval(this.syncCountdown);
+      this.syncCountdown = null;
+    }
+  }
+
+  cancelDuel() {
+    if (this.disposed || this.state === "matchend") {
+      return;
+    }
+    this.state = "matchend";
+    gameplayStop();
+    if (document.pointerLockElement !== null && !this.isTouch) {
+      document.exitPointerLock();
+    }
+    const self = this;
+    this.ui.hudVisible(false);
+    this.ui.matchEnd(
+      t("duelCanceled"),
+      {
+        flavor: t("duelCanceledSub"),
+        score: ""
+      },
+      function () {
+        self.exit();
+      },
+      function () {
+        self.exit();
+      }
+    );
+  }
+
+  retryLock(deadline) {
+    if (this.disposed || this.locked) {
+      return;
+    }
+    try {
+      this.arena.renderer.domElement.requestPointerLock();
+    } catch (err) {}
+    if (performance.now() >= deadline) {
+      return;
+    }
+    const self = this;
+    setTimeout(function () {
+      self.retryLock(deadline);
+    }, 350);
+  }
+
+  requestLock() {
+    const self = this;
+    try {
+      this.arena.renderer.domElement.requestPointerLock();
+    } catch (err) {}
+    setTimeout(function () {
+      if (!self.disposed && !self.locked && self.stateNeedsLock()) {
+        self.ui.showScreen("lock-prompt");
+      }
+    }, 450);
   }
 
   sendReadyNow() {
@@ -647,6 +766,7 @@ export class Duel {
   }
 
   beginRound() {
+    this.clearSyncDeadline();
     this.stopFireResend();
     if (!this.combatStarted) {
       this.combatStarted = true;
@@ -656,9 +776,23 @@ export class Duel {
     }
     this.oppAckedFire = false;
     const rng = createRng(roundSeed(this.matchSeed, this.roundIndex));
-    const modifier = pickModifier(rng, this.roundIndex, this.lastModifierId);
+    let modifier = pickModifier(rng, this.roundIndex, this.lastModifierId);
+    if (this.forceModifierId !== null) {
+      for (const candidate of MODIFIERS) {
+        if (candidate.id === this.forceModifierId) {
+          modifier = candidate;
+        }
+      }
+    }
     this.lastModifierId = modifier.id;
-    const distance = pickDistance(rng, this.roundIndex);
+    let distance = pickDistance(rng, this.roundIndex);
+    if (this.forceDistanceId !== null) {
+      for (const candidate of DISTANCE_TIERS) {
+        if (candidate.id === this.forceDistanceId) {
+          distance = candidate;
+        }
+      }
+    }
     const signalDelay = 1800 + rng() * 3200;
     const distractions = [];
     const distractionCount = Math.floor(rng() * 3);
@@ -702,6 +836,7 @@ export class Duel {
       playerBusyUntil: 0,
       dodgeCooldownUntil: 0,
       dodgeWindows: [],
+      playerDrawn: false,
       playerFirstShotT: null,
       oppShotT: null,
       playerDead: false,
@@ -719,9 +854,6 @@ export class Duel {
     this.aimYaw = 0;
     this.aimPitch = -0.04;
     this.glare = 0;
-    this.drawWobbleUntil = 0;
-    this.kickX = 0;
-    this.kickY = 0;
     this.dodgeSwayAmount = 0;
     this.ui.setGlare(0);
 
@@ -742,7 +874,11 @@ export class Duel {
 
     if (!this.isTouch && !this.locked && this.net === null) {
       this.state = "prelock";
-      this.ui.showScreen("lock-prompt");
+      if (this.focusedOnce) {
+        this.requestLock();
+      } else {
+        this.ui.showScreen("lock-prompt");
+      }
     } else {
       this.startIntro();
     }
@@ -751,7 +887,11 @@ export class Duel {
   startIntro() {
     this.audio.reveal();
     this.ui.setBig(t(this.round.modifier.nameKey), "gold", 3400);
-    this.ui.setSub(t(this.round.modifier.descKey));
+    if (this.storyLine !== null && this.roundIndex === 0) {
+      this.ui.setSub(this.storyLine);
+    } else {
+      this.ui.setSub(t(this.round.modifier.descKey));
+    }
     this.state = "intro";
     this.introUntil = performance.now() + 3600;
   }
@@ -762,15 +902,22 @@ export class Duel {
     this.audio.bell();
     this.ui.setBig(t("fire"), "fire", 1300);
     this.ui.setSub("");
+    this.ui.setGunState(t("drawPrompt"));
+  }
+
+  playerDraw(now) {
+    this.round.playerDrawn = true;
+    this.ui.setGunState("");
     this.ui.crosshair(true);
     this.viewmodel.draw();
-    this.kickX = (Math.random() - 0.5) * 0.16;
-    this.kickY = 0.09 + Math.random() * 0.07;
+    this.audio.reloadClick(0);
+    let drawScale = 1;
     if (this.playerPerks.has("draw")) {
-      this.kickX *= 0.5;
-      this.kickY *= 0.5;
+      drawScale = 0.55;
     }
-    this.drawWobbleUntil = now + DRAW_WOBBLE_MS;
+    this.aimYaw = (DRAW_YAW + (Math.random() - 0.5) * 0.34) * drawScale;
+    this.aimPitch = (DRAW_PITCH + (Math.random() - 0.5) * 0.2) * drawScale;
+    this.round.playerBusyUntil = now + 140;
   }
 
   startFireResend() {
@@ -821,8 +968,11 @@ export class Duel {
     if (this.round.playerDead || this.round.resolved) {
       return;
     }
+    if (!this.round.playerDrawn) {
+      this.playerDraw(now);
+      return;
+    }
     if (now < this.round.playerBusyUntil) {
-      this.audio.dryClick();
       return;
     }
     const shotT = Math.round(this.tSignal(now));
@@ -834,6 +984,7 @@ export class Duel {
     this.shake = 1;
 
     const part = this.castShot();
+    this.aimPitch = Math.min(0.45, this.aimPitch + RECOIL_PITCH);
     this.matchStats.shots += 1;
     if (part === "head") {
       this.matchStats.heads += 1;
@@ -854,7 +1005,7 @@ export class Duel {
       } else if (part === null) {
         this.startReload(now, this.reloadDuration());
       } else {
-        this.startReload(now, COCK_DELAY);
+        this.startReload(now, this.reloadDuration());
         this.ui.setGunState("");
       }
       return;
@@ -881,7 +1032,7 @@ export class Duel {
         this.cowboy.setWounded();
         this.ai.notifyWounded();
         this.ui.setSub(t("hitSub"));
-        this.startReload(now, COCK_DELAY);
+        this.startReload(now, this.reloadDuration());
       }
     }
   }
@@ -937,9 +1088,7 @@ export class Duel {
   startReload(now, duration) {
     this.round.playerBusyUntil = now + duration;
     this.viewmodel.reload(duration / 1000);
-    if (duration > COCK_DELAY) {
-      this.ui.setGunState(t("reloading"));
-    }
+    this.ui.setGunState(t("reloading"));
   }
 
   onDodge(dir) {
@@ -1141,9 +1290,6 @@ export class Duel {
 
   nextRound() {
     this.roundIndex += 1;
-    if (!this.isTouch && document.pointerLockElement === null) {
-      this.ui.showScreen("lock-prompt");
-    }
     this.beginRoundSync();
   }
 
@@ -1170,6 +1316,15 @@ export class Duel {
     }
     this.ui.hudVisible(false);
     this.state = "matchend";
+    if (this.quickEnd !== null) {
+      const quick = this.quickEnd;
+      setTimeout(function () {
+        if (!self.disposed) {
+          quick(won);
+        }
+      }, 1100);
+      return;
+    }
     this.ui.matchEnd(title, { flavor: flavor, score: score, stats: this.matchStats }, function () {
       self.requestRematch();
     }, function () {
@@ -1219,8 +1374,12 @@ export class Duel {
     const now = performance.now();
     this.lastOppMsgAt = now;
     if (type === "hello") {
+      if (this.helloTimer) {
+        clearTimeout(this.helloTimer);
+        this.helloTimer = null;
+      }
       this.opponentName = String(payload.pseudo).toUpperCase();
-      this.oppElo = 1000;
+      this.oppElo = 100;
       if (Number.isFinite(payload.elo)) {
         this.oppElo = payload.elo;
       }
@@ -1233,7 +1392,7 @@ export class Duel {
       this.cowboy.setSkin(skinById(payload.skin).colors);
       this.cowboy.setAccessories(payload.acc);
       this.cowboy.setWeapon(weaponById(payload.weapon).colors);
-      this.ui.setOppTag(this.opponentName + " · " + t(eloTitleKey(this.oppElo)).toUpperCase());
+      this.ui.setOppTag(this.opponentName + " · " + this.ptsLabel(this.oppElo));
       this.syncIntroInfo();
       this.helloReceived = true;
       this.startHeartbeat();
@@ -1603,31 +1762,24 @@ export class Duel {
 
     let amp = SWAY_BASE;
     if (this.playerPerks.has("calm")) {
-      amp *= 0.55;
-    }
-    if (this.round !== null && this.round.modifier.sway > 0) {
-      amp *= 2.2;
+      amp *= 0.5;
     }
     let dodgeSwayTarget = 0;
     if (this.round !== null && now < this.round.playerDodgeUntil) {
       dodgeSwayTarget = DODGE_SWAY;
     }
+    if (this.viewmodel && this.viewmodel.state && this.viewmodel.state.mode === "reloading") {
+      dodgeSwayTarget += 0.35;
+    }
     this.dodgeSwayAmount += (dodgeSwayTarget - this.dodgeSwayAmount) * Math.min(1, dt * 6);
     amp += this.dodgeSwayAmount;
-    let kickFactor = 0;
-    if (now < this.drawWobbleUntil) {
-      kickFactor = (this.drawWobbleUntil - now) / DRAW_WOBBLE_MS;
-      let wobble = DRAW_WOBBLE_AMP;
-      if (this.playerPerks.has("draw")) {
-        wobble *= 0.5;
-      }
-      amp += kickFactor * wobble;
-    }
     const time = now / 1000;
-    this.swayX = (Math.sin(time * 1.15) + Math.sin(time * 2.4 + 1.7) * 0.6) * amp;
-    this.swayY = (Math.cos(time * 1.75) + Math.sin(time * 2.9 + 0.5) * 0.5) * amp * 0.75;
-    this.swayX += this.kickX * kickFactor;
-    this.swayY += this.kickY * kickFactor;
+    let driftX = 0;
+    if (this.round !== null && this.round.modifier.sway > 0) {
+      driftX = Math.sin(time * 0.5) * WIND_DRIFT;
+    }
+    this.swayX = Math.sin(time * 0.85) * amp + driftX;
+    this.swayY = Math.sin(time * 1.35 + 1.1) * amp * 0.7;
     this.ui.moveCrosshair(this.swayX, this.swayY);
 
     let killTracking = false;
@@ -1704,6 +1856,11 @@ export class Duel {
     this.stopFireResend();
     this.stopHeartbeat();
     this.clearIntroTimers();
+    this.clearSyncDeadline();
+    if (this.helloTimer) {
+      clearTimeout(this.helloTimer);
+      this.helloTimer = null;
+    }
     if (this.bgTimer !== null) {
       clearInterval(this.bgTimer);
       this.bgTimer = null;

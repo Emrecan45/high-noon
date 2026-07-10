@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { buildTown } from "./town3d.js";
+import { createInteriors } from "./interiors.js";
 
 function groundTexture() {
   const canvas = document.createElement("canvas");
@@ -19,36 +21,6 @@ function groundTexture() {
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(40, 40);
   return tex;
-}
-
-function makeBuilding(width, height, depth, color, withAwning) {
-  const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
-  body.position.y = height / 2;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-  const facadeMat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 1 });
-  const facade = new THREE.Mesh(new THREE.BoxGeometry(width * 0.92, height * 0.5, 0.1), facadeMat);
-  facade.position.set(0, height * 0.72, depth / 2 + 0.06);
-  group.add(facade);
-  if (withAwning) {
-    const awningMat = new THREE.MeshStandardMaterial({ color: 0x6b3f1d, roughness: 1 });
-    const awning = new THREE.Mesh(new THREE.BoxGeometry(width * 0.9, 0.12, 1.6), awningMat);
-    awning.position.set(0, height * 0.42, depth / 2 + 0.9);
-    awning.castShadow = true;
-    group.add(awning);
-    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, height * 0.42, 6);
-    const postMat = new THREE.MeshStandardMaterial({ color: 0x4a3018, roughness: 1 });
-    const offsets = [-width * 0.4, width * 0.4];
-    for (const ox of offsets) {
-      const post = new THREE.Mesh(postGeo, postMat);
-      post.position.set(ox, height * 0.21, depth / 2 + 1.5);
-      group.add(post);
-    }
-  }
-  return group;
 }
 
 function makeCactus(scale) {
@@ -174,19 +146,8 @@ export function createArena(container) {
 
   const impactTargets = [ground];
 
-  const buildingColors = [0x8a5a2e, 0x74522f, 0x9c6b38, 0x6b4a26, 0x84603a];
-  for (let i = 0; i < 6; i++) {
-    const left = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[i % buildingColors.length], i % 2 === 0);
-    left.position.set(-9.5, 0, -26 + i * 10);
-    left.rotation.y = Math.PI / 2;
-    scene.add(left);
-    impactTargets.push(left);
-    const right = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[(i + 2) % buildingColors.length], i % 2 === 1);
-    right.position.set(9.5, 0, -22 + i * 10);
-    right.rotation.y = -Math.PI / 2;
-    scene.add(right);
-    impactTargets.push(right);
-  }
+  const town = buildTown(scene, impactTargets);
+  const interiors = createInteriors(scene);
 
   const cactusSpots = [
     [-16, -40], [18, -36], [-20, 14], [22, 20], [-15, 30], [17, -55]
@@ -217,7 +178,18 @@ export function createArena(container) {
 
   const weed = makeTumbleweed();
   scene.add(weed);
-  const weedState = { active: false, nextAt: 2 + Math.random() * 6, x: 0, z: 0, dir: 1 };
+  const weedPaths = [
+    // Through alleys: left gap → right gap (slight diagonal)
+    { sx: -14, sz: -10.85, ex: 14, ez: -7.35 },
+    { sx: -14, sz: -21.5, ex: 14, ez: -16.9 },
+    // Reverse: right gap → left gap
+    { sx: 14, sz: -7.35, ex: -14, ez: -10.85 },
+    { sx: 14, sz: -16.9, ex: -14, ez: -21.5 },
+    // Open areas above/below the town
+    { sx: -14, sz: 13, ex: 14, ez: 13 },
+    { sx: 14, sz: -30, ex: -14, ez: -30 }
+  ];
+  const weedState = { active: false, nextAt: 2 + Math.random() * 6, x: 0, z: 0, dx: 0, dz: 0 };
 
   let windy = false;
   let elapsed = 0;
@@ -350,6 +322,8 @@ export function createArena(container) {
   function update(dt) {
     elapsed += dt;
     updateBursts(dt);
+    town.update(dt);
+    interiors.update(dt);
     let interval = 8;
     if (windy) {
       interval = 2.5;
@@ -358,12 +332,14 @@ export function createArena(container) {
       weedState.nextAt -= dt;
       if (weedState.nextAt <= 0) {
         weedState.active = true;
-        weedState.dir = 1;
-        if (Math.random() < 0.5) {
-          weedState.dir = -1;
-        }
-        weedState.x = -14 * weedState.dir;
-        weedState.z = -2 - Math.random() * 10;
+        const path = weedPaths[Math.floor(Math.random() * weedPaths.length)];
+        weedState.x = path.sx;
+        weedState.z = path.sz;
+        const pdx = path.ex - path.sx;
+        const pdz = path.ez - path.sz;
+        const len = Math.sqrt(pdx * pdx + pdz * pdz);
+        weedState.dx = pdx / len;
+        weedState.dz = pdz / len;
         weed.visible = true;
       }
     } else {
@@ -371,9 +347,10 @@ export function createArena(container) {
       if (windy) {
         speed = 9;
       }
-      weedState.x += speed * dt * weedState.dir;
+      weedState.x += speed * dt * weedState.dx;
+      weedState.z += speed * dt * weedState.dz;
       weed.position.set(weedState.x, 0.4 + Math.abs(Math.sin(elapsed * 6)) * 0.15, weedState.z);
-      weed.rotation.z -= speed * dt * weedState.dir;
+      weed.rotation.z -= speed * dt * weedState.dx;
       if (Math.abs(weedState.x) > 15) {
         weedState.active = false;
         weed.visible = false;
@@ -396,6 +373,12 @@ export function createArena(container) {
     playerRig: playerRig,
     opponentAnchor: opponentAnchor,
     sunDisc: sunDisc,
+    anchors: town.anchors,
+    interactables: town.interactables,
+    interiors: interiors,
+    setTownLabels: town.setLabels,
+    setRangeProps: town.setRangeProps,
+    refreshBoard: town.refreshBoard,
     applyModifier: applyModifier,
     setFogPulse: setFogPulse,
     castEnvironment: castEnvironment,

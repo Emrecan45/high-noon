@@ -270,6 +270,112 @@ export async function reportResult(won, ranked, oppElo, oppId) {
   }
   profile.elo = data.elo;
   profile.coins = data.coins;
+  if (Number.isFinite(Number(data.xp))) {
+    profile.xp = Number(data.xp);
+  }
+  return data;
+}
+
+export async function adState() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("ad_state");
+  if (error !== null) {
+    return null;
+  }
+  return data;
+}
+
+export async function adCase() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("ad_case");
+  if (error !== null) {
+    return { ok: false };
+  }
+  if (Number.isFinite(Number(data.coins))) {
+    profile.coins = Number(data.coins);
+  }
+  if (!data.duplicate) {
+    if (data.kind === "skin") {
+      owned.add(data.ref);
+    } else if (data.kind === "weapon") {
+      ownedWeapons.add(data.ref);
+    } else {
+      ownedAcc.add(data.ref);
+    }
+  }
+  return { ok: true, kind: data.kind, ref: data.ref, duplicate: data.duplicate, left: data.left };
+}
+
+export async function adDouble() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("ad_double");
+  if (error !== null) {
+    return null;
+  }
+  profile.coins = data.coins;
+  return data;
+}
+
+export async function adWatchItem(kind, ref) {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("ad_watch_item", { p_kind: kind, p_ref: ref });
+  if (error !== null) {
+    return null;
+  }
+  if (data.unlocked) {
+    if (kind === "skin") {
+      owned.add(ref);
+    } else if (kind === "weapon") {
+      ownedWeapons.add(ref);
+    } else {
+      ownedAcc.add(ref);
+    }
+  }
+  return data;
+}
+
+export async function storyXp(chapter) {
+  if (profile === null) {
+    return null;
+  }
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("story_xp", { p_chapter: chapter });
+  if (error !== null) {
+    return null;
+  }
+  if (Number.isFinite(Number(data.xp))) {
+    profile.xp = Number(data.xp);
+  }
+  return data;
+}
+
+export async function storyReward() {
+  if (profile === null) {
+    return null;
+  }
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("story_reward");
+  if (error !== null) {
+    return null;
+  }
+  if (Number.isFinite(Number(data.coins))) {
+    profile.coins = Number(data.coins);
+  }
+  if (!data.duplicate) {
+    owned.add("undertaker");
+  }
+  return data;
+}
+
+export async function minigameXp(kind, score) {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("minigame_xp", { p_kind: kind, p_score: score });
+  if (error !== null) {
+    return null;
+  }
+  if (profile !== null && Number.isFinite(Number(data.xp))) {
+    profile.xp = Number(data.xp);
+  }
   return data;
 }
 
@@ -367,9 +473,9 @@ export async function listFriends() {
   return data;
 }
 
-export async function sendFriendRequest(pseudo) {
+export async function sendFriendRequest(code) {
   const supabase = getClient();
-  const { data, error } = await supabase.rpc("send_friend_request", { p_pseudo: pseudo });
+  const { data, error } = await supabase.rpc("send_friend_request", { p_code: code });
   if (error !== null) {
     if (error.message.indexOf("not found") !== -1) {
       return { ok: false, reason: "notfound" };
@@ -448,20 +554,66 @@ export async function claimChallenge(period, index) {
   }
   if (data !== null && profile !== null) {
     profile.coins = data.coins;
+    if (Number.isFinite(profile.xp) && Number.isFinite(Number(data.xp_gained))) {
+      profile.xp += Number(data.xp_gained);
+    }
   }
   return data;
 }
 
 export async function fetchLeaderboard() {
   const supabase = getClient();
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("pseudo, elo, skin, ranked_wins, ranked_losses")
-    .or("ranked_wins.gt.0,ranked_losses.gt.0")
-    .order("elo", { ascending: false })
-    .limit(20);
+  const { data, error } = await supabase.rpc("leaderboard_top");
   if (error !== null) {
     return null;
+  }
+  return data;
+}
+
+export async function seasonInfo() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("season_info");
+  if (error !== null) {
+    return null;
+  }
+  if (data !== null && profile !== null) {
+    profile.friend_code = data.code;
+    if (Number.isFinite(Number(data.elo))) {
+      profile.elo = Number(data.elo);
+    }
+    if (Number.isFinite(Number(data.xp))) {
+      profile.xp = Number(data.xp);
+    }
+  }
+  return data;
+}
+
+export async function passStateFetch() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("pass_state");
+  if (error !== null) {
+    return null;
+  }
+  return data;
+}
+
+export async function claimPassLevel(level) {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("claim_pass_level", { p_level: level });
+  if (error !== null) {
+    return null;
+  }
+  if (profile !== null && Number.isFinite(Number(data.coins))) {
+    profile.coins = Number(data.coins);
+  }
+  if (!data.duplicate && data.ref) {
+    if (data.kind === "skin") {
+      owned.add(data.ref);
+    } else if (data.kind === "weapon") {
+      ownedWeapons.add(data.ref);
+    } else if (data.kind === "accessory") {
+      ownedAcc.add(data.ref);
+    }
   }
   return data;
 }

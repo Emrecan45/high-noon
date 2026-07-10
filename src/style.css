@@ -1,3 +1,7 @@
+:root {
+  --edge: 28px;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -63,6 +67,7 @@ body.ui-scaled #stage {
   left: 0;
   transform-origin: top left;
   z-index: 2;
+  pointer-events: none;
 }
 
 .screen {
@@ -76,11 +81,12 @@ body.ui-scaled #stage {
   align-items: center;
   justify-content: center;
   gap: 22px;
-  padding: max(24px, calc(env(safe-area-inset-top) / var(--ui-scale, 1))) max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1))) max(24px, calc(env(safe-area-inset-bottom) / var(--ui-scale, 1))) max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  padding: max(24px, calc(env(safe-area-inset-top))) max(16px, calc(env(safe-area-inset-right))) max(24px, calc(env(safe-area-inset-bottom))) max(16px, calc(env(safe-area-inset-left)));
   text-align: center;
   background:
     radial-gradient(ellipse at center, rgba(58, 36, 18, 0.92) 0%, rgba(20, 12, 6, 0.97) 100%);
   z-index: 20;
+  pointer-events: auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
@@ -96,8 +102,8 @@ body.ui-scaled #stage {
 
 #topbar {
   position: absolute;
-  top: max(14px, calc(env(safe-area-inset-top) / var(--ui-scale, 1)));
-  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
+  top: max(14px, calc(env(safe-area-inset-top)));
+  right: max(var(--edge), calc(env(safe-area-inset-right)));
   display: flex;
   gap: 18px;
   align-items: center;
@@ -144,7 +150,7 @@ body.ui-scaled #stage {
 
 .logo {
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(32px, min(11vw, 13vh), 110px);
+  font-size: clamp(32px, min(calc(11vw), calc(13vh)), 110px);
   color: #e8b64c;
   text-shadow: 0 4px 0 #6b3f14, 0 8px 24px rgba(0, 0, 0, 0.8);
   letter-spacing: 4px;
@@ -152,14 +158,14 @@ body.ui-scaled #stage {
 }
 
 .tagline {
-  font-size: clamp(12px, min(3vw, 3.4vh), 22px);
+  font-size: clamp(12px, min(calc(3vw), calc(3.4vh)), 22px);
   color: #cfa36a;
   letter-spacing: 3px;
 }
 
 h2 {
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(20px, min(5vw, 5.5vh), 40px);
+  font-size: clamp(20px, min(calc(5vw), calc(5.5vh)), 40px);
   color: #e8b64c;
   text-shadow: 0 3px 0 #5a3410;
   line-height: 1.2;
@@ -177,7 +183,7 @@ h2 {
   font-size: 20px;
   padding: 14px 20px;
   width: 340px;
-  max-width: 90vw;
+  max-width: calc(90vw);
   color: #2a1706;
   background: linear-gradient(#e8b64c, #c68a2e);
   border: 3px solid #7a4c15;
@@ -197,6 +203,12 @@ h2 {
 .btn:active {
   transform: translateY(4px);
   box-shadow: none;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
 }
 
 .btn-small {
@@ -227,7 +239,7 @@ h2 {
   font-size: 15px;
   line-height: 1.5;
   overflow-y: auto;
-  max-height: 55vh;
+  max-height: calc(55vh);
 }
 
 .help-text strong {
@@ -286,22 +298,22 @@ h2 {
   top: 0;
   left: 0;
   right: 0;
-  height: 100dvh;
+  height: 100%;
   z-index: 10;
   pointer-events: none;
 }
 
 #score {
   position: absolute;
-  top: 18px;
+  top: 14px;
   left: 50%;
   transform: translateX(-50%);
   font-family: "Rye", "Special Elite", serif;
-  font-size: 34px;
+  font-size: 46px;
   color: #f3e4c2;
   text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
   display: flex;
-  gap: 16px;
+  gap: 20px;
 }
 
 .score-sep {
@@ -310,10 +322,10 @@ h2 {
 
 #round-label {
   position: absolute;
-  top: 62px;
+  top: 74px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 15px;
+  font-size: 19px;
   letter-spacing: 3px;
   color: #cfa36a;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
@@ -321,10 +333,10 @@ h2 {
 
 #opp-tag {
   position: absolute;
-  top: 86px;
+  top: 102px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 13px;
+  font-size: 16px;
   letter-spacing: 2px;
   color: #b98d4f;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
@@ -333,11 +345,11 @@ h2 {
 
 #bigmsg {
   position: absolute;
-  top: 17%;
+  top: 19%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(30px, 6.5vw, 62px);
+  font-size: clamp(30px, calc(6.5vw), 62px);
   color: #f3e4c2;
   text-shadow:
     2px 0 0 #14100a, -2px 0 0 #14100a, 0 2px 0 #14100a, 0 -2px 0 #14100a,
@@ -404,16 +416,16 @@ h2 {
   right: 30px;
   bottom: 24px;
   color: #ff5040;
-  letter-spacing: 9px;
-  font-size: 54px;
+  letter-spacing: 10px;
+  font-size: 66px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 #hearts .hp-label {
-  font-size: 21px;
+  font-size: 26px;
   letter-spacing: 3px;
   color: #e0a89c;
 }
@@ -423,16 +435,16 @@ h2 {
   left: 30px;
   bottom: 30px;
   color: #7fd0ff;
-  letter-spacing: 7px;
-  font-size: 40px;
+  letter-spacing: 8px;
+  font-size: 50px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 #dodges .dodge-label {
-  font-size: 22px;
+  font-size: 27px;
   letter-spacing: 3px;
   color: #a8c9e0;
 }
@@ -543,34 +555,42 @@ body.touch #gunstate {
 .touch-btn {
   position: absolute;
   pointer-events: auto;
-  width: 76px;
-  height: 76px;
+  width: calc(76px);
+  height: calc(76px);
   border-radius: 50%;
   border: 3px solid #7a4c15;
   background: rgba(232, 182, 76, 0.75);
   color: #2a1706;
   font-family: "Rye", "Special Elite", serif;
-  font-size: 17px;
+  font-size: calc(17px);
 }
 
 #btn-fire {
-  right: 26px;
-  bottom: 40px;
-  width: 96px;
-  height: 96px;
-  font-size: 22px;
+  right: calc(26px);
+  bottom: calc(40px);
+  width: calc(96px);
+  height: calc(96px);
+  font-size: calc(22px);
   background: rgba(214, 74, 40, 0.8);
   color: #fff2dc;
 }
 
 #btn-dodge-l {
-  left: 24px;
-  bottom: 44px;
+  left: calc(24px);
+  bottom: calc(44px);
 }
 
 #btn-dodge-r {
-  left: 118px;
-  bottom: 44px;
+  left: calc(118px);
+  bottom: calc(44px);
+}
+
+body.touch #dodges {
+  bottom: calc(158px);
+}
+
+body.touch #hearts {
+  bottom: calc(158px);
 }
 
 #roundend-times {
@@ -624,7 +644,65 @@ body.touch #gunstate {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  width: min(440px, 92vw);
+  width: min(440px, calc(92vw));
+}
+
+#popup-overlay {
+  z-index: 55;
+}
+
+#popup-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(440px, calc(92vw));
+  padding: 26px 26px 22px;
+  background: linear-gradient(180deg, #3a2412 0%, #26160a 100%);
+  border: 3px solid #8a6a3c;
+  border-radius: 8px;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.65);
+}
+
+#popup-body {
+  font-size: 15px;
+  color: #e7d3ae;
+  line-height: 1.55;
+  max-height: calc(60vh);
+  overflow-y: auto;
+}
+
+#popup-body p {
+  margin: 0 0 10px;
+}
+
+#popup-body .popup-list {
+  margin: 0;
+  padding-left: 20px;
+  text-align: left;
+  list-style: "• ";
+}
+
+#popup-body .popup-list li {
+  margin-bottom: 7px;
+  padding-left: 4px;
+}
+
+#popup-body .popup-prime {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 30px;
+  color: #e8b64c;
+  letter-spacing: 1px;
+  margin: 2px 0 10px;
+}
+
+#popup-body .popup-badge {
+  display: block;
+  width: 92px;
+  height: 92px;
+  margin: 4px auto 8px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.5));
 }
 
 #matchend-recap {
@@ -702,7 +780,7 @@ body.touch #gunstate {
 
 .cine-name {
   font-family: "Rye", "Special Elite", serif;
-  font-size: clamp(20px, 3vw, 36px);
+  font-size: clamp(20px, calc(3vw), 36px);
   color: #f3e4c2;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -710,7 +788,7 @@ body.touch #gunstate {
 
 .cine-title {
   font-family: "Special Elite", Georgia, serif;
-  font-size: clamp(10px, 1.4vw, 14px);
+  font-size: clamp(10px, calc(1.4vw), 14px);
   color: #e8b64c;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -763,35 +841,87 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  width: 300px;
+  width: 310px;
+}
+
+.di-poster {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  padding: 20px 14px 14px;
+  background: linear-gradient(168deg, #e8d6a8 0%, #dcc494 48%, #c9ae7c 100%);
+  border: 3px solid #43290f;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(90, 64, 32, 0.4);
+}
+
+.di-poster::before {
+  content: "";
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #6b6257, #241a10 70%);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.5);
+}
+
+.di-you .di-poster {
+  transform: rotate(-1.3deg);
+}
+
+.di-opp .di-poster {
+  transform: rotate(1.3deg);
+}
+
+.di-wanted {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 33px;
+  color: #3a2410;
+  letter-spacing: 7px;
+  text-transform: uppercase;
 }
 
 .di-name {
   font-family: "Rye", "Special Elite", serif;
-  font-size: 34px;
-  color: #f3e4c2;
+  font-size: 27px;
+  color: #3a2410;
   text-transform: uppercase;
   letter-spacing: 1px;
-  text-shadow: 0 3px 8px rgba(0, 0, 0, 0.9);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.di-name.di-long {
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
 .di-title {
-  font-size: 15px;
-  color: #e8b64c;
-  letter-spacing: 3px;
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 25px;
+  color: #8a2f1d;
+  letter-spacing: 2px;
   text-transform: uppercase;
 }
 
+.di-doa {
+  font-family: "Special Elite", serif;
+  font-size: 11px;
+  color: #6b4c26;
+  letter-spacing: 5px;
+  margin-top: 3px;
+}
+
 .di-fig {
-  width: 230px;
-  height: 230px;
+  width: 196px;
+  height: 196px;
   image-rendering: pixelated;
-  filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.6));
+  filter: sepia(0.3) contrast(1.03) drop-shadow(0 10px 14px rgba(58, 36, 16, 0.45));
 }
 
 .di-center {
@@ -904,7 +1034,7 @@ body.touch #gunstate {
   align-items: center;
   gap: 3px;
   width: 100%;
-  max-width: 92vw;
+  max-width: calc(92vw);
 }
 
 .home-footer .footer-note {
@@ -942,22 +1072,29 @@ body.touch #gunstate {
   color: #5a4326;
 }
 
-#challenges-bar {
+#right-rail {
   position: absolute;
-  top: max(112px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 104px));
-  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
+  top: max(112px, calc(env(safe-area-inset-top) + 104px));
+  right: max(var(--edge), calc(env(safe-area-inset-right)));
   width: 264px;
-  max-height: min(calc(62vh / var(--ui-scale, 1)), calc(calc(100dvh / var(--ui-scale, 1)) - 230px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 25;
+}
+
+#challenges-bar {
+  width: 100%;
+  max-height: min(calc(68vh), calc(100dvh - 210px));
   background: rgba(20, 12, 6, 0.88);
   border: 2px solid #7a4c15;
   border-radius: 10px;
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   overflow: hidden;
   text-align: left;
-  z-index: 25;
 }
 
 #challenges-bar h3 {
@@ -972,11 +1109,13 @@ body.touch #gunstate {
 #challenges-bar .ch-tabs {
   flex-shrink: 0;
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 #challenges-bar .ch-tab {
-  padding: 6px 16px;
-  font-size: 12px;
+  padding: 6px 10px;
+  font-size: 11px;
+  letter-spacing: 1px;
 }
 
 #challenges-bar .ch-list {
@@ -984,13 +1123,14 @@ body.touch #gunstate {
   min-height: 0;
   max-height: none;
   width: auto;
+  gap: 8px;
 }
 
 #challenges-bar .ch-item {
   flex-direction: column;
   align-items: stretch;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 6px;
+  padding: 8px 10px;
 }
 
 #challenges-bar .ch-reward {
@@ -1006,8 +1146,8 @@ body.touch #gunstate {
 #challenges-toggle {
   display: none;
   position: fixed;
-  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
-  top: max(90px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 82px));
+  right: max(16px, calc(env(safe-area-inset-right)));
+  top: max(90px, calc(env(safe-area-inset-top) + 82px));
   width: 46px;
   height: 46px;
   border-radius: 50%;
@@ -1020,6 +1160,7 @@ body.touch #gunstate {
 
 .ch-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -1044,8 +1185,8 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(520px, 94vw);
-  max-height: 56vh;
+  width: min(520px, calc(94vw));
+  max-height: calc(56vh);
   overflow-y: auto;
 }
 
@@ -1111,8 +1252,8 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  width: min(560px, 94vw);
-  max-height: 64vh;
+  width: min(560px, calc(94vw));
+  max-height: calc(64vh);
   overflow-y: auto;
   text-align: left;
 }
@@ -1148,7 +1289,7 @@ body.touch #gunstate {
 }
 
 .patch-card li::before {
-  content: "–";
+  content: "-";
   position: absolute;
   left: 0;
   color: #7a4c15;
@@ -1170,8 +1311,8 @@ body.touch #gunstate {
   border: 2px solid #7a4c15;
   border-radius: 12px;
   padding: 22px 26px;
-  max-width: min(460px, 92vw);
-  max-height: 82vh;
+  max-width: min(460px, calc(92vw));
+  max-height: calc(82vh);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1203,40 +1344,10 @@ body.touch #gunstate {
   min-width: 0;
 }
 
-@media (max-height: 480px) {
-  #score {
-    top: 4px;
-    font-size: 20px;
-    gap: 10px;
-  }
-
-  #round-label {
-    top: 32px;
-    font-size: 10px;
-    letter-spacing: 2px;
-  }
-
-  #opp-tag {
-    display: none;
-  }
-
-  #bigmsg {
-    top: 62px;
-    font-size: clamp(20px, 6.5vw, 36px);
-    letter-spacing: 2px;
-  }
-
-  #submsg {
-    bottom: 60px;
-    font-size: 13px;
-    padding: 4px 12px;
-  }
-}
-
 #profile-chip {
   position: absolute;
-  top: max(14px, calc(env(safe-area-inset-top) / var(--ui-scale, 1)));
-  left: max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  top: max(14px, calc(env(safe-area-inset-top)));
+  left: max(var(--edge), calc(env(safe-area-inset-left)));
   width: 280px;
   display: flex;
   align-items: center;
@@ -1276,24 +1387,29 @@ body.touch #gunstate {
 .chip-txt {
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   gap: 2px;
-  line-height: 1.15;
+  flex: 1;
+  line-height: 1.1;
+  min-width: 0;
 }
 
 #chip-pseudo {
   color: #e8b64c;
-  font-size: 17px;
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 26px;
+  text-align: center;
+  word-break: break-all;
+  width: 100%;
 }
 
-#chip-elo {
-  color: #a8c9e0;
-  font-size: 13px;
-}
+
 
 #coins-badge {
   position: fixed;
-  top: max(58px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 48px));
-  right: max(16px, calc(env(safe-area-inset-right) / var(--ui-scale, 1)));
+  top: max(58px, calc(env(safe-area-inset-top) + 48px));
+  right: max(var(--edge), calc(env(safe-area-inset-right)));
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1370,7 +1486,7 @@ body.touch #gunstate {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px 30px;
-  width: min(400px, 92vw);
+  width: min(400px, calc(92vw));
   font-size: 16px;
   color: #cdb491;
   background: rgba(26, 16, 7, 0.6);
@@ -1442,8 +1558,8 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  width: min(480px, 92vw);
-  max-height: 52vh;
+  width: min(480px, calc(92vw));
+  max-height: calc(52vh);
   overflow-y: auto;
 }
 
@@ -1501,8 +1617,8 @@ body.touch #gunstate {
 }
 
 #profile-view {
-  width: min(230px, 70vw);
-  height: min(300px, 40vh);
+  width: min(230px, calc(70vw));
+  height: min(300px, calc(40vh));
   background: rgba(20, 12, 6, 0.55);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1516,8 +1632,8 @@ body.touch #gunstate {
 }
 
 #inv-view {
-  width: min(200px, 52vw);
-  height: min(200px, 26vh);
+  width: min(200px, calc(52vw));
+  height: min(200px, calc(26vh));
   background: rgba(20, 12, 6, 0.55);
   border: 2px solid #7a4c15;
   border-radius: 10px;
@@ -1529,7 +1645,7 @@ body.touch #gunstate {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  width: min(840px, 96vw);
+  width: min(840px, calc(96vw));
   padding: 4px;
 }
 
@@ -1540,7 +1656,7 @@ body.touch #gunstate {
   letter-spacing: 2px;
 }
 
-.inv-row {
+.inv-grid {
   display: flex;
   gap: 9px;
   flex-wrap: wrap;
@@ -1583,33 +1699,92 @@ body.touch #gunstate {
   cursor: default;
 }
 
-#wheel-wrap {
+#case-window {
   position: relative;
+  width: min(640px, calc(92vw));
+  height: 150px;
+  background: linear-gradient(#1a1007, #241608);
+  border: 3px solid #7a4c15;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.7);
 }
 
-#wheel-canvas {
-  display: block;
-  width: min(380px, 76vw, 44vh);
-  height: auto;
-  border-radius: 50%;
-  box-shadow: 0 0 0 6px #7a4c15, 0 10px 40px rgba(0, 0, 0, 0.65);
-  transition: transform 3.4s cubic-bezier(0.12, 0.62, 0.06, 1);
-}
-
-#wheel-pointer {
+#case-marker {
   position: absolute;
-  top: -20px;
+  top: 0;
+  bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 30px;
-  color: #e8b64c;
-  text-shadow: 0 3px 3px rgba(0, 0, 0, 0.9);
+  width: 3px;
+  margin-left: -1.5px;
+  background: #e8b64c;
+  box-shadow: 0 0 8px rgba(232, 182, 76, 0.9);
   z-index: 2;
+  pointer-events: none;
 }
 
-#wheel-coins {
-  font-size: 20px;
-  color: #ffd977;
+#case-strip {
+  display: flex;
+  gap: 6px;
+  height: 100%;
+  padding: 10px 0;
+  will-change: transform;
+}
+
+.case-card {
+  flex: 0 0 98px;
+  width: 98px;
+  background: linear-gradient(#3a2412, #241608);
+  border: 2px solid #4a3018;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.case-card img {
+  width: 56px;
+  height: 56px;
+  image-rendering: pixelated;
+}
+
+.case-card .case-name {
+  font-size: 10px;
+  color: #cdb491;
+  text-align: center;
+  line-height: 1.1;
+  padding: 0 4px;
+  overflow: hidden;
+}
+
+.case-card.case-winner {
+  background: linear-gradient(#4a2f16, #2e1c0a);
+}
+
+.rarity-common {
+  border-color: #8a8a8a;
+}
+
+.rarity-rare {
+  border-color: #4c8fe8;
+  box-shadow: 0 0 8px rgba(76, 143, 232, 0.35);
+}
+
+.rarity-epic {
+  border-color: #a04ce8;
+  box-shadow: 0 0 10px rgba(160, 76, 232, 0.4);
+}
+
+.rarity-legendary {
+  border-color: #e8b64c;
+  box-shadow: 0 0 12px rgba(232, 182, 76, 0.55);
+}
+
+.rarity-mythic {
+  border-color: #e83845;
+  box-shadow: 0 0 12px rgba(232, 56, 69, 0.55);
 }
 
 #wheel-result {
@@ -1620,14 +1795,50 @@ body.touch #gunstate {
   border-radius: 8px;
 }
 
-#challenges-bar #btn-home-ad {
-  flex-shrink: 0;
-  width: auto;
-  min-width: 0;
+#btn-home-ad {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px 10px;
+  background: rgba(20, 12, 6, 0.88);
+  border: 2px solid #7a4c15;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: "Special Elite", Georgia, serif;
+  transition: border-color 0.1s;
+}
+
+#btn-home-ad:hover {
+  border-color: #e8b64c;
+}
+
+#btn-home-ad:hover .ad-go {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #5a3410;
+}
+
+#btn-home-ad:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+#btn-home-ad .had-title {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 15px;
+  color: #e8b64c;
+  letter-spacing: 1px;
+}
+
+#btn-home-ad .had-amount {
+  font-size: 17px;
+  color: #f3e4c2;
+}
+
+#btn-home-ad .ad-go {
   font-size: 12px;
-  padding: 8px 12px;
-  margin-top: 2px;
-  align-self: stretch;
+  padding: 5px 2px;
 }
 
 #friend-addmsg {
@@ -1637,15 +1848,235 @@ body.touch #gunstate {
   text-align: center;
 }
 
+#pass-screen-sub {
+  font-family: 'Special Elite', serif;
+  font-size: 18px;
+  color: #c8a86e;
+  margin: 2px 0 8px;
+}
+
+#pass-progress-label {
+  font-size: 18px;
+  color: #ffd977;
+}
+
+#pass-grid {
+  display: flex;
+  gap: 10px;
+  width: min(860px, calc(94vw));
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 6px 14px 6px;
+}
+
+#pass-grid::-webkit-scrollbar {
+  height: 9px;
+}
+
+#pass-grid::-webkit-scrollbar-track {
+  background: rgba(20, 12, 6, 0.6);
+  border-radius: 5px;
+}
+
+#pass-grid::-webkit-scrollbar-thumb {
+  background: #7a4c15;
+  border-radius: 5px;
+}
+
+.pass-cell {
+  position: relative;
+  flex: 0 0 108px;
+  width: 108px;
+  height: 132px;
+  background: linear-gradient(#3a2412, #241608);
+  border: 2px solid #4a3018;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 26px;
+}
+
+.pass-cell img {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+}
+
+.pass-cell .pass-seg {
+  position: absolute;
+  top: 0;
+  left: -6px;
+  right: -6px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.pass-cell .pass-seg-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #c68a2e, #e8b64c);
+}
+
+.pass-cell .pass-lvl {
+  position: absolute;
+  top: 10px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 20px;
+  color: #e8b64c;
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.8);
+}
+
+.pass-cell .pass-coins {
+  font-size: 15px;
+  color: #ffd977;
+}
+
+#shop-actions {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+}
+
+#shop-actions .btn {
+  width: 300px;
+}
+
+#ad-shop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+#ad-shop-title {
+  font-size: 13px;
+  color: #cdb491;
+}
+
+#ad-items {
+  display: flex;
+  gap: 10px;
+}
+
+.ad-item {
+  width: 92px;
+  padding: 8px 5px 5px;
+  background: linear-gradient(#3a2412, #241608);
+  border: 2px solid #4a3018;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.ad-go {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #2a1706;
+  background: linear-gradient(#e8b64c, #c68a2e);
+  border: 2px solid #7a4c15;
+  border-radius: 5px;
+  padding: 4px 2px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 2px 0 #5a3410;
+}
+
+.ad-item:hover .ad-go {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 #5a3410;
+}
+
+.ad-item img {
+  width: 42px;
+  height: 42px;
+  image-rendering: pixelated;
+}
+
+.ad-item .ad-count {
+  font-size: 11px;
+  color: #ffd977;
+  white-space: nowrap;
+}
+
+.ad-item.owned {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.ad-item.busy {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.pass-cell.locked {
+  opacity: 0.4;
+}
+
+.pass-cell.claimable {
+  cursor: pointer;
+  border-color: #e8b64c;
+  box-shadow: 0 0 10px rgba(232, 182, 76, 0.45);
+}
+
+.pass-cell.claimed::after {
+  content: "✔";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30px;
+  color: #7fd67f;
+  background: rgba(10, 6, 3, 0.55);
+  border-radius: 6px;
+}
+
+#profile-id-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#profile-id {
+  font-size: 14px;
+  color: #cdb491;
+  letter-spacing: 1px;
+}
+
+#profile-id-row .btn {
+  width: auto;
+  min-width: 0;
+  font-size: 11px;
+  padding: 6px 12px;
+}
+
+#career-title {
+  font-family: "Rye", "Special Elite", serif;
+  color: #e8b64c;
+  font-size: 16px;
+  letter-spacing: 2px;
+}
+
 #friend-addmsg.ok-text {
   color: #8fd48a;
 }
 
 #friends-bar {
   position: absolute;
-  top: max(96px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 88px));
-  bottom: max(18px, calc(calc(env(safe-area-inset-bottom) / var(--ui-scale, 1)) + 14px));
-  left: max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  top: max(96px, calc(env(safe-area-inset-top) + 88px));
+  bottom: max(18px, calc(env(safe-area-inset-bottom) + 14px));
+  left: max(var(--edge), calc(env(safe-area-inset-left)));
   width: 280px;
   background: rgba(20, 12, 6, 0.88);
   border: 2px solid #7a4c15;
@@ -1777,6 +2208,11 @@ body.touch #gunstate {
   flex-shrink: 0;
 }
 
+.friend-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 .friend-btn.ghost {
   background: none;
   color: #9a7c52;
@@ -1787,27 +2223,13 @@ body.touch #gunstate {
   cursor: default;
 }
 
-#friends-toggle {
-  display: none;
-  position: fixed;
-  left: max(16px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
-  top: max(90px, calc(calc(env(safe-area-inset-top) / var(--ui-scale, 1)) + 82px));
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  font-size: 20px;
-  background: rgba(232, 182, 76, 0.92);
-  border: 3px solid #7a4c15;
-  cursor: pointer;
-  z-index: 30;
-}
-
 #toast {
   position: fixed;
   top: 40%;
   left: 50%;
   transform: translate(-50%, -50%);
   z-index: 60;
+  text-align: center;
   background: rgba(26, 16, 7, 0.98);
   border: 3px solid #e8b64c;
   border-radius: 12px;
@@ -1820,7 +2242,7 @@ body.touch #gunstate {
   font-family: "Rye", "Special Elite", serif;
   color: #f3e4c2;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
-  max-width: 90vw;
+  max-width: calc(90vw);
   text-align: center;
 }
 
@@ -1831,11 +2253,254 @@ body.touch #gunstate {
   padding: 10px 20px;
 }
 
+#screen-title {
+  background: none;
+}
+
+.story-card {
+  position: relative;
+  width: 190px;
+  padding: 14px 12px;
+}
+
+.story-card .story-state {
+  margin-top: 8px;
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #e8b64c;
+}
+
+.story-card.done {
+  border-color: #5a8a4a;
+}
+
+.story-card.done .story-state {
+  color: #8fd06f;
+}
+
+.story-card.locked {
+  opacity: 0.45;
+  cursor: default;
+  filter: grayscale(0.6);
+}
+
+#hub-title {
+  position: absolute;
+  top: max(10px, calc(env(safe-area-inset-top)));
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+#screen-title .logo {
+  font-size: clamp(42px, calc(9.5vh), 92px);
+  letter-spacing: 5px;
+}
+
+#screen-title .tagline {
+  font-size: 16px;
+  margin-top: 12px;
+  color: #ffe2ac;
+  text-shadow: 0 2px 4px rgba(20, 12, 6, 0.9);
+  letter-spacing: 4px;
+}
+
+#hub-menu {
+  position: absolute;
+  left: max(var(--edge), calc(env(safe-area-inset-left)));
+  top: 50%;
+  transform: translateY(-50%);
+  align-items: stretch;
+  gap: 12px;
+  width: 310px;
+}
+
+#hub-menu .btn {
+  width: 100%;
+  font-size: 20px;
+  padding: 16px 16px;
+}
+
+#hub-menu .btn-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+#hub-menu .btn-row .btn {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  font-size: 9.5px;
+  padding: 10px 6px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.home-footer .footer-note,
+.home-footer .footer-note a,
+.home-footer .legal-links,
+.home-footer .legal-links a,
+.home-footer #version-tag {
+  color: #2e1c0c;
+  text-shadow: none;
+  font-weight: bold;
+}
+
+#friends-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  border: 2px solid #7a4c15;
+  background: rgba(232, 182, 76, 0.9);
+  color: #2a1706;
+  font-size: 15px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+#station-bar {
+  position: fixed;
+  bottom: max(20px, calc(env(safe-area-inset-bottom)));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+#station-hint {
+  background: rgba(20, 12, 6, 0.78);
+  border: 2px solid #7a4c15;
+  border-radius: 999px;
+  padding: 8px 22px;
+  color: #ffd98a;
+  font-size: 15px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+#fade-overlay {
+  position: fixed;
+  inset: 0;
+  background: #0e0803;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s;
+  z-index: 90;
+}
+
+#hub-menu .players-online {
+  align-self: center;
+  background: rgba(20, 12, 6, 0.6);
+  border-radius: 999px;
+  padding: 4px 12px;
+  color: #e8cfa0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+#friends-bar {
+  transform: translateX(-115%);
+  transition: transform 0.25s;
+  z-index: 40;
+}
+
+#friends-bar.open {
+  transform: none;
+}
+
+#challenges-bar {
+  z-index: 24;
+}
+
+#challenges-toggle {
+  display: none;
+}
+
+.screen.docked {
+  background: linear-gradient(90deg, rgba(20, 12, 6, 0) 0%, rgba(20, 12, 6, 0) 36%, rgba(20, 12, 6, 0.9) 56%, rgba(20, 12, 6, 0.97) 100%);
+  padding-left: 44%;
+}
+
+.screen.docked > * {
+  max-width: min(580px, calc(52vw));
+}
+
+.screen.station {
+  background: rgba(15, 9, 4, 0.74);
+}
+
+.screen.station .cards {
+  max-width: 720px;
+  max-height: calc(64vh);
+  overflow-y: auto;
+}
+
+.story-card .btn-row {
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.story-card .btn-row .btn {
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  font-size: 10px;
+  padding: 8px 4px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+#profile-left-area {
+  position: absolute;
+  left: 50%;
+  top: 6%;
+  transform: translateX(-50%);
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+#screen-profile #btn-customize {
+  position: absolute;
+  left: 36%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  width: 210px;
+}
+
+#screen-profile #btn-profile-back {
+  position: absolute;
+  left: 72%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  width: 210px;
+}
+#profile-view,
+#inv-view {
+  display: none;
+}
+
+#screen-search {
+  background: rgba(15, 9, 4, 0.62);
+}
+
 .training-status {
   position: fixed;
   top: calc(10px + env(safe-area-inset-top, 0px));
   left: calc(14px + env(safe-area-inset-left, 0px));
-  z-index: 55;
+  z-index: 58;
   background: rgba(24, 14, 7, 0.85);
   border: 2px solid #6b4a24;
   border-radius: 999px;
@@ -1848,3 +2513,182 @@ body.touch #gunstate {
   white-space: nowrap;
 }
 
+
+#story-cine {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  z-index: 42;
+}
+
+#story-cine .di-bar {
+  height: 8%;
+}
+
+#cine-say {
+  position: absolute;
+  bottom: calc(8% + 22px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(780px, calc(92vw / var(--ui-scale, 1)));
+  min-height: 96px;
+  padding: 14px 22px 12px;
+  background: linear-gradient(180deg, rgba(38, 22, 10, 0.94), rgba(22, 13, 6, 0.96));
+  border: 2px solid #8a6a3c;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6);
+  text-align: left;
+}
+
+#cine-say-name {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 17px;
+  color: #e8b64c;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+#cine-say-text {
+  font-size: 17px;
+  line-height: 1.5;
+  color: #f3e4c2;
+  min-height: 52px;
+}
+
+#cine-say-more {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  color: #e8b64c;
+  font-size: 18px;
+  animation: sayblink 0.9s ease-in-out infinite;
+}
+
+@keyframes sayblink {
+  0%, 100% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.35; transform: translateY(3px); }
+}
+
+#cine-skip-hint {
+  position: absolute;
+  top: calc(8% + 12px);
+  right: 18px;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: rgba(207, 163, 106, 0.75);
+  text-transform: uppercase;
+}
+
+#cine-pause {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: rgba(12, 7, 3, 0.88);
+}
+
+.story-sub {
+  font-size: 15px;
+  color: #cfa36a;
+  letter-spacing: 1px;
+  max-width: 560px;
+}
+
+#story-list {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 1060px;
+  overflow-y: auto;
+  max-height: calc(58vh / var(--ui-scale, 1));
+  padding: 6px;
+}
+
+.story-card {
+  width: 240px;
+  padding: 16px 14px 14px;
+  background: linear-gradient(168deg, #e8d6a8 0%, #d9c192 60%, #c9ae7c 100%);
+  border: 3px solid #43290f;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  align-items: center;
+  position: relative;
+  transition: transform 0.1s;
+  color: #3a2410;
+}
+
+.story-card:hover {
+  transform: translateY(-4px) rotate(-0.5deg);
+}
+
+.story-card .sc-chap {
+  font-size: 11px;
+  letter-spacing: 3px;
+  color: #6b4c26;
+  text-transform: uppercase;
+}
+
+.story-card .sc-icon {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.story-card .sc-name {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 17px;
+  color: #3a2410;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+
+.story-card .sc-desc {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: #5a4020;
+  min-height: 54px;
+}
+
+.story-card .sc-state {
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #8a2f1d;
+}
+
+.story-card.locked {
+  filter: grayscale(0.7) brightness(0.75);
+  cursor: default;
+}
+
+.story-card.locked:hover {
+  transform: none;
+}
+
+.story-card.done::after {
+  content: "✔";
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  font-size: 22px;
+  color: #2e6b4f;
+  transform: rotate(12deg);
+}
+
+.story-card.next {
+  border-color: #e8b64c;
+  box-shadow: 0 0 22px rgba(232, 182, 76, 0.45);
+}

@@ -1,205 +1,233 @@
-const PATCH = {
+export const PATCH = {
   en: [
-    { date: "July 9, 2026", version: "1.3", items: [
-      "Training camp while matchmaking searches",
-      "Cinematic duel intro: face-off, then the walk-up",
-      "Daily and weekly challenges",
-      "Friends, invites and challenges in real time",
-      "Ranks on the leaderboard and special AI outfits",
-      "Combat music, real sidestep, forfeit win, mobile UI"
+    { date: "July 10, 2026", version: "1.3", items: [
+      "UI redesign: 3D in-game navigation",
+      "Manual two-step shooting system",
+      "Bounty system: steal 15% of your rival's bounty in ranked",
+      "30-day seasons with stats and rewards",
+      "Frontier Pass: 30 progression levels",
+      "Shop rework (random crates and rarities)",
+      "Add friends via player ID",
+      "New minigames: crow shooting and stagecoach defense",
+      "New sound effects and music",
+      "Story mode: 6 chapters with cutscenes, dialogues and a bank heist"
     ] },
     { date: "July 6, 2026", version: "1.2", items: [
-      "Slow-motion sepia kill cam",
-      "Bullet impacts and ejected shells",
-      "Ranks and titles from your points",
-      "Wheel of fortune, weapons and accessories",
-      "Friends system and player challenges",
-      "Interface in 7 languages",
-      "Host-imposed duel signal (no more desyncs)"
+      "Added a slow-motion Kill Cam",
+      "Visual improvements: impacts and shell casings",
+      "Evolving ranks and titles system",
+      "Reward wheel and inventory",
+      "Friend invitation system and challenges",
+      "Multilingual support (7 languages)",
+      "Host-forced synchronization in multiplayer"
     ] },
     { date: "June 28, 2026", version: "1.1", items: [
-      "Online ranked duels and leaderboard",
+      "Online ranked duels and leaderboards",
       "Weather modifiers and duel distances",
-      "Comeback perks"
+      "Comeback perks for losing players"
     ] },
     { date: "June 20, 2026", version: "1.0", items: [
-      "High Noon release",
-      "First-person 3D duel",
-      "Three AI gunslingers"
+      "Initial High Noon release",
+      "First-person 3D duels",
+      "Three AI opponents"
     ] }
   ],
   fr: [
-    { date: "9 juillet 2026", version: "1.3", items: [
-      "Camp d'entraînement pendant la recherche d'adversaire",
-      "Intro de duel cinématique : face-à-face puis avancée",
-      "Défis quotidiens et hebdomadaires",
-      "Amis, invitations et défis en temps réel",
-      "Rangs au classement et tenues spéciales pour les IA",
-      "Musique de combat, vrai pas de côté, victoire par forfait, UI mobile"
+    { date: "10 juillet 2026", version: "1.3", items: [
+      "Refonte de l'interface : navigation 3D in-game",
+      "Système de tir manuel en deux temps",
+      "Système de prime : vol de 15 % de la prime adverse en classé",
+      "Saisons de 30 jours avec statistiques et récompenses",
+      "Pass Frontière : 30 niveaux de progression",
+      "Refonte de la boutique (caisse aléatoire et raretés)",
+      "Ajout des amis via ID de joueur",
+      "Mini-jeux ajoutés : corbeaux et diligence",
+      "Nouveaux effets sonores et musiques",
+      "Mode histoire : 6 chapitres avec cinématiques, dialogues et braquage de banque"
     ] },
     { date: "6 juillet 2026", version: "1.2", items: [
-      "Kill cam au ralenti avec zoom sépia",
-      "Impacts de balles et douilles éjectées",
-      "Rangs et titres selon les points",
-      "Roue de la fortune, armes et accessoires",
-      "Système d'amis et défis entre joueurs",
-      "Interface en 7 langues",
-      "Signal de duel imposé par l'hôte (fin des désyncs)"
+      "Ajout d'une Kill Cam de fin de manche",
+      "Amélioration visuelle : impacts et douilles",
+      "Système de rangs et titres évolutifs",
+      "Roulette de récompenses et inventaire",
+      "Système d'invitation d'amis et défis",
+      "Support multilingue (7 langues)",
+      "Synchronisation forcée par l'hôte en multijoueur"
     ] },
     { date: "28 juin 2026", version: "1.1", items: [
-      "Duel classé en ligne et classement",
+      "Duels classés en ligne et classements",
       "Modificateurs météo et distances de duel",
-      "Perks de remontada"
+      "Atouts (perks) de remontada"
     ] },
     { date: "20 juin 2026", version: "1.0", items: [
-      "Sortie de High Noon",
-      "Duel 3D à la première personne",
-      "Trois pistoleros IA"
+      "Sortie initiale de High Noon",
+      "Duels 3D à la première personne",
+      "Trois adversaires IA"
     ] }
   ],
   es: [
-    { date: "9 de julio de 2026", version: "1.3", items: [
-      "Campo de entrenamiento mientras buscas rival",
-      "Presentación cinematográfica del duelo: cara a cara y avance",
-      "Desafíos diarios y semanales",
-      "Amigos, invitaciones y retos en tiempo real",
-      "Rangos en la clasificación y atuendos especiales para la IA",
-      "Música de combate, paso lateral real, victoria por abandono, interfaz móvil"
+    { date: "10 de julio de 2026", version: "1.3", items: [
+      "Rediseño de interfaz: navegación 3D in-game",
+      "Sistema de disparo manual en dos pasos",
+      "Sistema de recompensas: roba el 15% de la recompensa rival en clasificatorias",
+      "Temporadas de 30 días con estadísticas y recompensas",
+      "Pase Frontera: 30 niveles de progresión",
+      "Rediseño de tienda (cajas aleatorias y rarezas)",
+      "Añadir amigos mediante ID de jugador",
+      "Nuevos minijuegos: tiro a cuervos y defensa de diligencia",
+      "Nuevos efectos de sonido y música",
+      "Modo historia: 6 capítulos con cinemáticas, diálogos y atraco al banco"
     ] },
     { date: "6 de julio de 2026", version: "1.2", items: [
-      "Kill cam a cámara lenta en sepia",
-      "Impactos de bala y casquillos",
-      "Rangos y títulos según tus puntos",
-      "Ruleta de la fortuna, armas y accesorios",
-      "Sistema de amigos y desafíos entre jugadores",
-      "Interfaz en 7 idiomas",
-      "Señal del duelo impuesta por el anfitrión"
+      "Añadida Kill Cam en cámara lenta",
+      "Mejoras visuales: impactos y casquillos",
+      "Sistema de rangos y títulos evolutivos",
+      "Ruleta de recompensas e inventario",
+      "Sistema de invitación de amigos y desafíos",
+      "Soporte multilingüe (7 idiomas)",
+      "Sincronización forzada por el anfitrión en multijugador"
     ] },
     { date: "28 de junio de 2026", version: "1.1", items: [
-      "Duelos clasificatorios en línea y clasificación",
-      "Modificadores de clima y distancias de duelo",
-      "Ventajas de remontada"
+      "Duelos clasificatorios en línea y clasificaciones",
+      "Modificadores climáticos y distancias de duelo",
+      "Ventajas (perks) de remontada"
     ] },
     { date: "20 de junio de 2026", version: "1.0", items: [
-      "Lanzamiento de High Noon",
-      "Duelo 3D en primera persona",
-      "Tres pistoleros de IA"
+      "Lanzamiento inicial de High Noon",
+      "Duelos 3D en primera persona",
+      "Tres oponentes de IA"
     ] }
   ],
   de: [
-    { date: "9. Juli 2026", version: "1.3", items: [
-      "Trainingslager während der Gegnersuche",
-      "Filmreife Duell-Vorstellung: Face-off und Anmarsch",
-      "Tägliche und wöchentliche Aufgaben",
-      "Freunde, Einladungen und Duelle in Echtzeit",
-      "Ränge in der Bestenliste und besondere KI-Outfits",
-      "Kampfmusik, echter Seitenschritt, Sieg durch Aufgabe, mobile Oberfläche"
+    { date: "10. Juli 2026", version: "1.3", items: [
+      "UI-Redesign: 3D-In-Game-Navigation",
+      "Manuelles Zweischritt-Schusssystem",
+      "Kopfgeld-System: Stiehl 15% des gegnerischen Kopfgeldes im Ranglistenmodus",
+      "30-Tage-Saisons mit Statistiken und Belohnungen",
+      "Grenzland-Pass: 30 Fortschrittsstufen",
+      "Shop-Überarbeitung (Zufallskisten und Seltenheitsgrade)",
+      "Freunde per Spieler-ID hinzufügen",
+      "Neue Minispiele: Krähenschießen und Postkutschenverteidigung",
+      "Neue Soundeffekte und Musik",
+      "Story-Modus: 6 Kapitel mit Zwischensequenzen, Dialogen und Banküberfall"
     ] },
     { date: "6. Juli 2026", version: "1.2", items: [
-      "Zeitlupen-Kill-Cam in Sepia",
-      "Einschläge und ausgeworfene Hülsen",
-      "Ränge und Titel nach Punkten",
-      "Glücksrad, Waffen und Accessoires",
-      "Freundesystem und Spieler-Duelle",
-      "Oberfläche in 7 Sprachen",
-      "Vom Host vorgegebenes Duellsignal"
+      "Zeitlupen-Kill-Cam hinzugefügt",
+      "Visuelle Verbesserungen: Einschusslöcher und Patronenhülsen",
+      "Sich entwickelndes Rang- und Titelsystem",
+      "Belohnungsrad und Inventar",
+      "Freundschaftseinladungssystem und Herausforderungen",
+      "Mehrsprachige Unterstützung (7 Sprachen)",
+      "Host-erzwungene Synchronisation im Mehrspielermodus"
     ] },
     { date: "28. Juni 2026", version: "1.1", items: [
-      "Online-Ranglistenduelle und Bestenliste",
-      "Wetter-Modifikatoren und Duelldistanzen",
-      "Comeback-Perks"
+      "Online-Ranglistenduelle und Bestenlisten",
+      "Wettermodifikatoren und Duelldistanzen",
+      "Comeback-Vorteile (Perks)"
     ] },
     { date: "20. Juni 2026", version: "1.0", items: [
-      "Veröffentlichung von High Noon",
-      "3D-Duell aus der Ego-Perspektive",
-      "Drei KI-Revolverhelden"
+      "Ursprüngliche Veröffentlichung von High Noon",
+      "First-Person-3D-Duelle",
+      "Drei KI-Gegner"
     ] }
   ],
   pt: [
-    { date: "9 de julho de 2026", version: "1.3", items: [
-      "Campo de treino enquanto procuras oponente",
-      "Apresentação cinematográfica do duelo: confronto e avanço",
-      "Desafios diários e semanais",
-      "Amigos, convites e desafios em tempo real",
-      "Patentes na classificação e trajes especiais para a IA",
-      "Música de combate, passo lateral real, vitória por desistência, interface móvel"
+    { date: "10 de julho de 2026", version: "1.3", items: [
+      "Redesenho da interface: navegação 3D no jogo",
+      "Sistema de tiro manual em duas etapas",
+      "Sistema de recompensa: roube 15% da recompensa rival em ranqueadas",
+      "Temporadas de 30 dias com estatísticas e recompensas",
+      "Passe Fronteira: 30 níveis de progressão",
+      "Reformulação da loja (caixas aleatórias e raridades)",
+      "Adicionar amigos via ID de jogador",
+      "Novos minijogos: tiro aos corvos e defesa de diligência",
+      "Novos efeitos sonoros e música",
+      "Modo história: 6 capítulos com cinemáticas, diálogos e assalto ao banco"
     ] },
     { date: "6 de julho de 2026", version: "1.2", items: [
-      "Kill cam em câmera lenta sépia",
-      "Impactos de bala e cápsulas ejetadas",
-      "Patentes e títulos conforme os pontos",
-      "Roleta da sorte, armas e acessórios",
-      "Sistema de amigos e desafios entre jogadores",
-      "Interface em 7 idiomas",
-      "Sinal do duelo imposto pelo anfitrião"
+      "Adicionada Câmera de Morte em câmera lenta",
+      "Melhorias visuais: impactos e cápsulas",
+      "Sistema de patentes e títulos evolutivos",
+      "Roleta de recompensas e inventário",
+      "Sistema de convite de amigos e desafios",
+      "Suporte multilíngue (7 idiomas)",
+      "Sincronização forçada pelo anfitrião no multijogador"
     ] },
     { date: "28 de junho de 2026", version: "1.1", items: [
-      "Duelos ranqueados online e classificação",
+      "Duelos ranqueados online e classificações",
       "Modificadores de clima e distâncias de duelo",
-      "Vantagens de virada"
+      "Vantagens (perks) de recuperação"
     ] },
     { date: "20 de junho de 2026", version: "1.0", items: [
-      "Lançamento de High Noon",
-      "Duelo 3D em primeira pessoa",
-      "Três pistoleiros de IA"
+      "Lançamento inicial de High Noon",
+      "Duelos 3D em primeira pessoa",
+      "Três oponentes controlados por IA"
     ] }
   ],
   ru: [
-    { date: "9 июля 2026", version: "1.3", items: [
-      "Тренировочный лагерь во время поиска соперника",
-      "Кинематографичное представление дуэли: лицом к лицу и сближение",
-      "Ежедневные и еженедельные задания",
-      "Друзья, приглашения и вызовы в реальном времени",
-      "Ранги в таблице лидеров и особые наряды ИИ",
-      "Боевая музыка, шаг в сторону, победа при выходе соперника, мобильный интерфейс"
+    { date: "10 июля 2026", version: "1.3", items: [
+      "Редизайн интерфейса: 3D навигация в игре",
+      "Ручная двухэтапная система стрельбы",
+      "Система наград: украдите 15% награды соперника в рейтинговых играх",
+      "30-дневные сезоны со статистикой и наградами",
+      "Пропуск фронтира: 30 уровней прогресса",
+      "Переработка магазина (случайные сундуки и редкости)",
+      "Добавление друзей по ID игрока",
+      "Новые мини-игры: стрельба по воронам и защита дилижанса",
+      "Новые звуковые эффекты и музыка",
+      "Сюжет: 6 глав с катсценами, диалогами и ограблением банка"
     ] },
     { date: "6 июля 2026", version: "1.2", items: [
-      "Замедленная сепия кил-кам",
-      "Следы от пуль и вылетающие гильзы",
-      "Ранги и титулы по очкам",
-      "Колесо фортуны, оружие и аксессуары",
-      "Система друзей и вызовы игроков",
-      "Интерфейс на 7 языках",
-      "Сигнал дуэли задаёт хост"
+      "Добавлена замедленная камера убийства (Kill Cam)",
+      "Визуальные улучшения: следы от пуль и гильзы",
+      "Развивающаяся система рангов и титулов",
+      "Колесо наград и инвентарь",
+      "Система приглашения друзей и испытания",
+      "Многоязычная поддержка (7 языков)",
+      "Принудительная синхронизация хостом в мультиплеере"
     ] },
     { date: "28 июня 2026", version: "1.1", items: [
-      "Онлайн рейтинговые дуэли и таблица лидеров",
-      "Погодные модификаторы и дистанции дуэли",
-      "Перки на отыгрыш"
+      "Онлайн рейтинговые дуэли и таблицы лидеров",
+      "Погодные модификаторы и дистанции дуэлей",
+      "Перки для камбэка"
     ] },
     { date: "20 июня 2026", version: "1.0", items: [
-      "Выход High Noon",
-      "Дуэль от первого лица в 3D",
-      "Три стрелка с ИИ"
+      "Первоначальный релиз High Noon",
+      "3D дуэли от первого лица",
+      "Три ИИ-противника"
     ] }
   ],
   tr: [
-    { date: "9 Temmuz 2026", version: "1.3", items: [
-      "Rakip aranırken antrenman kampı",
-      "Sinematik düello tanıtımı: yüz yüze ve yaklaşma",
-      "Günlük ve haftalık görevler",
-      "Gerçek zamanlı arkadaşlar, davetler ve meydan okumalar",
-      "Sıralamada rütbeler ve yapay zekâya özel kıyafetler",
-      "Savaş müziği, gerçek yan adım, hükmen galibiyet, mobil arayüz"
+    { date: "10 Temmuz 2026", version: "1.3", items: [
+      "Arayüz yenilemesi: 3B oyun içi gezinme",
+      "Manuel iki aşamalı ateş etme sistemi",
+      "Ödül sistemi: Derecelide rakibin ödülünün %15'ini çal",
+      "İstatistikler ve ödüllerle 30 günlük sezonlar",
+      "Sınır Pasosu: 30 ilerleme seviyesi",
+      "Mağaza yenilemesi (rastgele sandıklar ve nadirlikler)",
+      "Oyuncu ID'si ile arkadaş ekleme",
+      "Yeni mini oyunlar: Karga vurma ve posta arabası savunması",
+      "Yeni ses efektleri ve müzik",
+      "Hikaye modu: ara sahneler, diyaloglar ve banka soygunuyla 6 bölüm"
     ] },
     { date: "6 Temmuz 2026", version: "1.2", items: [
-      "Ağır çekim sepya kill cam",
-      "Mermi izleri ve boş kovanlar",
-      "Puana göre rütbe ve unvanlar",
-      "Şans çarkı, silahlar ve aksesuarlar",
-      "Arkadaş sistemi ve oyuncu meydan okumaları",
-      "7 dilde arayüz",
-      "Ev sahibinin dayattığı düello sinyali"
+      "Ağır çekim Ölüm Kamerası (Kill Cam) eklendi",
+      "Görsel iyileştirmeler: Mermi izleri ve boş kovanlar",
+      "Gelişen rütbe ve unvan sistemi",
+      "Ödül çarkı ve envanter",
+      "Arkadaş davet sistemi ve meydan okumalar",
+      "Çoklu dil desteği (7 dil)",
+      "Çok oyunculuda ev sahibi zorunlu senkronizasyon"
     ] },
     { date: "28 Haziran 2026", version: "1.1", items: [
-      "Çevrimiçi dereceli düellolar ve sıralama",
-      "Hava değiştiriciler ve düello mesafeleri",
-      "Geri dönüş güçleri"
+      "Çevrimiçi dereceli düellolar ve liderlik tabloları",
+      "Hava durumu değiştiricileri ve düello mesafeleri",
+      "Geri dönüş yetenekleri (perks)"
     ] },
     { date: "20 Haziran 2026", version: "1.0", items: [
-      "High Noon çıkışı",
-      "Birinci şahıs 3B düello",
-      "Üç yapay zekâ silahşoru"
+      "High Noon ilk sürümü",
+      "Birinci şahıs 3B düellolar",
+      "Üç yapay zeka rakip"
     ] }
   ]
 };
@@ -281,7 +309,7 @@ const LEGAL = {
   },
   ru: {
     terms: { title: "Условия использования", body:
-      "<p>High Noon — бесплатная игра, предоставляемая как есть, для развлечения.</p>" +
+      "<p>High Noon - бесплатная игра, предоставляемая как есть, для развлечения.</p>" +
       "<p>Играй честно: читы, эксплуатация багов или автоматизация могут стоить тебе прогресса.</p>" +
       "<p>Игра может измениться или закрыться в любой момент без предупреждения.</p>" },
     privacy: { title: "Конфиденциальность", body:
@@ -306,6 +334,32 @@ const LEGAL = {
       "<p>Geliştiriciye portfolyosundan ulaş: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
   }
 };
+
+const CREDITS_TITLES = {
+  en: "Credits",
+  fr: "Crédits",
+  es: "Créditos",
+  de: "Credits",
+  pt: "Créditos",
+  ru: "Авторы",
+  tr: "Emeği geçenler"
+};
+
+const CREDITS_BODY =
+  "<p><strong>High Noon</strong> - Emrecan45</p>" +
+  "<p>Three.js · Vite · Supabase</p>" +
+  "<p><strong>🎵</strong> Desert Theme - Umplix · Western ShowDown - HoliznaCC0 · Maple Leaf Rag - Scott Joplin · No Country For Old Alex - Pro Sensory · Spaghetti Western - Spring Spring</p>" +
+  "<p><strong>🔊</strong> The Free Firearm Sound Library · rubberduck · Kenney</p>" +
+  "<p><strong>🔤</strong> Rye · Special Elite (Google Fonts)</p>" +
+  "<p>CC0 / Public Domain · MIT</p>";
+
+export function creditsPage(lang) {
+  let title = CREDITS_TITLES.en;
+  if (CREDITS_TITLES[lang]) {
+    title = CREDITS_TITLES[lang];
+  }
+  return { title: title, body: CREDITS_BODY };
+}
 
 export function legalPage(lang, kind) {
   let pack = LEGAL.en;

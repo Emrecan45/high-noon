@@ -7,13 +7,13 @@ function el(id) {
 export function createUi() {
   const screens = [
     "screen-title",
-    "screen-opponents",
     "screen-help",
     "screen-profile",
     "screen-inventory",
     "screen-shop",
     "screen-patch",
-    "screen-board",
+    "screen-pass",
+    "screen-story",
     "screen-search",
     "screen-roundend",
     "screen-perk",
@@ -223,6 +223,7 @@ export function createUi() {
   }
 
   function matchEnd(title, detail, onRematch, onMenu) {
+    el("btn-double-ad").classList.add("hidden");
     el("matchend-title").textContent = title;
     const node = el("matchend-detail");
     node.innerHTML = "";
@@ -250,23 +251,6 @@ export function createUi() {
     };
   }
 
-  function opponentCards(personas, cb) {
-    const container = el("opponent-cards");
-    container.innerHTML = "";
-    for (const persona of personas) {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.innerHTML =
-        '<div class="card-icon">' + persona.icon + "</div>" +
-        '<div class="card-name">' + persona.name + "</div>" +
-        '<div class="card-desc">' + t(persona.descKey) + "</div>";
-      card.onclick = function () {
-        cb(persona);
-      };
-      container.appendChild(card);
-    }
-  }
-
   function searchTick(seconds) {
     el("search-timer").textContent = seconds + " s";
   }
@@ -290,9 +274,11 @@ export function createUi() {
 
   function duelIntro(info, ms, onDone) {
     el("di-you-name").textContent = info.you.name;
+    el("di-you-name").classList.toggle("di-long", info.you.name.length > 12);
     el("di-you-title").textContent = info.you.title;
     el("di-you-fig").src = info.you.portrait;
     el("di-opp-name").textContent = info.opp.name;
+    el("di-opp-name").classList.toggle("di-long", info.opp.name.length > 12);
     el("di-opp-title").textContent = info.opp.title;
     el("di-opp-fig").src = info.opp.portrait;
     const node = el("screen-duelintro");
@@ -328,7 +314,6 @@ export function createUi() {
     roundEnd: roundEnd,
     perkChoice: perkChoice,
     matchEnd: matchEnd,
-    opponentCards: opponentCards,
     searchTick: searchTick,
     announce: announce,
     duelIntro: duelIntro

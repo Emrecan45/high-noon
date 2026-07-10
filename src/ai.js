@@ -8,8 +8,8 @@ export const PERSONAS = [
     icon: "🤠",
     name: "Billy la Gâchette",
     descKey: "persona.nervous.desc",
-    reaction: [175, 265],
-    aim: [140, 280],
+    reaction: [275, 375],
+    aim: [290, 430],
     accHead: 0.2,
     accBody: 0.5,
     misfireChance: 0.14,
@@ -21,8 +21,8 @@ export const PERSONAS = [
     icon: "🌵",
     name: "El Rápido",
     descKey: "persona.rapido.desc",
-    reaction: [145, 205],
-    aim: [110, 215],
+    reaction: [245, 315],
+    aim: [260, 370],
     accHead: 0.3,
     accBody: 0.4,
     misfireChance: 0.05,
@@ -34,8 +34,8 @@ export const PERSONAS = [
     icon: "🥃",
     name: "Doc Silence",
     descKey: "persona.patient.desc",
-    reaction: [255, 345],
-    aim: [150, 260],
+    reaction: [355, 455],
+    aim: [300, 420],
     accHead: 0.34,
     accBody: 0.5,
     misfireChance: 0,
@@ -44,13 +44,42 @@ export const PERSONAS = [
   }
 ];
 
+export const STORY_PERSONAS = {
+  grace: {
+    id: "grace",
+    icon: "🕯️",
+    name: "Sœur Grace",
+    descKey: "persona.grace.desc",
+    reaction: [385, 475],
+    aim: [330, 430],
+    accHead: 0.42,
+    accBody: 0.44,
+    misfireChance: 0,
+    dodgeChance: 0.12,
+    patience: 0.65
+  },
+  undertaker: {
+    id: "undertaker",
+    icon: "⚰️",
+    name: "Le Croque-Mort",
+    descKey: "persona.undertaker.desc",
+    reaction: [255, 330],
+    aim: [250, 340],
+    accHead: 0.4,
+    accBody: 0.45,
+    misfireChance: 0,
+    dodgeChance: 0.3,
+    patience: 0.35
+  }
+};
+
 export const TRAINING_PERSONA = {
   id: "training",
   icon: "🎯",
   name: "Old Jed",
   descKey: "persona.training.desc",
-  reaction: [320, 480],
-  aim: [240, 400],
+  reaction: [420, 580],
+  aim: [390, 560],
   accHead: 0.12,
   accBody: 0.42,
   misfireChance: 0.12,
@@ -147,7 +176,7 @@ export class AiOpponent {
       this.pushEvent(t, { type: "misfire" });
       return;
     }
-    const reaction = rangeFrom(this.rng, this.persona.reaction[0], this.persona.reaction[1]);
+    const reaction = rangeFrom(this.rng, this.persona.reaction[0], this.persona.reaction[1]) + 90;
     if (this.rng() < dodgeChance) {
       const dodgeAt = reaction * 0.9;
       let dir = 1;

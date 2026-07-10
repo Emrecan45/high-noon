@@ -21,6 +21,9 @@
 
   <div id="game"></div>
 
+  <div id="backdrop"></div>
+  <div id="stage">
+
   <div id="hud" class="hidden">
     <div id="score">
       <span id="score-you">0</span>
@@ -44,9 +47,6 @@
     </div>
   </div>
 
-  <div id="backdrop"></div>
-  <div id="stage">
-
   <div id="screen-title" class="screen">
     <div id="topbar">
       <span class="vol">🎵<input id="vol-music" type="range" min="0" max="100" /></span>
@@ -63,9 +63,10 @@
     </div>
     <div id="profile-chip" class="hidden">
       <img id="chip-head" alt="" />
-      <span class="chip-txt"><span id="chip-pseudo"></span><span id="chip-elo"></span></span>
+      <span class="chip-txt"><span id="chip-pseudo"></span></span>
     </div>
     <div id="friends-bar" class="hidden">
+      <button id="friends-close" aria-label="Close">✕</button>
       <h3 data-i18n="friendsTitle"></h3>
       <p id="friends-msg" class="hidden"></p>
       <div id="friends-list"></div>
@@ -75,7 +76,7 @@
         <button id="btn-friend-add" class="btn btn-small" data-i18n="friendsAdd"></button>
       </div>
     </div>
-    <button id="friends-toggle" class="hidden" aria-label="Friends">🤝</button>
+    <div id="right-rail">
     <div id="challenges-bar" class="hidden">
       <h3 data-i18n="challengesTitle"></h3>
       <div class="ch-tabs">
@@ -84,17 +85,27 @@
       </div>
       <div id="ch-list" class="ch-list"></div>
       <p id="ch-msg" class="ch-msg hidden"></p>
-      <button id="btn-home-ad" class="btn btn-small hidden" data-i18n="shopAd"></button>
+    </div>
+    <button id="btn-home-ad" class="hidden">
+      <span class="had-title" data-i18n="adDaily"></span>
+      <span class="had-amount" id="home-ad-amount"></span>
+      <span class="ad-go" id="home-ad-go"></span>
+    </button>
     </div>
     <button id="challenges-toggle" class="hidden" aria-label="Challenges">🎯</button>
-    <h1 class="logo">HIGH NOON</h1>
-    <p class="tagline" data-i18n="tagline"></p>
-    <div class="menu">
+    <div id="hub-title">
+      <h1 class="logo">HIGH NOON</h1>
+      <p class="tagline" data-i18n="tagline"></p>
+    </div>
+    <div class="menu" id="hub-menu">
       <button id="btn-ranked" class="btn" data-i18n="btnRanked"></button>
-      <button id="btn-ai" class="btn" data-i18n="btnAi"></button>
+      <button id="btn-story" class="btn" data-i18n="btnStory"></button>
+      <button id="btn-shop" class="btn" data-i18n="btnShop"></button>
+      <button id="btn-board" class="btn" data-i18n="btnBoard"></button>
+      <button id="btn-minigames" class="btn" data-i18n="btnMinigames"></button>
+      <button id="btn-pass" class="btn" data-i18n="btnPass"></button>
       <div class="btn-row">
-        <button id="btn-shop" class="btn btn-small" data-i18n="btnShop"></button>
-        <button id="btn-board" class="btn btn-small" data-i18n="btnBoard"></button>
+        <button id="btn-friends" class="btn btn-small" data-i18n="friendsTitle"></button>
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
         <button id="btn-patch" class="btn btn-small" data-i18n="btnPatch"></button>
       </div>
@@ -107,6 +118,8 @@
         <span class="legal-sep">·</span>
         <a id="lnk-privacy" data-i18n="legalPrivacy"></a>
         <span class="legal-sep">·</span>
+        <a id="lnk-credits" data-i18n="legalCredits"></a>
+        <span class="legal-sep">·</span>
         <span id="version-tag"></span>
       </p>
     </div>
@@ -117,54 +130,78 @@
     <span class="coin-ico">🪙</span>
   </div>
 
-  <div id="screen-opponents" class="screen hidden">
-    <h2 data-i18n="chooseOpp"></h2>
-    <div id="opponent-cards" class="cards"></div>
-    <button id="btn-opp-back" class="btn btn-small" data-i18n="back"></button>
-  </div>
-
-  <div id="screen-help" class="screen hidden">
+  <div id="screen-help" class="screen station hidden">
     <h2 data-i18n="helpTitle"></h2>
     <div class="help-text" data-i18n-html="helpHtml"></div>
     <button id="btn-help-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
-  <div id="screen-profile" class="screen hidden">
-    <h2 id="profile-name"></h2>
+  <div id="screen-profile" class="screen docked hidden">
+    <div id="profile-left-area">
+      <h2 id="profile-name"></h2>
+      <div id="profile-id-row">
+        <span id="profile-id"></span>
+        <button id="btn-copy-id" class="btn btn-small" data-i18n="copyId"></button>
+      </div>
+    </div>
+    <div class="di-poster" id="profile-poster" style="width: 250px; margin-bottom: 12px; margin-top: 10px;">
+      <div class="di-wanted">WANTED</div>
+      <img class="di-fig" id="profile-poster-fig" alt="" />
+      <div class="di-name" id="profile-poster-name"></div>
+      <div class="di-title" id="profile-poster-title"></div>
+      <div class="di-doa">DEAD OR ALIVE</div>
+    </div>
     <div id="stats-block" class="stats-grid"></div>
+    <div id="career-title" data-i18n="careerTitle"></div>
+    <div id="career-block" class="stats-grid"></div>
     <div id="profile-view"></div>
     <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
     <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
-  <div id="screen-inventory" class="screen hidden">
+  <div id="screen-inventory" class="screen docked hidden">
     <h2 data-i18n="invTitle"></h2>
+    <div class="ch-tabs">
+      <button id="inv-tab-skins" class="ch-tab active" data-i18n="invSkins"></button>
+      <button id="inv-tab-weapons" class="ch-tab" data-i18n="invWeapons"></button>
+      <button id="inv-tab-acc" class="ch-tab" data-i18n="invAcc"></button>
+    </div>
     <div id="inv-view"></div>
     <div class="inv-scroll">
-      <div class="inv-label" data-i18n="invSkins"></div>
-      <div id="inv-skins" class="inv-row"></div>
-      <div class="inv-label" data-i18n="invWeapons"></div>
-      <div id="inv-weapons" class="inv-row"></div>
-      <div class="inv-label" data-i18n="invAcc"></div>
-      <div id="inv-acc" class="inv-row"></div>
+      <div id="inv-skins" class="inv-grid"></div>
+      <div id="inv-weapons" class="inv-grid hidden"></div>
+      <div id="inv-acc" class="hidden"></div>
     </div>
     <button id="btn-inv-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
-  <div id="screen-shop" class="screen hidden">
+  <div id="screen-shop" class="screen station hidden">
     <h2 data-i18n="wheelTitle"></h2>
-    <div id="wheel-wrap">
-      <div id="wheel-pointer">▼</div>
-      <canvas id="wheel-canvas" width="380" height="380"></canvas>
+    <div id="case-window">
+      <div id="case-marker"></div>
+      <div id="case-strip"></div>
     </div>
     <p id="wheel-result" class="hidden"></p>
-    <div class="menu">
+    <div id="shop-actions">
       <button id="btn-spin" class="btn" data-i18n="wheelSpin"></button>
-      <button id="btn-shop-back" class="btn btn-small" data-i18n="back"></button>
+      <button id="btn-ad-case" class="btn hidden"></button>
     </div>
+    <div id="ad-shop" class="hidden">
+      <p id="ad-shop-title" data-i18n="adUnlockTitle"></p>
+      <div id="ad-items"></div>
+    </div>
+    <button id="btn-shop-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
-  <div id="screen-patch" class="screen hidden">
+  <div id="screen-pass" class="screen station hidden">
+    <h2 id="pass-screen-title"></h2>
+    <p id="pass-screen-sub"></p>
+    <div id="pass-progress-label"></div>
+    <div id="pass-grid"></div>
+    <button id="btn-pass-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
+  <div id="screen-patch" class="screen station hidden">
     <h2 data-i18n="patchTitle"></h2>
     <div id="patch-list" class="patch-list"></div>
     <button id="btn-patch-back" class="btn btn-small" data-i18n="back"></button>
@@ -188,11 +225,9 @@
 
   <div id="training-status" class="training-status hidden"><span id="training-status-text"></span></div>
 
-  <div id="screen-board" class="screen hidden">
-    <h2 data-i18n="boardTitle"></h2>
-    <p id="board-status" class="screen-hint hidden"></p>
-    <div id="board-list"></div>
-    <button id="btn-board-back" class="btn btn-small" data-i18n="back"></button>
+  <div id="station-bar" class="hidden">
+    <p id="station-hint"></p>
+    <button id="btn-station-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
   <div id="screen-search" class="screen hidden">
@@ -213,8 +248,6 @@
     </div>
   </div>
 
-  </div>
-
   <div id="screen-announce" class="screen overlay opaque hidden">
     <div class="announce-inner">
       <div id="announce-title" class="announce-title"></div>
@@ -228,18 +261,26 @@
     <div class="di-sun"></div>
     <div class="di-stage">
       <div class="di-side di-you">
-        <div class="di-name" id="di-you-name"></div>
-        <div class="di-title" id="di-you-title"></div>
-        <img class="di-fig" id="di-you-fig" alt="" />
+        <div class="di-poster">
+          <div class="di-wanted">WANTED</div>
+          <img class="di-fig" id="di-you-fig" alt="" />
+          <div class="di-name" id="di-you-name"></div>
+          <div class="di-title" id="di-you-title"></div>
+          <div class="di-doa">DEAD OR ALIVE</div>
+        </div>
       </div>
       <div class="di-center">
         <div class="di-vs">VS</div>
         <div class="di-tag" data-i18n="duelTag"></div>
       </div>
       <div class="di-side di-opp">
-        <div class="di-name" id="di-opp-name"></div>
-        <div class="di-title" id="di-opp-title"></div>
-        <img class="di-fig" id="di-opp-fig" alt="" />
+        <div class="di-poster">
+          <div class="di-wanted">WANTED</div>
+          <img class="di-fig" id="di-opp-fig" alt="" />
+          <div class="di-name" id="di-opp-name"></div>
+          <div class="di-title" id="di-opp-title"></div>
+          <div class="di-doa">DEAD OR ALIVE</div>
+        </div>
       </div>
     </div>
   </div>
@@ -265,8 +306,17 @@
       <p id="matchend-detail"></p>
       <div id="matchend-recap" class="stats-grid hidden"></div>
       <div class="mend-buttons">
+        <button id="btn-double-ad" class="btn btn-small hidden"></button>
         <button id="btn-menu" class="btn btn-small" data-i18n="menu"></button>
       </div>
+    </div>
+  </div>
+
+  <div id="popup-overlay" class="screen overlay hidden">
+    <div id="popup-card">
+      <h2 id="popup-title"></h2>
+      <div id="popup-body"></div>
+      <button id="btn-popup-ok" class="btn" data-i18n="popupOk"></button>
     </div>
   </div>
 
@@ -289,8 +339,35 @@
 
   <div id="lock-prompt" class="screen overlay opaque hidden">
     <h2 data-i18n="lockTitle"></h2>
-    <p data-i18n="lockSub"></p>
+    <button id="btn-lock-quit" class="btn btn-small" data-i18n="btnQuit"></button>
   </div>
+
+  <div id="story-cine" class="hidden">
+    <div class="di-bar di-top"></div>
+    <div class="di-bar di-bottom"></div>
+    <div id="cine-say" class="hidden">
+      <div id="cine-say-name"></div>
+      <div id="cine-say-text"></div>
+      <div id="cine-say-more" class="hidden">▸</div>
+    </div>
+    <div id="cine-skip-hint" data-i18n="cineEscHint"></div>
+    <div id="cine-pause" class="hidden">
+      <h2 data-i18n="cinePauseTitle"></h2>
+      <button id="btn-cine-continue" class="btn" data-i18n="btnContinue"></button>
+      <button id="btn-cine-quit" class="btn btn-small" data-i18n="btnQuit"></button>
+    </div>
+  </div>
+
+  <div id="screen-story" class="screen station hidden">
+    <h2 data-i18n="storyTitle"></h2>
+    <p id="story-sub" class="story-sub" data-i18n="storySub"></p>
+    <div id="story-list"></div>
+    <button id="btn-story-back" class="btn btn-small" data-i18n="back"></button>
+  </div>
+
+  </div>
+
+  <div id="fade-overlay"></div>
 
   <script type="module" src="./src/main.js"></script>
 </body>
