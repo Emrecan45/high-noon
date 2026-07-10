@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { createRng, roundSeed, rangeFrom } from "./rng.js";
-import { pickModifier, pickDistance } from "./modifiers.js";
+import { MODIFIERS, DISTANCE_TIERS, pickModifier, pickDistance } from "./modifiers.js";
 import { PERKS, perkById, pickPerkOptions } from "./perks.js";
 import { AI_USABLE_PERKS } from "./ai.js";
 import { t } from "./i18n.js";
@@ -104,6 +104,10 @@ export class Duel {
     this.fireResend = null;
     this.bgTimer = null;
     this.bgLast = 0;
+    this.forceModifierId = deps.forceModifier || null;
+    this.forceDistanceId = deps.forceDistance || null;
+    this.storyLine = deps.storyLine || null;
+    this.startingOppPerks = deps.oppPerks || null;
     this.resetMatch();
   }
 
@@ -113,6 +117,14 @@ export class Duel {
     this.roundIndex = 0;
     this.playerPerks = new Set();
     this.oppPerkIds = new Set();
+    if (this.startingOppPerks) {
+      for (const id of this.startingOppPerks) {
+        this.oppPerkIds.add(id);
+        if (this.ai !== null && this.ai !== undefined) {
+          this.ai.perks.add(id);
+        }
+      }
+    }
     this.state = "idle";
     this.round = null;
     this.lastModifierId = null;
@@ -655,9 +667,23 @@ export class Duel {
     }
     this.oppAckedFire = false;
     const rng = createRng(roundSeed(this.matchSeed, this.roundIndex));
-    const modifier = pickModifier(rng, this.roundIndex, this.lastModifierId);
+    let modifier = pickModifier(rng, this.roundIndex, this.lastModifierId);
+    if (this.forceModifierId !== null) {
+      for (const candidate of MODIFIERS) {
+        if (candidate.id === this.forceModifierId) {
+          modifier = candidate;
+        }
+      }
+    }
     this.lastModifierId = modifier.id;
-    const distance = pickDistance(rng, this.roundIndex);
+    let distance = pickDistance(rng, this.roundIndex);
+    if (this.forceDistanceId !== null) {
+      for (const candidate of DISTANCE_TIERS) {
+        if (candidate.id === this.forceDistanceId) {
+          distance = candidate;
+        }
+      }
+    }
     const signalDelay = 1800 + rng() * 3200;
     const distractions = [];
     const distractionCount = Math.floor(rng() * 3);
@@ -747,7 +773,11 @@ export class Duel {
   startIntro() {
     this.audio.reveal();
     this.ui.setBig(t(this.round.modifier.nameKey), "gold", 3400);
-    this.ui.setSub(t(this.round.modifier.descKey));
+    if (this.storyLine !== null && this.roundIndex === 0) {
+      this.ui.setSub(this.storyLine);
+    } else {
+      this.ui.setSub(t(this.round.modifier.descKey));
+    }
     this.state = "intro";
     this.introUntil = performance.now() + 3600;
   }

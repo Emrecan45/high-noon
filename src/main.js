@@ -6,7 +6,8 @@ import { createViewmodel } from "./viewmodel.js";
 import { createUi } from "./ui.js";
 import { AudioEngine } from "./audio.js";
 import { createMusic } from "./music.js";
-import { AiOpponent, PERSONAS, TRAINING_PERSONA } from "./ai.js";
+import { AiOpponent, TRAINING_PERSONA } from "./ai.js";
+import { CHAPTERS, storyProgress, restoreStoryBackup, completeChapter } from "./story.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, onlineState, setOnlineState, listenChallenges, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
@@ -92,11 +93,95 @@ layoutStage();
 window.addEventListener("resize", layoutStage);
 window.addEventListener("orientationchange", layoutStage);
 
-function buildOpponentCards() {
-  ui.opponentCards(PERSONAS, function (persona) {
-    bootAudio();
-    startAiDuel(persona);
+function renderStoryPanel() {
+  const container = el("opponent-cards");
+  container.innerHTML = "";
+  const progress = storyProgress();
+  for (let i = 0; i < CHAPTERS.length; i++) {
+    const chapter = CHAPTERS[i];
+    const card = document.createElement("div");
+    card.className = "card story-card";
+    const state = document.createElement("div");
+    state.className = "story-state";
+    if (i < progress) {
+      card.classList.add("done");
+      state.textContent = t("storyDone");
+    } else if (i === progress) {
+      state.textContent = t("storyPlay");
+    } else {
+      card.classList.add("locked");
+      state.textContent = "🔒";
+    }
+    const icon = document.createElement("div");
+    icon.className = "card-icon";
+    icon.textContent = chapter.icon;
+    const name = document.createElement("div");
+    name.className = "card-name";
+    name.textContent = (i + 1) + ". " + t(chapter.nameKey);
+    const desc = document.createElement("div");
+    desc.className = "card-desc";
+    desc.textContent = t(chapter.descKey);
+    card.appendChild(icon);
+    card.appendChild(name);
+    card.appendChild(desc);
+    card.appendChild(state);
+    if (i <= progress) {
+      const index = i;
+      card.onclick = function () {
+        bootAudio();
+        startStoryDuel(index);
+      };
+    }
+    container.appendChild(card);
+  }
+}
+
+function startStoryDuel(index) {
+  const chapter = CHAPTERS[index];
+  prepDuelScene();
+  el("backdrop").classList.add("hidden");
+  setOnlineState("game");
+  const aiSkin = aiSkinFor(chapter.persona.id);
+  cowboy.setSkin(aiSkin.colors);
+  cowboy.setAccessories(aiSkin.acc);
+  cowboy.setWeapon(weaponById(aiSkin.weapon).colors);
+  applyMyWeapon();
+  const ai = new AiOpponent(chapter.persona, createRng(randomSeed()));
+  const baseResult = handleResult(false);
+  activeDuel = new Duel({
+    arena: arena,
+    ui: ui,
+    audio: audio,
+    cowboy: cowboy,
+    viewmodel: viewmodel,
+    mode: "ai",
+    ai: ai,
+    net: null,
+    matchSeed: randomSeed(),
+    isTouch: isTouch,
+    ranked: false,
+    profile: duelProfile(),
+    forceModifier: chapter.modifier,
+    forceDistance: chapter.distance,
+    oppPerks: chapter.perks || null,
+    storyLine: t(chapter.lineKey),
+    onResult: function (won, oppElo, stats, oppId) {
+      if (won) {
+        completeChapter(index);
+        if (index + 1 === CHAPTERS.length && storyProgress() >= CHAPTERS.length) {
+          showToast(t("storyFinished"), null, null, 6000);
+        }
+      }
+      baseResult(won, oppElo, stats, oppId);
+    },
+    onCombat: startCombatMusic,
+    oppColors: aiSkin.colors,
+    oppAcc: aiSkin.acc,
+    playerBody: playerBody,
+    onExit: backToMenu
   });
+  activeDuel.start();
+  refreshCoins();
 }
 
 const langSelect = el("lang-select");
@@ -104,7 +189,7 @@ langSelect.value = getLang();
 langSelect.addEventListener("change", function () {
   setLang(langSelect.value);
   applyStatic();
-  buildOpponentCards();
+  renderStoryPanel();
   renderProfileChip();
   renderFriends();
   drawWheel();
@@ -1063,40 +1148,6 @@ function handleResult(ranked) {
   };
 }
 
-function startAiDuel(persona) {
-  prepDuelScene();
-  el("backdrop").classList.add("hidden");
-  setOnlineState("game");
-  const aiSkin = aiSkinFor(persona.id);
-  cowboy.setSkin(aiSkin.colors);
-  cowboy.setAccessories(aiSkin.acc);
-  cowboy.setWeapon(weaponById(aiSkin.weapon).colors);
-  applyMyWeapon();
-  const ai = new AiOpponent(persona, createRng(randomSeed()));
-  activeDuel = new Duel({
-    arena: arena,
-    ui: ui,
-    audio: audio,
-    cowboy: cowboy,
-    viewmodel: viewmodel,
-    mode: "ai",
-    ai: ai,
-    net: null,
-    matchSeed: randomSeed(),
-    isTouch: isTouch,
-    ranked: false,
-    profile: duelProfile(),
-    onResult: handleResult(false),
-    onCombat: startCombatMusic,
-    oppColors: aiSkin.colors,
-    oppAcc: aiSkin.acc,
-    playerBody: playerBody,
-    onExit: backToMenu
-  });
-  activeDuel.start();
-  refreshCoins();
-}
-
 function startCombatMusic() {
   bootAudio();
   music.start();
@@ -1409,10 +1460,11 @@ el("btn-ranked").addEventListener("click", async function () {
 
 el("btn-ai").addEventListener("click", function () {
   bootAudio();
+  renderStoryPanel();
   ui.showScreen("screen-opponents");
 });
 
-buildOpponentCards();
+renderStoryPanel();
 if (isTouch) {
   document.body.classList.add("touch");
 }
@@ -1757,6 +1809,7 @@ function finishBootProgress() {
 
 async function boot() {
   await initSdk();
+  restoreStoryBackup();
   loadingStart();
   if (isCrazyGames()) {
     const footer = document.querySelector(".footer-note");
