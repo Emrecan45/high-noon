@@ -1831,6 +1831,102 @@ body.touch #gunstate {
   padding: 10px 20px;
 }
 
+#screen-title {
+  background: none;
+}
+
+#hub-title {
+  position: absolute;
+  top: max(10px, calc(env(safe-area-inset-top) / var(--ui-scale, 1)));
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+}
+
+#screen-title .logo {
+  font-size: clamp(24px, 5.2vh, 46px);
+  letter-spacing: 3px;
+}
+
+#screen-title .tagline {
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+#hub-menu {
+  position: absolute;
+  left: max(28px, calc(env(safe-area-inset-left) / var(--ui-scale, 1)));
+  top: 50%;
+  transform: translateY(-50%);
+  align-items: stretch;
+  gap: 12px;
+}
+
+#hub-menu .btn {
+  width: 248px;
+  font-size: 16px;
+  padding: 12px 14px;
+}
+
+#hub-menu .btn-row {
+  display: flex;
+  gap: 10px;
+}
+
+#hub-menu .btn-row .btn {
+  width: 119px;
+  font-size: 11px;
+  padding: 10px 4px;
+  letter-spacing: 1px;
+}
+
+#friends-bar {
+  transform: translateX(-115%);
+  transition: transform 0.25s;
+  z-index: 40;
+}
+
+#friends-bar.open {
+  transform: none;
+}
+
+#challenges-bar {
+  transform: translateX(115%);
+  transition: transform 0.25s;
+  z-index: 40;
+}
+
+#challenges-bar.open {
+  transform: none;
+}
+
+#friends-toggle {
+  display: block;
+}
+
+#challenges-toggle {
+  display: block;
+}
+
+.screen.docked {
+  background: linear-gradient(90deg, rgba(20, 12, 6, 0) 0%, rgba(20, 12, 6, 0) 36%, rgba(20, 12, 6, 0.9) 56%, rgba(20, 12, 6, 0.97) 100%);
+  padding-left: 44%;
+}
+
+.screen.docked > * {
+  max-width: min(580px, 52vw);
+}
+
+#profile-view,
+#inv-view {
+  display: none;
+}
+
+#screen-search {
+  background: rgba(15, 9, 4, 0.62);
+}
+
 .training-status {
   position: fixed;
   top: calc(10px + env(safe-area-inset-top, 0px));
