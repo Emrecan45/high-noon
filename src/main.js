@@ -8,6 +8,7 @@ import { AudioEngine } from "./audio.js";
 import { createMusic } from "./music.js";
 import { AiOpponent, TRAINING_PERSONA } from "./ai.js";
 import { CHAPTERS, storyProgress, restoreStoryBackup, completeChapter } from "./story.js";
+import { Gallery } from "./gallery.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, onlineState, setOnlineState, listenChallenges, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
@@ -50,6 +51,7 @@ let friendCode = null;
 let pendingChallengeCode = null;
 let roomWaitTimer = null;
 let trainingActive = false;
+let activeMinigame = null;
 let copyTimer = null;
 let addMsgTimer = null;
 let socialReady = false;
@@ -369,7 +371,7 @@ function renderProfileChip() {
 function refreshCoins() {
   const profile = getProfile();
   const badge = el("coins-badge");
-  if (profile === null || activeDuel !== null) {
+  if (profile === null || activeDuel !== null || activeMinigame !== null) {
     badge.classList.add("hidden");
     return;
   }
@@ -1014,7 +1016,7 @@ el("friends-toggle").addEventListener("click", function () {
 
 function challengeOnline(profileId) {
   const profile = getProfile();
-  if (profile === null || activeDuel !== null || friendRoom !== null) {
+  if (profile === null || activeDuel !== null || activeMinigame !== null || friendRoom !== null) {
     return;
   }
   const code = makeFriendCode();
@@ -1037,7 +1039,7 @@ function onChallenge(payload) {
   const decline = function () {
     sendChallengeReply(payload.senderId, { accepted: false, code: code });
   };
-  if (activeDuel !== null || friendRoom !== null || matchmaker !== null || searchInterval !== null) {
+  if (activeDuel !== null || activeMinigame !== null || friendRoom !== null || matchmaker !== null || searchInterval !== null) {
     decline();
     return;
   }
@@ -1152,6 +1154,77 @@ function startCombatMusic() {
   bootAudio();
   music.start();
   music.setMode("combat");
+}
+
+function prepGalleryScene() {
+  town.setActive(false);
+  playerBody.group.visible = false;
+  cowboy.group.visible = false;
+  arena.camera.fov = 70;
+  arena.camera.updateProjectionMatrix();
+}
+
+function startGallery(mode, net) {
+  prepGalleryScene();
+  setOnlineState("game");
+  applyMyWeapon();
+  activeMinigame = new Gallery({
+    arena: arena,
+    ui: ui,
+    audio: audio,
+    viewmodel: viewmodel,
+    isTouch: isTouch,
+    mode: mode,
+    net: net,
+    seed: net ? net.seed : randomSeed(),
+    onExit: exitGallery
+  });
+  ui.showScreen(null);
+  activeMinigame.start();
+  bootAudio();
+  music.start();
+  music.setMode("desert");
+  refreshCoins();
+}
+
+function exitGallery() {
+  activeMinigame = null;
+  backToMenu();
+}
+
+function startBirdSearch() {
+  setOnlineState("matchmaking");
+  el("search-title").textContent = t("searchTitle");
+  el("search-timer").classList.remove("hidden");
+  el("friend-block").classList.add("hidden");
+  el("training-block").classList.add("hidden");
+  el("btn-search-cancel").classList.remove("hidden");
+  el("search-found-name").classList.add("hidden");
+  ui.showScreen("screen-search");
+  ui.searchTick(0);
+  let seconds = 0;
+  let myPid = null;
+  const searchProfile = getProfile();
+  if (searchProfile !== null) {
+    myPid = searchProfile.id;
+  }
+  matchmaker = createMatchmaker(myPid, "hn-lobby-birds");
+  searchInterval = setInterval(function () {
+    seconds += 1;
+    ui.searchTick(seconds);
+  }, 1000);
+  matchmaker.search({
+    onMatched: function (room) {
+      stopSearch();
+      startGallery("birds", room);
+    },
+    onPairFailed: function () {},
+    onError: function () {
+      stopSearch();
+      leaveStation();
+      alert(t("connectError"));
+    }
+  });
 }
 
 function startNetDuel(room, ranked, friendly) {
@@ -1464,6 +1537,37 @@ el("btn-ai").addEventListener("click", function () {
   ui.showScreen("screen-opponents");
 });
 
+el("btn-minigames").addEventListener("click", function () {
+  bootAudio();
+  goStation("range", function () {
+    ui.showScreen("screen-minigames");
+  });
+});
+
+el("btn-mg-back").addEventListener("click", function () {
+  leaveStation();
+});
+
+el("btn-mg-birds-solo").addEventListener("click", function () {
+  bootAudio();
+  startGallery("birds", null);
+});
+
+el("btn-mg-coach").addEventListener("click", function () {
+  bootAudio();
+  startGallery("coach", null);
+});
+
+el("btn-mg-birds-online").addEventListener("click", async function () {
+  bootAudio();
+  const profile = await accountReady();
+  if (profile === null) {
+    alert(t("connectError"));
+    return;
+  }
+  startBirdSearch();
+});
+
 renderStoryPanel();
 if (isTouch) {
   document.body.classList.add("touch");
@@ -1768,6 +1872,8 @@ function loop() {
   viewmodel.update(scaled);
   if (activeDuel !== null) {
     activeDuel.update(now, scaled);
+  } else if (activeMinigame !== null) {
+    activeMinigame.update(now, scaled);
   } else {
     town.update(scaled);
   }

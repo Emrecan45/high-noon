@@ -277,10 +277,62 @@ function makeRockingChair() {
   return group;
 }
 
+function makeStagecoach() {
+  const group = new THREE.Group();
+  const woodMat = mat(0x6b3a1d, 1);
+  const darkMat = mat(0x35230f, 1);
+  const cabin = box(1.5, 1.3, 2.6, woodMat);
+  cabin.position.y = 1.35;
+  group.add(cabin);
+  const roof = box(1.6, 0.12, 2.8, darkMat);
+  roof.position.y = 2.06;
+  group.add(roof);
+  const rail = box(1.4, 0.18, 2.4, darkMat);
+  rail.position.y = 2.2;
+  group.add(rail);
+  const winMat = mat(0x121a24, 0.4);
+  for (const side of [-1, 1]) {
+    const win = box(0.06, 0.5, 0.7, winMat);
+    win.position.set(side * 0.76, 1.5, 0.3);
+    group.add(win);
+    const win2 = box(0.06, 0.5, 0.7, winMat);
+    win2.position.set(side * 0.76, 1.5, -0.7);
+    group.add(win2);
+  }
+  const bench = box(1.4, 0.3, 0.7, darkMat);
+  bench.position.set(0, 1.9, 1.55);
+  group.add(bench);
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.4, 6), darkMat);
+  shaft.rotation.x = Math.PI / 2;
+  shaft.position.set(0, 0.55, 2.6);
+  group.add(shaft);
+  const wheelSpots = [[-0.85, 0.55, 1.05, 0.55], [0.85, 0.55, 1.05, 0.55], [-0.85, 0.72, -1.05, 0.72], [0.85, 0.72, -1.05, 0.72]];
+  for (const spot of wheelSpots) {
+    const wheel = makeWagonWheel();
+    wheel.scale.setScalar(spot[3]);
+    wheel.position.set(spot[0], spot[1], spot[2]);
+    wheel.rotation.y = Math.PI / 2;
+    group.add(wheel);
+  }
+  group.traverse(function (child) {
+    if (child.isMesh) {
+      child.castShadow = true;
+    }
+  });
+  return group;
+}
+
 function makeCrate() {
   const crate = box(0.6, 0.6, 0.6, mat(0x8a6a3c, 1));
   crate.position.y = 0.3;
   return crate;
+}
+
+function makeBarrelProp() {
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.32, 0.9, 10), mat(0x5c3d1e, 1));
+  barrel.position.y = 0.45;
+  barrel.castShadow = true;
+  return barrel;
 }
 
 function makeTrough() {
@@ -417,6 +469,23 @@ export function buildTown(scene, impactTargets, hooks) {
     crate.rotation.y = Math.random() * 1.5;
     group.add(crate);
     impactTargets.push(crate);
+  }
+
+  const stagecoach = makeStagecoach();
+  stagecoach.position.set(5, 0, 15.2);
+  stagecoach.rotation.y = Math.PI + 0.35;
+  group.add(stagecoach);
+  impactTargets.push(stagecoach);
+
+  const coverSpots = [[-4.5, 21], [1.5, 19.5], [6.2, 24], [-1.2, 26], [4.2, 28]];
+  const rangeCovers = [];
+  for (const spot of coverSpots) {
+    const cover = Math.random() < 0.5 ? makeCrate() : makeBarrelProp();
+    cover.position.x = spot[0];
+    cover.position.z = spot[1];
+    group.add(cover);
+    impactTargets.push(cover);
+    rangeCovers.push(new THREE.Vector3(spot[0], 0, spot[1]));
   }
 
   const railSaloon = makeHitchRail(3);
@@ -601,11 +670,18 @@ export function buildTown(scene, impactTargets, hooks) {
       face: Math.PI / 2,
       cam: new THREE.Vector3(1.8, 1.8, 0.4),
       look: new THREE.Vector3(7.4, 1.6, -2.4)
+    },
+    range: {
+      spot: new THREE.Vector3(0.6, 0, 12.4),
+      face: 0,
+      cam: new THREE.Vector3(-0.6, 2, 9.2),
+      look: new THREE.Vector3(1.6, 1.3, 14)
     }
   };
 
   return {
     update: update,
-    anchors: anchors
+    anchors: anchors,
+    rangeCovers: rangeCovers
   };
 }

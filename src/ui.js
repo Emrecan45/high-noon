@@ -14,6 +14,7 @@ export function createUi() {
     "screen-shop",
     "screen-patch",
     "screen-board",
+    "screen-minigames",
     "screen-search",
     "screen-roundend",
     "screen-perk",

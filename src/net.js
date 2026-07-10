@@ -25,9 +25,10 @@ function metaPid(state, key) {
   return null;
 }
 
-export function createMatchmaker(myProfileId) {
+export function createMatchmaker(myProfileId, lobbyName) {
   const supabase = getClient();
   const myId = crypto.randomUUID();
+  const lobbyTopic = lobbyName || "hn-lobby-ranked";
   let lobby = null;
   let cancelled = false;
   let pairing = false;
@@ -61,7 +62,7 @@ export function createMatchmaker(myProfileId) {
   function search(callbacks) {
     cancelled = false;
     pairing = false;
-    lobby = supabase.channel("hn-lobby-ranked", {
+    lobby = supabase.channel(lobbyTopic, {
       config: { presence: { key: myId } }
     });
     lobby.on("presence", { event: "sync" }, function () {
