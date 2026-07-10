@@ -1,7 +1,8 @@
 import * as THREE from "three";
+import { createRevolver } from "./revolver.js";
 
 function mat(color) {
-  return new THREE.MeshStandardMaterial({ color: color, roughness: 0.6, metalness: 0.3 });
+  return new THREE.MeshStandardMaterial({ color: color, roughness: 0.55, metalness: 0.35 });
 }
 
 export function createViewmodel(camera) {
@@ -15,23 +16,16 @@ export function createViewmodel(camera) {
   };
 
   const gun = new THREE.Group();
-  const frame = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.09, 0.22), gunMats.body);
-  gun.add(frame);
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.3, 10), gunMats.metal);
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.025, -0.24);
-  gun.add(barrel);
-  const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.07, 6), gunMats.metal);
-  cylinder.rotation.x = Math.PI / 2;
-  cylinder.position.set(0, 0.01, -0.06);
-  gun.add(cylinder);
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.12, 0.06), gunMats.grip);
-  grip.position.set(0, -0.085, 0.08);
-  grip.rotation.x = 0.35;
-  gun.add(grip);
-  const hammer = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.05, 0.02), gunMats.metal);
-  hammer.position.set(0, 0.06, 0.1);
-  gun.add(hammer);
+  const revolver = createRevolver(gunMats, true);
+  revolver.scale.setScalar(1.4);
+  revolver.rotation.y = -0.07;
+  gun.add(revolver);
+  let cylinder = null;
+  revolver.traverse(function (child) {
+    if (child.isMesh && child.geometry.type === "CylinderGeometry" && cylinder === null && child.geometry.parameters.radiusTop === 0.028) {
+      cylinder = child;
+    }
+  });
 
   function setWeapon(colors) {
     gunMats.body.color.setHex(colors.body);
@@ -40,26 +34,30 @@ export function createViewmodel(camera) {
   }
 
   const handMat = new THREE.MeshStandardMaterial({ color: 0xc98f5e, roughness: 0.9 });
-  const handMesh = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.11), handMat);
-  handMesh.position.set(0, -0.07, 0.09);
+  const handMesh = new THREE.Mesh(new THREE.BoxGeometry(0.062, 0.085, 0.095), handMat);
+  handMesh.position.set(0, -0.075, 0.095);
+  handMesh.rotation.x = 0.48;
   gun.add(handMesh);
+  const thumb = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.024, 0.05), handMat);
+  thumb.position.set(-0.034, -0.04, 0.07);
+  gun.add(thumb);
 
   const flash = new THREE.Mesh(
     new THREE.ConeGeometry(0.05, 0.18, 8),
     new THREE.MeshBasicMaterial({ color: 0xffd977, transparent: true, opacity: 0.95 })
   );
   flash.rotation.x = -Math.PI / 2;
-  flash.position.set(0, 0.025, -0.48);
+  flash.position.set(0, 0.05, -0.55);
   flash.visible = false;
   gun.add(flash);
   const flashLight = new THREE.PointLight(0xffc26b, 0, 4);
-  flashLight.position.set(0, 0, -0.5);
+  flashLight.position.set(0, 0.04, -0.56);
   gun.add(flashLight);
 
   group.add(gun);
 
-  const basePos = new THREE.Vector3(0.22, -0.22, -0.55);
-  const holsterPos = new THREE.Vector3(0.26, -0.85, -0.45);
+  const basePos = new THREE.Vector3(0.24, -0.26, -0.52);
+  const holsterPos = new THREE.Vector3(0.28, -0.85, -0.42);
   group.position.copy(holsterPos);
 
   const state = {
@@ -153,7 +151,9 @@ export function createViewmodel(camera) {
       }
     } else if (state.mode === "reloading") {
       const progress = (state.time - state.reloadStart) / Math.max(0.01, state.reloadUntil - state.reloadStart);
-      cylinder.rotation.z = progress * Math.PI * 4;
+      if (cylinder !== null) {
+        cylinder.rotation.z = progress * Math.PI * 4;
+      }
       gun.rotation.z = Math.sin(progress * Math.PI) * 0.5;
       gun.position.y = -Math.sin(progress * Math.PI) * 0.06;
       if (state.time >= state.reloadUntil) {

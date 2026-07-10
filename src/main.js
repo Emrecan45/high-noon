@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { createArena } from "./scene.js";
+import { createTown } from "./town.js";
 import { createCowboy } from "./cowboy.js";
 import { createViewmodel } from "./viewmodel.js";
 import { createUi } from "./ui.js";
@@ -19,16 +20,24 @@ import { eloTitleKey } from "./titles.js";
 import { patchNotes, legalPage } from "./pages.js";
 import pkg from "../package.json";
 
-const arena = createArena(document.getElementById("game"));
+const townHooks = {};
+const arena = createArena(document.getElementById("game"), townHooks);
 const cowboy = createCowboy();
+cowboy.group.visible = false;
 arena.opponentAnchor.add(cowboy.group);
 const playerBody = createCowboy();
 playerBody.group.visible = false;
 arena.scene.add(playerBody.group);
+const town = createTown(arena, playerBody);
 const viewmodel = createViewmodel(arena.camera);
 const ui = createUi();
 const audio = new AudioEngine();
 const music = createMusic(audio);
+townHooks.onWhinny = function () {
+  if (audioBooted) {
+    audio.horse();
+  }
+};
 const isTouch = window.matchMedia("(pointer: coarse)").matches;
 
 let activeDuel = null;
@@ -218,8 +227,46 @@ function hideToast() {
   }
 }
 
+function refreshTownCharacter() {
+  const profile = getProfile();
+  if (profile === null) {
+    playerBody.setSkin(skinById("drifter").colors);
+    playerBody.setAccessories([]);
+    playerBody.setWeapon(weaponById("iron").colors);
+    return;
+  }
+  playerBody.setSkin(skinById(profile.skin).colors);
+  playerBody.setAccessories(profile.accessories);
+  playerBody.setWeapon(weaponById(profile.weapon).colors);
+}
+
+function goStation(name, onArrived) {
+  bootAudio();
+  ui.showScreen(null);
+  town.setActive(true);
+  town.goTo(name, onArrived);
+}
+
+function leaveStation() {
+  ui.showScreen("screen-title");
+  town.goHome(false);
+}
+
+function prepDuelScene() {
+  town.setActive(false);
+  playerBody.group.visible = false;
+  cowboy.group.visible = true;
+  cowboy.reset();
+  arena.playerRig.position.set(0, 1.6, 7);
+  arena.camera.position.set(0, 0, 0);
+  arena.camera.rotation.set(0, 0, 0);
+  arena.camera.fov = 70;
+  arena.camera.updateProjectionMatrix();
+}
+
 function renderProfileChip() {
   const profile = getProfile();
+  refreshTownCharacter();
   const chip = el("profile-chip");
   if (profile !== null) {
     el("chip-head").src = portraitDataUrl(profile.skin, 128);
@@ -310,6 +357,7 @@ function updateViewer(dt) {
 }
 
 function refreshViewerModel() {
+  refreshTownCharacter();
   const profile = getProfile();
   if (viewer === null || profile === null) {
     return;
@@ -454,27 +502,25 @@ async function openProfile() {
   }
   el("profile-name").textContent = profile.pseudo;
   renderStatsBlock();
-  ui.showScreen("screen-profile");
-  mountViewer("profile-view");
-  refreshViewerModel();
+  goStation("wardrobe", function () {
+    ui.showScreen("screen-profile");
+  });
 }
 
 function openInventory() {
   renderInventory();
   ui.showScreen("screen-inventory");
-  mountViewer("inv-view");
-  refreshViewerModel();
 }
 
 el("profile-chip").addEventListener("click", openProfile);
+el("btn-profile").addEventListener("click", openProfile);
 el("btn-customize").addEventListener("click", openInventory);
 el("btn-inv-back").addEventListener("click", function () {
   ui.showScreen("screen-profile");
-  mountViewer("profile-view");
 });
 
 el("btn-profile-back").addEventListener("click", function () {
-  ui.showScreen("screen-title");
+  leaveStation();
 });
 
 const wheelItems = [];
@@ -566,17 +612,19 @@ function openShop() {
       alert(t("connectError"));
       return;
     }
-    refreshCoins();
-    el("wheel-result").classList.add("hidden");
-    drawWheel();
-    ui.showScreen("screen-shop");
+    goStation("store", function () {
+      refreshCoins();
+      el("wheel-result").classList.add("hidden");
+      drawWheel();
+      ui.showScreen("screen-shop");
+    });
   });
 }
 
 el("btn-shop").addEventListener("click", openShop);
 
 el("btn-shop-back").addEventListener("click", function () {
-  ui.showScreen("screen-title");
+  leaveStation();
 });
 
 el("btn-spin").addEventListener("click", async function () {
@@ -926,7 +974,7 @@ function onChallengeReply(payload) {
     }
     stopSearch();
     setOnlineState("menu");
-    ui.showScreen("screen-title");
+    leaveStation();
     pendingChallengeCode = null;
     hideInviteButton();
     el("friend-block").classList.add("hidden");
@@ -951,7 +999,6 @@ function resetDuelScene() {
   arena.camera.rotation.set(0, 0, 0);
   arena.camera.fov = 70;
   arena.camera.updateProjectionMatrix();
-  el("backdrop").classList.remove("hidden");
   ui.hudVisible(false);
 }
 
@@ -959,6 +1006,9 @@ function backToMenu() {
   activeDuel = null;
   setOnlineState("menu");
   resetDuelScene();
+  cowboy.group.visible = false;
+  town.setActive(true);
+  town.warpTo("home");
   music.setMode("menu");
   ui.showScreen("screen-title");
   renderProfileChip();
@@ -1014,6 +1064,7 @@ function handleResult(ranked) {
 }
 
 function startAiDuel(persona) {
+  prepDuelScene();
   el("backdrop").classList.add("hidden");
   setOnlineState("game");
   const aiSkin = aiSkinFor(persona.id);
@@ -1053,6 +1104,7 @@ function startCombatMusic() {
 }
 
 function startNetDuel(room, ranked, friendly) {
+  prepDuelScene();
   el("backdrop").classList.add("hidden");
   setOnlineState("game");
   applyMyWeapon();
@@ -1160,7 +1212,7 @@ function startSearch() {
       stopSearch();
       el("training-status").classList.add("hidden");
       if (!wasTraining) {
-        ui.showScreen("screen-title");
+        leaveStation();
         alert(t("connectError"));
       }
     }
@@ -1179,6 +1231,7 @@ function startTrainingDuel() {
     return;
   }
   trainingActive = true;
+  prepDuelScene();
   el("backdrop").classList.add("hidden");
   const aiSkin = aiSkinFor(TRAINING_PERSONA.id);
   cowboy.setSkin(aiSkin.colors);
@@ -1221,6 +1274,9 @@ function endTrainingForMatch() {
     duel.dispose();
   }
   resetDuelScene();
+  cowboy.group.visible = false;
+  town.setActive(true);
+  town.warpTo("road");
   music.setMode("menu");
 }
 
@@ -1230,6 +1286,9 @@ function exitTraining() {
   activeDuel = null;
   if (matchmaker !== null) {
     resetDuelScene();
+    cowboy.group.visible = false;
+    town.setActive(true);
+    town.warpTo("road");
     music.setMode("menu");
     el("search-title").textContent = t("searchTitle");
     el("search-timer").classList.remove("hidden");
@@ -1313,7 +1372,7 @@ function openFriendRoom(rawCode, hosting, isChallenge = false) {
         return;
       }
       stopSearch();
-      ui.showScreen("screen-title");
+      leaveStation();
       showToast(t("challengeNoReply"), null, null, 4000);
     }, hosting ? 20000 : 15000);
   }
@@ -1343,7 +1402,9 @@ el("btn-ranked").addEventListener("click", async function () {
     alert(t("connectError"));
     return;
   }
-  startSearch();
+  goStation("road", function () {
+    startSearch();
+  });
 });
 
 el("btn-ai").addEventListener("click", function () {
@@ -1358,7 +1419,7 @@ if (isTouch) {
 
 el("btn-search-cancel").addEventListener("click", function () {
   stopSearch();
-  ui.showScreen("screen-title");
+  leaveStation();
 });
 
 el("btn-training").addEventListener("click", function () {
@@ -1424,12 +1485,14 @@ el("btn-board").addEventListener("click", function () {
   el("board-list").innerHTML = "";
   el("board-status").textContent = "…";
   el("board-status").classList.remove("hidden");
-  ui.showScreen("screen-board");
-  fetchLeaderboard().then(renderBoard);
+  goStation("board", function () {
+    ui.showScreen("screen-board");
+    fetchLeaderboard().then(renderBoard);
+  });
 });
 
 el("btn-board-back").addEventListener("click", function () {
-  ui.showScreen("screen-title");
+  leaveStation();
 });
 
 el("btn-help").addEventListener("click", function () {
@@ -1653,6 +1716,8 @@ function loop() {
   viewmodel.update(scaled);
   if (activeDuel !== null) {
     activeDuel.update(now, scaled);
+  } else {
+    town.update(scaled);
   }
   arena.renderer.render(arena.scene, arena.camera);
   updateViewer(dt);
@@ -1746,6 +1811,9 @@ async function boot() {
   }
 }
 
+el("backdrop").classList.add("hidden");
+town.setActive(true);
+town.goHome(true);
 ui.showScreen("screen-title");
 startBootProgress();
 loop();

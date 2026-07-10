@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { buildTown } from "./town3d.js";
 
 function groundTexture() {
   const canvas = document.createElement("canvas");
@@ -19,36 +20,6 @@ function groundTexture() {
   tex.wrapT = THREE.RepeatWrapping;
   tex.repeat.set(40, 40);
   return tex;
-}
-
-function makeBuilding(width, height, depth, color, withAwning) {
-  const group = new THREE.Group();
-  const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.9 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), mat);
-  body.position.y = height / 2;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
-  const facadeMat = new THREE.MeshStandardMaterial({ color: 0x3a2a18, roughness: 1 });
-  const facade = new THREE.Mesh(new THREE.BoxGeometry(width * 0.92, height * 0.5, 0.1), facadeMat);
-  facade.position.set(0, height * 0.72, depth / 2 + 0.06);
-  group.add(facade);
-  if (withAwning) {
-    const awningMat = new THREE.MeshStandardMaterial({ color: 0x6b3f1d, roughness: 1 });
-    const awning = new THREE.Mesh(new THREE.BoxGeometry(width * 0.9, 0.12, 1.6), awningMat);
-    awning.position.set(0, height * 0.42, depth / 2 + 0.9);
-    awning.castShadow = true;
-    group.add(awning);
-    const postGeo = new THREE.CylinderGeometry(0.05, 0.05, height * 0.42, 6);
-    const postMat = new THREE.MeshStandardMaterial({ color: 0x4a3018, roughness: 1 });
-    const offsets = [-width * 0.4, width * 0.4];
-    for (const ox of offsets) {
-      const post = new THREE.Mesh(postGeo, postMat);
-      post.position.set(ox, height * 0.21, depth / 2 + 1.5);
-      group.add(post);
-    }
-  }
-  return group;
 }
 
 function makeCactus(scale) {
@@ -113,7 +84,7 @@ function makeTumbleweed() {
   return weed;
 }
 
-export function createArena(container) {
+export function createArena(container, hooks) {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -174,19 +145,7 @@ export function createArena(container) {
 
   const impactTargets = [ground];
 
-  const buildingColors = [0x8a5a2e, 0x74522f, 0x9c6b38, 0x6b4a26, 0x84603a];
-  for (let i = 0; i < 6; i++) {
-    const left = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[i % buildingColors.length], i % 2 === 0);
-    left.position.set(-9.5, 0, -26 + i * 10);
-    left.rotation.y = Math.PI / 2;
-    scene.add(left);
-    impactTargets.push(left);
-    const right = makeBuilding(7 + Math.random() * 3, 5 + Math.random() * 3, 6, buildingColors[(i + 2) % buildingColors.length], i % 2 === 1);
-    right.position.set(9.5, 0, -22 + i * 10);
-    right.rotation.y = -Math.PI / 2;
-    scene.add(right);
-    impactTargets.push(right);
-  }
+  const town = buildTown(scene, impactTargets, hooks || {});
 
   const cactusSpots = [
     [-16, -40], [18, -36], [-20, 14], [22, 20], [-15, 30], [17, -55]
@@ -350,6 +309,7 @@ export function createArena(container) {
   function update(dt) {
     elapsed += dt;
     updateBursts(dt);
+    town.update(dt);
     let interval = 8;
     if (windy) {
       interval = 2.5;
@@ -396,6 +356,7 @@ export function createArena(container) {
     playerRig: playerRig,
     opponentAnchor: opponentAnchor,
     sunDisc: sunDisc,
+    anchors: town.anchors,
     applyModifier: applyModifier,
     setFogPulse: setFogPulse,
     castEnvironment: castEnvironment,
