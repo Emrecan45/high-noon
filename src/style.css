@@ -1835,6 +1835,40 @@ body.touch #gunstate {
   background: none;
 }
 
+.story-card {
+  position: relative;
+  width: 190px;
+  padding: 14px 12px;
+}
+
+.screen.docked .cards {
+  max-height: 58vh;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.story-card .story-state {
+  margin-top: 8px;
+  font-family: "Rye", "Special Elite", serif;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #e8b64c;
+}
+
+.story-card.done {
+  border-color: #5a8a4a;
+}
+
+.story-card.done .story-state {
+  color: #8fd06f;
+}
+
+.story-card.locked {
+  opacity: 0.45;
+  cursor: default;
+  filter: grayscale(0.6);
+}
+
 #hub-title {
   position: absolute;
   top: max(10px, calc(env(safe-area-inset-top) / var(--ui-scale, 1)));

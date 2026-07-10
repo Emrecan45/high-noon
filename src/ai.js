@@ -44,6 +44,35 @@ export const PERSONAS = [
   }
 ];
 
+export const STORY_PERSONAS = {
+  grace: {
+    id: "grace",
+    icon: "🕯️",
+    name: "Sœur Grace",
+    descKey: "persona.grace.desc",
+    reaction: [385, 475],
+    aim: [330, 430],
+    accHead: 0.42,
+    accBody: 0.44,
+    misfireChance: 0,
+    dodgeChance: 0.12,
+    patience: 0.65
+  },
+  undertaker: {
+    id: "undertaker",
+    icon: "⚰️",
+    name: "Le Croque-Mort",
+    descKey: "persona.undertaker.desc",
+    reaction: [255, 330],
+    aim: [250, 340],
+    accHead: 0.4,
+    accBody: 0.45,
+    misfireChance: 0,
+    dodgeChance: 0.3,
+    patience: 0.35
+  }
+};
+
 export const TRAINING_PERSONA = {
   id: "training",
   icon: "🎯",

@@ -81,6 +81,16 @@ export const AI_SKINS = {
     colors: { skin: 0xc9a06a, shirt: 0xb59a5c, pants: 0x8a7042, hat: 0xd8c48a, bandana: 0x7a2f24 },
     weapon: "iron",
     acc: ["feather"]
+  },
+  grace: {
+    colors: { skin: 0xd8c2a8, shirt: 0x2a2a30, pants: 0x1c1c22, hat: 0x14141a, bandana: 0xe8e2d4 },
+    weapon: "silver",
+    acc: ["star"]
+  },
+  undertaker: {
+    colors: { skin: 0xd0b294, shirt: 0x16121c, pants: 0x0e0b12, hat: 0x0a080e, bandana: 0x3a3a44 },
+    weapon: "golden",
+    acc: ["eyepatch", "cigar"]
   }
 };
 
