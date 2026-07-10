@@ -1,12 +1,12 @@
 const PATCH = {
   en: [
-    { date: "July 9, 2026", version: "1.3", items: [
-      "Training camp while matchmaking searches",
-      "Cinematic duel intro: face-off, then the walk-up",
-      "Daily and weekly challenges",
-      "Friends, invites and challenges in real time",
-      "Ranks on the leaderboard and special AI outfits",
-      "Combat music, real sidestep, forfeit win, mobile UI"
+    { date: "July 10, 2026", version: "1.3", items: [
+      "The town is the menu: everything plays out in camera",
+      "Skill-based draw: zero aim luck, recoil to control",
+      "Story mode: 6 chapters, 2 new bosses",
+      "Minigames: crow shooting (solo/1v1) and stagecoach defense",
+      "Real western music and gun sounds",
+      "Articulated characters and a proper revolver"
     ] },
     { date: "July 6, 2026", version: "1.2", items: [
       "Slow-motion sepia kill cam",
@@ -29,13 +29,13 @@ const PATCH = {
     ] }
   ],
   fr: [
-    { date: "9 juillet 2026", version: "1.3", items: [
-      "Camp d'entraînement pendant la recherche d'adversaire",
-      "Intro de duel cinématique : face-à-face puis avancée",
-      "Défis quotidiens et hebdomadaires",
-      "Amis, invitations et défis en temps réel",
-      "Rangs au classement et tenues spéciales pour les IA",
-      "Musique de combat, vrai pas de côté, victoire par forfait, UI mobile"
+    { date: "10 juillet 2026", version: "1.3", items: [
+      "La ville est le menu : tout se joue en caméra",
+      "Dégainé au skill : zéro hasard de visée, recul à contrôler",
+      "Mode histoire : 6 chapitres, 2 nouveaux boss",
+      "Mini-jeux : tir aux corbeaux (solo/1v1) et défense de diligence",
+      "Vraies musiques et vrais sons western",
+      "Personnages articulés et revolver refait"
     ] },
     { date: "6 juillet 2026", version: "1.2", items: [
       "Kill cam au ralenti avec zoom sépia",
@@ -58,13 +58,13 @@ const PATCH = {
     ] }
   ],
   es: [
-    { date: "9 de julio de 2026", version: "1.3", items: [
-      "Campo de entrenamiento mientras buscas rival",
-      "Presentación cinematográfica del duelo: cara a cara y avance",
-      "Desafíos diarios y semanales",
-      "Amigos, invitaciones y retos en tiempo real",
-      "Rangos en la clasificación y atuendos especiales para la IA",
-      "Música de combate, paso lateral real, victoria por abandono, interfaz móvil"
+    { date: "10 de julio de 2026", version: "1.3", items: [
+      "El pueblo es el menú: todo ocurre en cámara",
+      "Desenfunde con habilidad: cero azar en la puntería",
+      "Modo historia: 6 capítulos, 2 nuevos jefes",
+      "Minijuegos: tiro a los cuervos (solo/1v1) y defensa de la diligencia",
+      "Música y sonidos western reales",
+      "Personajes articulados y revólver rehecho"
     ] },
     { date: "6 de julio de 2026", version: "1.2", items: [
       "Kill cam a cámara lenta en sepia",
@@ -87,13 +87,13 @@ const PATCH = {
     ] }
   ],
   de: [
-    { date: "9. Juli 2026", version: "1.3", items: [
-      "Trainingslager während der Gegnersuche",
-      "Filmreife Duell-Vorstellung: Face-off und Anmarsch",
-      "Tägliche und wöchentliche Aufgaben",
-      "Freunde, Einladungen und Duelle in Echtzeit",
-      "Ränge in der Bestenliste und besondere KI-Outfits",
-      "Kampfmusik, echter Seitenschritt, Sieg durch Aufgabe, mobile Oberfläche"
+    { date: "10. Juli 2026", version: "1.3", items: [
+      "Die Stadt ist das Menü: alles läuft in der Kamera ab",
+      "Ziehen mit Können: kein Zielglück, Rückstoß kontrollieren",
+      "Story-Modus: 6 Kapitel, 2 neue Bosse",
+      "Minispiele: Krähenschießen (Solo/1v1) und Postkutschen-Verteidigung",
+      "Echte Western-Musik und -Sounds",
+      "Gelenkige Charaktere und ein richtiger Revolver"
     ] },
     { date: "6. Juli 2026", version: "1.2", items: [
       "Zeitlupen-Kill-Cam in Sepia",
@@ -116,13 +116,13 @@ const PATCH = {
     ] }
   ],
   pt: [
-    { date: "9 de julho de 2026", version: "1.3", items: [
-      "Campo de treino enquanto procuras oponente",
-      "Apresentação cinematográfica do duelo: confronto e avanço",
-      "Desafios diários e semanais",
-      "Amigos, convites e desafios em tempo real",
-      "Patentes na classificação e trajes especiais para a IA",
-      "Música de combate, passo lateral real, vitória por desistência, interface móvel"
+    { date: "10 de julho de 2026", version: "1.3", items: [
+      "A cidade é o menu: tudo acontece em câmera",
+      "Saque com habilidade: zero sorte na mira",
+      "Modo história: 6 capítulos, 2 novos chefes",
+      "Minijogos: tiro aos corvos (solo/1v1) e defesa da diligência",
+      "Músicas e sons western de verdade",
+      "Personagens articulados e revólver refeito"
     ] },
     { date: "6 de julho de 2026", version: "1.2", items: [
       "Kill cam em câmera lenta sépia",
@@ -145,13 +145,13 @@ const PATCH = {
     ] }
   ],
   ru: [
-    { date: "9 июля 2026", version: "1.3", items: [
-      "Тренировочный лагерь во время поиска соперника",
-      "Кинематографичное представление дуэли: лицом к лицу и сближение",
-      "Ежедневные и еженедельные задания",
-      "Друзья, приглашения и вызовы в реальном времени",
-      "Ранги в таблице лидеров и особые наряды ИИ",
-      "Боевая музыка, шаг в сторону, победа при выходе соперника, мобильный интерфейс"
+    { date: "10 июля 2026", version: "1.3", items: [
+      "Город и есть меню: всё происходит в камере",
+      "Выхватывание на мастерстве: ноль удачи в прицеле",
+      "Режим истории: 6 глав, 2 новых босса",
+      "Мини-игры: стрельба по воронам (соло/1v1) и защита дилижанса",
+      "Настоящая вестерн-музыка и звуки",
+      "Подвижные персонажи и настоящий револьвер"
     ] },
     { date: "6 июля 2026", version: "1.2", items: [
       "Замедленная сепия кил-кам",
@@ -174,13 +174,13 @@ const PATCH = {
     ] }
   ],
   tr: [
-    { date: "9 Temmuz 2026", version: "1.3", items: [
-      "Rakip aranırken antrenman kampı",
-      "Sinematik düello tanıtımı: yüz yüze ve yaklaşma",
-      "Günlük ve haftalık görevler",
-      "Gerçek zamanlı arkadaşlar, davetler ve meydan okumalar",
-      "Sıralamada rütbeler ve yapay zekâya özel kıyafetler",
-      "Savaş müziği, gerçek yan adım, hükmen galibiyet, mobil arayüz"
+    { date: "10 Temmuz 2026", version: "1.3", items: [
+      "Kasaba artık menü: her şey kamerada geçiyor",
+      "Beceriyle silah çekme: nişanda sıfır şans",
+      "Hikaye modu: 6 bölüm, 2 yeni boss",
+      "Mini oyunlar: karga avı (solo/1v1) ve posta arabası savunması",
+      "Gerçek western müzikleri ve sesleri",
+      "Eklemli karakterler ve gerçek bir revolver"
     ] },
     { date: "6 Temmuz 2026", version: "1.2", items: [
       "Ağır çekim sepya kill cam",

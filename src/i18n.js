@@ -9,8 +9,8 @@ const STRINGS = {
     helpTitle: "How to play",
     helpHtml:
       "<p><strong>Wait for the signal.</strong> Shooting before the bell is an early draw: round lost.</p>" +
-      "<p><strong>On the signal, draw.</strong> Drawing throws your aim off: catch the target with your mouse and click to shoot. A headshot kills outright, a body shot wounds (two wounds kill). The hat doesn't count… but it flies.</p>" +
-      "<p><strong>Your arm breathes.</strong> The reticle floats at all times, even more right after the draw. Learn to shoot in the lull of the sway.</p>" +
+      "<p><strong>On the signal, draw.</strong> Your revolver comes up from the holster aiming low: bring it onto the target yourself and click to shoot - no luck, pure skill. Every shot kicks your aim up. A headshot kills outright, a body shot wounds (two wounds kill). The hat doesn't count… but it flies.</p>" +
+      "<p><strong>Your arm breathes.</strong> The reticle sways in a slow, steady rhythm you can learn. The wind pushes it sideways - lean against it.</p>" +
       "<p><strong>Missing costs you.</strong> After a missed shot you must reload before firing again.</p>" +
       "<p><strong>Dodge.</strong> Twice per round, press Q or D (or A/E) to dive sideways. You can still shoot mid-dive, but your aim shakes hard. If your opponent shoots during your roll, he misses. If he waits it out, you're at his mercy.</p>" +
       "<p><strong>Watch the sun.</strong> Random glares can blind you before the signal: look away from the sun. And beware of crows and slamming shutters: not everything sounds like the bell.</p>" +
@@ -260,8 +260,8 @@ const STRINGS = {
     helpTitle: "Comment jouer",
     helpHtml:
       "<p><strong>Attends le signal.</strong> Tirer avant la cloche est un tir anticipé : manche perdue.</p>" +
-      "<p><strong>Au signal, dégaine.</strong> Le dégainé désaxe ta visée : rattrape la cible à la souris et clique pour tirer. Une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Le chapeau ne compte pas… mais il vole.</p>" +
-      "<p><strong>Ton bras respire.</strong> Le viseur flotte en permanence, encore plus juste après le dégainé. Apprends à tirer dans le creux du mouvement.</p>" +
+      "<p><strong>Au signal, dégaine.</strong> Ton revolver sort du holster en visant bas : remonte-le toi-même sur la cible et clique pour tirer - zéro hasard, que du skill. Chaque tir fait sauter ta visée vers le haut. Une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Le chapeau ne compte pas… mais il vole.</p>" +
+      "<p><strong>Ton bras respire.</strong> Le viseur ondule sur un rythme lent et régulier qui s'apprend. Le vent le pousse de côté - appuie contre lui.</p>" +
       "<p><strong>Rater coûte cher.</strong> Après un tir manqué, il faut recharger avant de retirer.</p>" +
       "<p><strong>Le pas de côté.</strong> Deux fois par manche, appuie sur Q ou D (ou A/E) pour faire un vrai pas sur le côté. Tu peux tirer pendant l'esquive, mais ta visée tremble fort. Si l'adversaire tire pendant ton pas de côté, il te rate. S'il attend la fin, tu es à sa merci.</p>" +
       "<p><strong>Gare au soleil.</strong> Des éblouissements aléatoires peuvent t'aveugler avant le signal : détourne les yeux du soleil. Et méfie-toi des corbeaux et des volets qui claquent : tout ne sonne pas comme la cloche.</p>" +
@@ -511,8 +511,8 @@ const STRINGS = {
     helpTitle: "Cómo jugar",
     helpHtml:
       "<p><strong>Espera la señal.</strong> Disparar antes de la campana es un desenfunde anticipado: ronda perdida.</p>" +
-      "<p><strong>A la señal, desenfunda.</strong> Desenfundar desvía tu puntería: alcanza el objetivo con el ratón y haz clic para disparar. Un tiro en la cabeza mata al instante, uno en el cuerpo hiere (dos heridas matan). El sombrero no cuenta… pero sale volando.</p>" +
-      "<p><strong>Tu brazo respira.</strong> La mira flota todo el tiempo, y aún más justo después de desenfundar. Aprende a disparar en la pausa del vaivén.</p>" +
+      "<p><strong>A la señal, desenfunda.</strong> Tu revólver sale de la funda apuntando bajo: súbelo tú mismo hasta el objetivo y haz clic para disparar - nada de suerte, pura habilidad. Cada disparo levanta tu puntería. Un tiro en la cabeza mata al instante, uno en el cuerpo hiere (dos heridas matan). El sombrero no cuenta… pero sale volando.</p>" +
+      "<p><strong>Tu brazo respira.</strong> La mira oscila con un ritmo lento y regular que se aprende. El viento la empuja de lado - apóyate contra él.</p>" +
       "<p><strong>Fallar cuesta caro.</strong> Tras un tiro fallado debes recargar antes de volver a disparar.</p>" +
       "<p><strong>Esquiva.</strong> Dos veces por ronda, pulsa Q o D (o A/E) para lanzarte a un lado. Puedes disparar durante la voltereta, pero tu puntería tiembla mucho. Si tu rival dispara durante tu esquiva, falla. Si espera al final, estás a su merced.</p>" +
       "<p><strong>Cuidado con el sol.</strong> Destellos aleatorios pueden cegarte antes de la señal: aparta la vista del sol. Y ojo con los cuervos y los postigos que golpean: no todo suena como la campana.</p>" +
@@ -761,8 +761,8 @@ const STRINGS = {
     helpTitle: "Spielanleitung",
     helpHtml:
       "<p><strong>Warte auf das Signal.</strong> Vor der Glocke zu schießen ist ein Frühstart: Runde verloren.</p>" +
-      "<p><strong>Beim Signal: ziehen.</strong> Das Ziehen verreißt dein Zielen: fange das Ziel mit der Maus ein und klicke zum Schießen. Ein Kopfschuss tötet sofort, ein Körpertreffer verwundet (zwei Wunden töten). Der Hut zählt nicht… aber er fliegt.</p>" +
-      "<p><strong>Dein Arm atmet.</strong> Das Fadenkreuz schwankt ständig, direkt nach dem Ziehen noch stärker. Lerne, in der Ruhephase zu schießen.</p>" +
+      "<p><strong>Beim Signal: ziehen.</strong> Dein Revolver kommt tief aus dem Holster: bring ihn selbst aufs Ziel und klicke zum Schießen - kein Glück, reines Können. Jeder Schuss reißt dein Zielen nach oben. Ein Kopfschuss tötet sofort, ein Körpertreffer verwundet (zwei Wunden töten). Der Hut zählt nicht… aber er fliegt.</p>" +
+      "<p><strong>Dein Arm atmet.</strong> Das Fadenkreuz schwankt in einem langsamen, gleichmäßigen Rhythmus, den man lernen kann. Der Wind drückt es zur Seite - halte dagegen.</p>" +
       "<p><strong>Danebenschießen kostet.</strong> Nach einem Fehlschuss musst du nachladen, bevor du wieder feuern kannst.</p>" +
       "<p><strong>Ausweichen.</strong> Zweimal pro Runde: drücke Q oder D (oder A/E), um zur Seite zu hechten. Du kannst während der Rolle schießen, aber dein Zielen zittert stark. Schießt dein Gegner während deiner Rolle, verfehlt er. Wartet er sie ab, bist du ihm ausgeliefert.</p>" +
       "<p><strong>Achte auf die Sonne.</strong> Zufällige Blendungen können dich vor dem Signal blenden: schau von der Sonne weg. Und Vorsicht vor Krähen und schlagenden Fensterläden: nicht alles klingt wie die Glocke.</p>" +
@@ -1011,8 +1011,8 @@ const STRINGS = {
     helpTitle: "Como jogar",
     helpHtml:
       "<p><strong>Espere o sinal.</strong> Atirar antes do sino é um saque antecipado: rodada perdida.</p>" +
-      "<p><strong>No sinal, saque.</strong> Sacar desvia sua mira: alcance o alvo com o mouse e clique para atirar. Um tiro na cabeça mata na hora, um tiro no corpo fere (duas feridas matam). O chapéu não conta… mas voa.</p>" +
-      "<p><strong>Seu braço respira.</strong> A mira flutua o tempo todo, ainda mais logo após o saque. Aprenda a atirar na pausa do balanço.</p>" +
+      "<p><strong>No sinal, saque.</strong> Seu revólver sai do coldre apontando baixo: leve-o você mesmo até o alvo e clique para atirar - nada de sorte, pura habilidade. Cada tiro levanta sua mira. Um tiro na cabeça mata na hora, um tiro no corpo fere (duas feridas matam). O chapéu não conta… mas voa.</p>" +
+      "<p><strong>Seu braço respira.</strong> A mira oscila num ritmo lento e regular que se aprende. O vento a empurra de lado - compense contra ele.</p>" +
       "<p><strong>Errar custa caro.</strong> Depois de um tiro errado, é preciso recarregar antes de atirar de novo.</p>" +
       "<p><strong>Esquive.</strong> Duas vezes por rodada, aperte Q ou D (ou A/E) para mergulhar para o lado. Você ainda pode atirar durante o rolamento, mas sua mira treme muito. Se o oponente atirar durante sua esquiva, ele erra. Se ele esperar o fim, você está à mercê dele.</p>" +
       "<p><strong>Cuidado com o sol.</strong> Clarões aleatórios podem cegar você antes do sinal: desvie o olhar do sol. E atenção aos corvos e janelas batendo: nem tudo soa como o sino.</p>" +
@@ -1261,8 +1261,8 @@ const STRINGS = {
     helpTitle: "Как играть",
     helpHtml:
       "<p><strong>Жди сигнала.</strong> Выстрел до колокола - фальстарт: раунд проигран.</p>" +
-      "<p><strong>По сигналу выхватывай.</strong> Выхватывание сбивает прицел: поймай цель мышью и кликни, чтобы выстрелить. Выстрел в голову убивает сразу, в тело - ранит (две раны убивают). Шляпа не считается… но улетает.</p>" +
-      "<p><strong>Твоя рука дышит.</strong> Прицел плавает постоянно, а сразу после выхватывания - ещё сильнее. Учись стрелять в паузе колебания.</p>" +
+      "<p><strong>По сигналу выхватывай.</strong> Револьвер выходит из кобуры, глядя вниз: сам подними его на цель и кликни, чтобы выстрелить - никакой удачи, чистое мастерство. Каждый выстрел подбрасывает прицел вверх. Выстрел в голову убивает сразу, в тело - ранит (две раны убивают). Шляпа не считается… но улетает.</p>" +
+      "<p><strong>Твоя рука дышит.</strong> Прицел плавает в медленном, ровном ритме, который можно выучить. Ветер сносит его вбок - компенсируй.</p>" +
       "<p><strong>Промах дорого стоит.</strong> После промаха нужно перезарядиться, прежде чем стрелять снова.</p>" +
       "<p><strong>Уклоняйся.</strong> Дважды за раунд жми Q или D (или A/E), чтобы нырнуть в сторону. Во время кувырка можно стрелять, но прицел сильно трясётся. Если противник стреляет во время твоего кувырка - он промахнётся. Если дождётся конца - ты в его власти.</p>" +
       "<p><strong>Берегись солнца.</strong> Случайные блики могут ослепить тебя до сигнала: отводи взгляд от солнца. И остерегайся ворон и хлопающих ставней: не всё звучит как колокол.</p>" +
@@ -1511,8 +1511,8 @@ const STRINGS = {
     helpTitle: "Nasıl oynanır",
     helpHtml:
       "<p><strong>Sinyali bekle.</strong> Çandan önce ateş etmek erken çekmektir: raunt kaybedilir.</p>" +
-      "<p><strong>Sinyalde silahını çek.</strong> Silah çekmek nişanını kaydırır: hedefi fareyle yakala ve ateş etmek için tıkla. Kafaya isabet anında öldürür, gövdeye isabet yaralar (iki yara öldürür). Şapka sayılmaz… ama uçar.</p>" +
-      "<p><strong>Kolun nefes alır.</strong> Nişangah sürekli salınır, silah çektikten hemen sonra daha da fazla. Salınımın durulduğu anda ateş etmeyi öğren.</p>" +
+      "<p><strong>Sinyalde silahını çek.</strong> Revolverin kılıftan aşağı bakarak çıkar: onu hedefe kendin kaldır ve ateş etmek için tıkla - şans yok, saf beceri. Her atış nişanını yukarı teper. Kafaya isabet anında öldürür, gövdeye isabet yaralar (iki yara öldürür). Şapka sayılmaz… ama uçar.</p>" +
+      "<p><strong>Kolun nefes alır.</strong> Nişangah yavaş ve düzenli bir ritimle salınır - öğrenilebilir. Rüzgar onu yana iter - karşı koy.</p>" +
       "<p><strong>Iskalamak pahalıya patlar.</strong> Iskaladıktan sonra tekrar ateş etmeden önce şarjör doldurman gerekir.</p>" +
       "<p><strong>Kaç.</strong> Her raunt iki kez, yana atlamak için Q veya D'ye (ya da A/E) bas. Yuvarlanırken ateş edebilirsin ama nişanın çok titrer. Rakibin yuvarlanman sırasında ateş ederse ıskalar. Sonunu beklerse, insafına kalırsın.</p>" +
       "<p><strong>Güneşe dikkat.</strong> Rastgele parlamalar sinyalden önce gözünü alabilir: güneşten başka yöne bak. Kargalara ve çarpan kepenklere de dikkat: her ses çan değildir.</p>" +

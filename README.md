@@ -2,7 +2,7 @@
 
 ![High Noon](docs/logo.png)
 
-**High Noon** est un duel de western 1v1 en 3D à la première personne, jouable dans le navigateur. Attends la cloche, dégaine, vise et tire avant l'adversaire. En duel classé contre un autre joueur, contre un ami par lien d'invitation, ou contre trois pistoleros contrôlés par l'IA.
+**High Noon** est un western 1v1 en 3D à la première personne, jouable dans le navigateur - et la ville est le menu : ton pistolero s'y déplace en caméra pour chaque action, sans aucun écran intermédiaire. Attends la cloche, dégaine depuis le holster, remonte ta visée et tire avant l'adversaire - en duel classé, entre amis, dans le mode histoire ou aux mini-jeux.
 
 ![Version](https://img.shields.io/badge/version-v1.3-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
@@ -15,13 +15,13 @@
 
 ## 📷 Screenshots
 
-| Menu principal | Gameplay |
+| La ville (accueil) | Duel |
 |:-:|:-:|
-| ![Menu](docs/screenshot_menu.png) | ![Gameplay](docs/screenshot_game.png) |
+| ![Ville](docs/screenshot_menu.png) | ![Duel](docs/screenshot_game.png) |
 
-| Face-à-face | Camp d'entraînement |
+| Boutique | Défense de diligence |
 |:-:|:-:|
-| ![Face-à-face](docs/screenshot_faceoff.png) | ![Camp d'entraînement](docs/screenshot_training.png) |
+| ![Boutique](docs/screenshot_shop.png) | ![Diligence](docs/screenshot_coach.png) |
 
 
 
@@ -38,7 +38,7 @@ Aucune installation : le jeu tourne directement dans le navigateur, sur ordinate
 - **La présentation du duel** : en ligne, un écran **« Adversaire trouvé »** annonce le rival par-dessus le matchmaking ; puis une présentation **face-à-face** montre les deux pistoleros (portrait 3D, pseudo et rang) séparés par un grand **VS**, suivie d'une **intro dans l'arène** où les deux pistoleros s'avancent l'un vers l'autre (vraie animation de marche, caméra qui resserre sur les têtes, pseudo affiché au-dessus). Contre l'IA, la présentation s'enchaîne directement, sans annonce.
 - **Le signal** : tirer avant la cloche = tir anticipé, manche perdue.
 - **La visée compte** : une balle dans la tête tue net, une balle dans le corps blesse (deux blessures tuent). Un tir manqué impose un rechargement.
-- **Le dégainé désaxe la visée** : au signal, le viseur remonte avec un décalage aléatoire et flotte en permanence (respiration du bras) - il faut rattraper la cible avant de tirer.
+- **Le dégainé au skill** : au signal, ton revolver sort du holster en visant bas - c'est à toi de le remonter sur la cible, **sans aucun aléa**. Chaque tir applique un recul à compenser, la respiration du bras suit un rythme lent et régulier qui s'apprend, et en rafales le vent pousse la visée de façon constante à contrer. Impossible de « preshot » : la visée repart du holster à chaque manche.
 - **L'esquive** : 2 pas de côté par manche (touches Q/D ou A/E). C'est un vrai pas latéral qui te **déplace pour de bon** - tu restes décalé, tu ne reviens pas à ta position. On peut tirer pendant l'esquive, mais le viseur tremble fort. Si l'adversaire tire pendant ton pas de côté, il rate. S'il attend la fin, tu es à sa merci.
 - **Le soleil aveugle** : des éblouissements aléatoires peuvent te blinder avant le signal si tu regardes dans sa direction. Détourne les yeux pour t'en protéger.
 - **La brume cache** : par bancs, elle dissimule l'adversaire par intermittence puis se dissipe - pareil pour les deux joueurs en ligne.
@@ -91,17 +91,29 @@ Le perdant d'une manche choisit un avantage parmi trois tirés au hasard, pour l
 
 
 
-### 🤖 Adversaires IA
+### 📖 Mode histoire : la piste de la légende
 
-| Pistolero | Style |
-|--|-|
-| 🤠 Billy la Gâchette | Très rapide, mais craque sous la pression |
-| 🌵 El Rápido | Le plus rapide de l'Ouest, vise la tête |
-| 🥃 Doc Silence | Lent au signal, mais ne rate jamais une faute |
+Six chapitres scénarisés, chacun avec ses conditions imposées et sa réplique d'intro :
 
-Chaque pistolero IA arbore une **tenue qui lui est propre** (couleurs, arme et accessoires signature), introuvable en boutique. Un quatrième pistolero, **Old Jed**, ne se rencontre qu'au camp d'entraînement.
+| Chapitre | Adversaire | Gimmick |
+|--|--|--|
+| 1. Le Camp | 🎯 Old Jed | Le tutoriel du dégainé |
+| 2. La Gâchette Facile | 🤠 Billy la Gâchette | Il tire le premier… parfois trop tôt |
+| 3. Bourrasques | 🌵 El Rápido | Bout portant, dans le vent |
+| 4. Duel au crépuscule | 🥃 Doc Silence | De nuit, il punit chaque esquive |
+| 5. La brume de Grace | 🕯️ Sœur Grace | Brouillard, une balle une prière |
+| 6. Le Croque-Mort | ⚰️ Boss final | Longue distance, gilet et œil d'aigle d'office |
+
+Chaque pistolero arbore une **tenue signature** introuvable en boutique. Les chapitres battus restent rejouables, la progression est sauvegardée (et suit ton compte CrazyGames).
 
 Si un adversaire en ligne quitte ou reste inactif, la manche n'est plus bloquée : **victoire par forfait** accordée automatiquement.
+
+### 🎪 Mini-jeux
+
+Au stand de tir, à la sortie de la ville :
+
+- **Tir aux corbeaux** : 45 secondes, un ciel plein de corbeaux, barillet 6 coups. En solo… ou en **1v1 en ligne** : les deux joueurs tirent sur exactement la même volée (graine partagée) et les scores s'affichent en direct.
+- **Défense de diligence** : trois vagues de bandits surgissent derrière les caisses et télégraphient leur tir - abats-les avant qu'ils ne criblent la diligence (8 balles et c'est fini).
 
 
 
@@ -159,9 +171,17 @@ Un clic sur la carte joueur (en haut à gauche de l'accueil) ouvre le profil en 
 
 Un **panneau Défis**, à droite de l'accueil, propose 3 objectifs **quotidiens** et 3 **hebdomadaires** - générés de façon déterministe à partir de la date (identiques pour tous les joueurs), avec barre de progression et récompense en pièces à réclamer. La progression est suivie **côté serveur** (table `challenge_progress` + RPC `challenge_state` / `claim_challenge`, protégés par RLS et incrémentés à la fin de chaque duel) et se réinitialise à chaque période. Objectifs types : jouer X duels, en gagner X, gagner X duels classés, placer X tirs à la tête, toucher X fois.
 
-## 🏠 Accueil
+## 🏘️ La ville-menu
 
-L'accueil reprend les standards du genre, rangés proprement : barre d'amis à gauche, panneau de défis à droite, bouton **Notes de version** (historique des mises à jour daté), compteur de **joueurs en ligne** (présence Supabase en temps réel), et un pied de page **Conditions / Confidentialité** (modale). Les pièces sont affichées en permanence en haut à droite. Chaque action a son bruitage synthétisé (clics, équipement, pièces, roue).
+Plus d'écrans de menu : l'accueil est **la rue d'une ville western vivante**, ton pistolero au centre et les boutons d'action à gauche. Chaque clic se joue en caméra :
+
+- **Duel classé** : le perso prend la route et attend l'adversaire (camp d'entraînement disponible pendant la recherche).
+- **Boutique** : direction le General Store, la roue s'ouvre devant la vitrine.
+- **Classement** : le panneau WANTED près du sheriff.
+- **Profil / garde-robe** : le miroir devant l'hôtel - l'équipement change en direct sur le personnage.
+- **Mini-jeux** : le stand de tir à la sortie de la ville.
+
+La ville respire : PNJ qui déambulent, chevaux à l'attache qui hennissent, corbeaux qui tournoient, linge au vent, fumée de cheminée, rocking-chair, lanternes, tumbleweed. Les barres d'amis (🤝) et de défis (🎯) s'ouvrent en tiroirs par-dessus, le compteur de **joueurs en ligne** et les pièces restent visibles, et le pied de page garde Conditions / Confidentialité.
 
 ## 🎡 La roue du destin
 
@@ -205,16 +225,21 @@ Le duel en ligne, les comptes et le classé demandent un projet [Supabase](https
 high-noon/
 ├── index.html         # Écrans HTML (menus, HUD, aide)
 ├── src/
-│   ├── main.js        # Point d'entrée, menus, i18n, audio
+│   ├── main.js        # Point d'entrée, hub, i18n, audio
 │   ├── duel.js         # Machine à états du duel (signal, tir, esquive, manches)
+│   ├── town.js         # Contrôleur du hub (caméra, déplacements du perso)
+│   ├── town3d.js       # Décor de la ville : bâtiments, PNJ, chevaux, ambiance
+│   ├── story.js        # Chapitres du mode histoire et progression
+│   ├── gallery.js      # Mini-jeux : tir aux corbeaux et défense de diligence
 │   ├── ai.js           # Personnalités et comportement de l'IA
-│   ├── net.js          # Matchmaking (casual + classé) et protocole réseau
+│   ├── net.js          # Matchmaking (classé + mini-jeux) et protocole réseau
 │   ├── account.js      # Comptes, profil, rang, pièces, amis (Supabase)
 │   ├── skins.js        # Catalogue de tenues et portraits 3D générés
 │   ├── pages.js        # Notes de version et textes légaux (7 langues)
 │   ├── sdk.js          # Intégration du SDK CrazyGames
 │   ├── scene.js        # Arène 3D, éclairages, modificateurs de manche
-│   ├── cowboy.js        # Personnage adverse et ses animations
+│   ├── revolver.js     # Modèle de revolver single-action partagé
+│   ├── cowboy.js        # Personnages articulés et leurs animations
 │   ├── viewmodel.js    # Revolver en vue subjective
 │   ├── audio.js        # Moteur audio (effets sonores synthétisés)
 │   ├── music.js        # Musique d'ambiance synthétisée
