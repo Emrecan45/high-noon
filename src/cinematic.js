@@ -121,6 +121,22 @@ export class Cinematic {
     return this.bodies[name];
   }
 
+  seatY(mode) {
+    return mode === "floor" ? -0.55 : -0.34;
+  }
+
+  faceActor(name, target) {
+    const body = this.body(name);
+    let v;
+    if (typeof target === "string") {
+      v = this.body(target).group.position;
+    } else {
+      v = this.resolve(target);
+    }
+    const pos = body.group.position;
+    body.group.rotation.y = Math.atan2(v.x - pos.x, v.z - pos.z);
+  }
+
   setFade(target, dur) {
     const overlay = el("fade-overlay");
     overlay.style.transition = "opacity " + dur + "s";
@@ -169,23 +185,35 @@ export class Cinematic {
       for (const p of [].concat(step.place)) {
         const body = this.body(p.actor);
         const v = this.resolve(p.at);
-        body.group.position.set(v.x, p.y !== undefined ? p.y : 0, v.z);
-        if (p.ry !== undefined) {
+          body.group.position.set(v.x, p.y !== undefined ? p.y : 0, v.z);
+          this.walks = this.walks.filter(function(task) { return task.actor !== p.actor; });
+          if (p.ry !== undefined) {
           body.group.rotation.y = p.ry;
         }
         if (p.seated) {
           body.setSeated(true);
-          body.group.position.y = -0.34;
+          body.group.position.y = this.seatY(p.seated);
+        }
+        if (p.dig !== undefined) {
+          body.setDig(p.dig);
         }
         body.group.visible = p.hidden !== true;
+      }
+      for (const p of [].concat(step.place)) {
+        if (p.face !== undefined) {
+          this.faceActor(p.actor, p.face);
+        }
       }
     }
     if (step.pose !== undefined) {
       for (const p of [].concat(step.pose)) {
         const body = this.body(p.actor);
         if (p.seated !== undefined) {
-          body.setSeated(p.seated);
-          body.group.position.y = p.seated ? -0.34 : 0;
+          body.setSeated(!!p.seated);
+          body.group.position.y = p.seated ? this.seatY(p.seated) : 0;
+        }
+        if (p.dig !== undefined) {
+          body.setDig(p.dig);
         }
         if (p.draw === true) {
           body.playDraw();
@@ -194,7 +222,7 @@ export class Cinematic {
           body.playHolster();
         }
         if (p.dead === true) {
-          body.playDeath(this.arena.scene);
+          body.playDeath(this.arena.scene, p.rest);
         }
         if (p.flinch === true) {
           body.playFlinch();
@@ -210,6 +238,9 @@ export class Cinematic {
         }
         if (p.ry !== undefined) {
           body.group.rotation.y = p.ry;
+        }
+        if (p.face !== undefined) {
+          this.faceActor(p.actor, p.face);
         }
       }
     }
@@ -228,7 +259,8 @@ export class Cinematic {
           body: body,
           to: to,
           speed: w.speed || WALK_SPEED,
-          endRy: w.endRy
+          endRy: w.endRy,
+          endFace: w.endFace
         });
       }
     }
@@ -245,6 +277,13 @@ export class Cinematic {
     if (step.music !== undefined && this.music !== null) {
       this.music.setMode(step.music);
     }
+    if (step.doors !== undefined && this.arena.interiors.setSaloonDoors !== undefined) {
+      if (step.doors === "open") this.arena.interiors.setSaloonDoors(true);
+      else if (step.doors === "close") this.arena.interiors.setSaloonDoors(false);
+      else if (step.doors === true) {
+        this.arena.interiors.setSaloonDoors(false); // trigger swing back
+      }
+    }
     if (step.call !== undefined) {
       step.call();
     }
@@ -256,7 +295,17 @@ export class Cinematic {
   beginSay(say) {
     const box = el("cine-say");
     box.classList.remove("hidden");
-    el("cine-say-name").textContent = say.name !== undefined ? say.name : (this.actorsSpec[say.actor] ? this.actorsSpec[say.actor].name : "");
+    const nameEl = el('cine-say-name');
+    let nameStr;
+    if (say.name !== undefined && say.name !== "") {
+      nameStr = say.name;
+    } else if (say.actor && this.actorsSpec[say.actor] && this.actorsSpec[say.actor].name) {
+      nameStr = this.actorsSpec[say.actor].name;
+    } else {
+      nameStr = "?";
+    }
+    nameEl.style.display = "block";
+    nameEl.textContent = nameStr;
     el("cine-say-text").textContent = "";
     el("cine-say-more").classList.add("hidden");
     if (this.talker !== null && this.bodies[this.talker]) {
@@ -381,6 +430,9 @@ export class Cinematic {
         task.body.setWalk(false);
         if (task.endRy !== undefined) {
           task.body.group.rotation.y = task.endRy;
+        }
+        if (task.endFace !== undefined) {
+          this.faceActor(task.actor, task.endFace);
         }
         this.walks.splice(i, 1);
         continue;

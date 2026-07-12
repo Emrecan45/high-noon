@@ -193,6 +193,24 @@ export function createArena(container) {
 
   let windy = false;
   let elapsed = 0;
+  const dustMat = new THREE.MeshBasicMaterial({ color: 0xd8b98a, transparent: true, opacity: 0.5 });
+  const dustGeo = new THREE.BoxGeometry(1, 0.02, 0.02);
+  const dusts = [];
+  for (let i = 0; i < 70; i++) {
+    const streak = new THREE.Mesh(dustGeo, dustMat);
+    streak.visible = false;
+    scene.add(streak);
+    dusts.push({ mesh: streak, speed: 0, baseY: 0, phase: Math.random() * 10, active: false });
+  }
+
+  function resetDust(d, fresh) {
+    d.active = true;
+    d.speed = 9 + Math.random() * 8;
+    d.baseY = 0.15 + Math.random() * 2.4;
+    d.mesh.visible = true;
+    d.mesh.scale.x = 0.6 + Math.random() * 1.3;
+    d.mesh.position.set(fresh ? -32 - Math.random() * 6 : -32 + Math.random() * 64, d.baseY, -34 + Math.random() * 54);
+  }
   let isFoggy = false;
   let fogFarNormal = 22;
   let fogFarThick = 22;
@@ -322,6 +340,21 @@ export function createArena(container) {
   function update(dt) {
     elapsed += dt;
     updateBursts(dt);
+    for (const d of dusts) {
+      if (windy) {
+        if (!d.active) {
+          resetDust(d, false);
+        }
+        d.mesh.position.x += d.speed * dt;
+        d.mesh.position.y = d.baseY + Math.sin(elapsed * 2.2 + d.phase) * 0.25;
+        if (d.mesh.position.x > 34) {
+          resetDust(d, true);
+        }
+      } else if (d.active) {
+        d.active = false;
+        d.mesh.visible = false;
+      }
+    }
     town.update(dt);
     interiors.update(dt);
     let interval = 8;
@@ -377,6 +410,7 @@ export function createArena(container) {
     interactables: town.interactables,
     interiors: interiors,
     setTownLabels: town.setLabels,
+      setWalkersVisible: town.setWalkersVisible,
     setRangeProps: town.setRangeProps,
     refreshBoard: town.refreshBoard,
     applyModifier: applyModifier,

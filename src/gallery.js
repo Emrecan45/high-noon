@@ -4,10 +4,8 @@ import { createCowboy } from "./cowboy.js";
 import { t } from "./i18n.js";
 
 const BIRD_DURATION = 45;
-const CYLINDER = 6;
 const RELOAD_TIME = 1.3;
-const COCK_TIME = 0.42;
-const COACH_HP = 8;
+const LIVES = 2;
 const WAVES = [3, 4, 5];
 const COVERS = [
   [-4.5, 21],
@@ -17,15 +15,18 @@ const COVERS = [
   [4.2, 28]
 ];
 const BANK_COVERS = [
-  [78.4, -101.1],
-  [81.6, -101.1],
+  [76.9, -98.4],
   [82.9, -98.3],
-  [78.1, -97.6]
+  [78.1, -97.5],
+  [79.2, -96.9],
+  [80.8, -96.9]
 ];
+const TOWN_COVERS = [[-6.2, -2.5], [-6.2, -11.5], [5.8, -7.5], [6.4, 6.4], [6.2, 1.4]];
 const BANK_HOSTAGES = [
-  [77.2, -99.1, 2.4],
-  [82.4, -99.4, -2.3]
+  [75.7, -99.1, 1.25],
+  [84.3, -98.7, -1.25]
 ];
+const BANK_CLERK = { at: [77.1, -101.6], ry: 0.35, skin: { skin: 0xe0b287, shirt: 0x8a4a5c, pants: 0x2c2418, hat: 0x5a4020, bandana: 0xd8b13c } };
 const BANDIT_SKIN = { skin: 0xb5825a, shirt: 0x23211f, pants: 0x1c1a18, hat: 0x141210, bandana: 0xb3271e };
 const HOSTAGE_SKINS = [
   { skin: 0xd9a06b, shirt: 0x8a6a3c, pants: 0x3a2a18, hat: 0x5a4020, bandana: 0x2e6b4f },
@@ -66,10 +67,9 @@ export class Gallery {
     this.finished = false;
     this.locked = false;
     this.listeners = [];
-    this.baseYaw = deps.mode === "bank" ? 0 : Math.PI;
+    this.baseYaw = deps.mode === "town" ? 0 : Math.PI;
     this.aimYaw = this.baseYaw;
     this.aimPitch = 0.08;
-    this.shots = CYLINDER;
     this.busyUntil = 0;
     this.time = 0;
     this.score = 0;
@@ -85,7 +85,7 @@ export class Gallery {
     this.bandits = [];
     this.hostages = [];
     this.wave = 0;
-    this.coachHp = deps.mode === "bank" ? 6 : COACH_HP;
+    this.coachHp = LIVES;
     this.pendingWave = 1.5;
     this.shake = 0;
   }
@@ -99,8 +99,10 @@ export class Gallery {
     const self = this;
     const rig = this.arena.playerRig;
     if (this.mode === "bank") {
-      rig.position.set(80, 1.6, -97);
+      rig.position.set(78.4, 1.6, -101.6);
       this.arena.interiors.show("bank");
+    } else if (this.mode === "town") {
+      rig.position.set(0.6, 1.6, 8);
     } else {
       rig.position.set(0.6, 1.6, 12.4);
     }
@@ -116,6 +118,8 @@ export class Gallery {
       tag = t("mgBirdsName");
     } else if (this.mode === "bank") {
       tag = t("mgBankName");
+    } else if (this.mode === "town") {
+      tag = t("mgTownName");
     }
     this.ui.setOppTag(tag.toUpperCase());
     this.ui.crosshair(true);
@@ -167,7 +171,7 @@ export class Gallery {
         self.onFire();
       });
     } else {
-      this.ui.showScreen("lock-prompt");
+      this.tryLock(canvas);
     }
 
     if (this.net !== null) {
@@ -187,12 +191,54 @@ export class Gallery {
       });
     }
 
-    if (this.mode === "coach" || this.mode === "bank") {
+    if (this.mode === "coach" || this.mode === "bank" || this.mode === "town") {
       this.setupBandits();
     }
     if (this.mode === "bank") {
       this.setupHostages();
     }
+  }
+
+  tryLock(canvas) {
+    const self = this;
+    try {
+      canvas.requestPointerLock();
+    } catch (err) {}
+    setTimeout(function () {
+      if (!self.locked && !self.disposed && !self.finished) {
+        self.ui.showScreen("lock-prompt");
+      }
+    }, 450);
+  }
+
+  coverPool() {
+    if (this.mode === "bank") {
+      return BANK_COVERS;
+    }
+    if (this.mode === "town") {
+      return TOWN_COVERS;
+    }
+    return COVERS;
+  }
+
+  winDetail() {
+    if (this.mode === "bank") {
+      return t("mgBankWin");
+    }
+    if (this.mode === "town") {
+      return t("mgTownWin");
+    }
+    return t("mgCoachWin");
+  }
+
+  loseDetail() {
+    if (this.mode === "bank") {
+      return t("mgBankLose");
+    }
+    if (this.mode === "town") {
+      return t("mgTownLose");
+    }
+    return t("mgCoachLose");
   }
 
   setupBandits() {
@@ -218,6 +264,14 @@ export class Gallery {
       this.arena.scene.add(hostage.group);
       this.hostages.push(hostage);
     }
+    const clerk = createCowboy();
+    clerk.setSkin(BANK_CLERK.skin);
+    clerk.setAccessories([]);
+    clerk.setSeated(true);
+    clerk.group.position.set(BANK_CLERK.at[0], -0.55, BANK_CLERK.at[1]);
+    clerk.group.rotation.y = BANK_CLERK.ry;
+    this.arena.scene.add(clerk.group);
+    this.hostages.push(clerk);
   }
 
   applyAim(dx, dy, sens) {
@@ -234,18 +288,9 @@ export class Gallery {
     if (this.time * 1000 < this.busyUntil) {
       return;
     }
-    this.shots -= 1;
     this.viewmodel.shoot();
     this.audio.gunshot();
     this.shake = 0.8;
-    if (this.shots <= 0) {
-      this.shots = CYLINDER;
-      this.busyUntil = this.time * 1000 + RELOAD_TIME * 1000;
-      this.viewmodel.reload(RELOAD_TIME);
-      this.ui.setGunState(t("reloading"));
-    } else {
-      this.busyUntil = this.time * 1000 + COCK_TIME * 1000;
-    }
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(new THREE.Vector2(0, 0), this.arena.camera);
     if (this.mode === "birds") {
@@ -253,6 +298,14 @@ export class Gallery {
     } else {
       this.fireCoach(raycaster);
     }
+    this.startReload();
+  }
+
+  startReload() {
+    this.busyUntil = this.time * 1000 + RELOAD_TIME * 1000;
+    this.viewmodel.reload(RELOAD_TIME);
+    this.audio.playReload();
+    this.ui.setGunState(t("reloading"));
   }
 
   fireBirds(raycaster) {
@@ -306,13 +359,14 @@ export class Gallery {
     if (hostageDist < banditDist) {
       this.audio.thud();
       this.ui.hitFlash();
+      this.loseReason = "hostage";
       this.finish(t("defeat"), t("mgBankHostage"), false);
       return;
     }
     if (banditHit !== null) {
       banditHit.state = "dying";
       banditHit.timer = 0;
-      banditHit.cowboy.playDeath(this.arena.scene);
+      banditHit.cowboy.playDeath(this.arena.scene, undefined, true);
       this.audio.thud();
       this.score += 1;
       this.ui.setScore(this.score, 0);
@@ -418,7 +472,7 @@ export class Gallery {
         this.pendingWave = null;
         this.wave += 1;
         if (this.wave > WAVES.length) {
-          this.finish(t("victory"), this.mode === "bank" ? t("mgBankWin") : t("mgCoachWin"), true);
+          this.finish(t("victory"), this.winDetail(), true);
           return;
         }
         this.toSpawn = WAVES[this.wave - 1];
@@ -433,24 +487,39 @@ export class Gallery {
         const idle = this.bandits.filter(function (b) {
           return b.state === "hidden";
         });
-        if (idle.length > 0) {
-          const bandit = idle[Math.floor(this.rng() * idle.length)];
-          const pool = this.mode === "bank" ? BANK_COVERS : COVERS;
-          const cover = pool[Math.floor(this.rng() * pool.length)];
-          bandit.cowboy.reset();
-          if (this.mode === "bank") {
-            bandit.cowboy.group.position.set(cover[0], bandit.hideY, cover[1] - 0.15);
-            bandit.cowboy.group.rotation.y = 0;
-          } else {
-            bandit.cowboy.group.position.set(cover[0], bandit.hideY, cover[1] - 0.6);
-            bandit.cowboy.group.rotation.y = Math.PI;
+        const pool = this.coverPool();
+        const taken = this.bandits.map(function (b) {
+          return b.state === "hidden" ? -1 : b.cover;
+        });
+        const free = [];
+        for (let ci = 0; ci < pool.length; ci++) {
+          if (taken.indexOf(ci) === -1) {
+            free.push(ci);
           }
+        }
+        if (idle.length > 0 && free.length > 0) {
+          const bandit = idle[Math.floor(this.rng() * idle.length)];
+          const ci = free[Math.floor(this.rng() * free.length)];
+          const cover = pool[ci];
+          bandit.cover = ci;
+          bandit.cowboy.reset();
+          let bz = cover[1] + 0.6;
+          if (this.mode === "bank") {
+            bz = cover[1] + 0.3;
+          } else if (this.mode === "town") {
+            bz = cover[1] - 0.5;
+          }
+          const rigPos = this.arena.playerRig.position;
+          bandit.cowboy.group.position.set(cover[0], bandit.hideY, bz);
+          bandit.cowboy.group.rotation.y = Math.atan2(rigPos.x - cover[0], rigPos.z - bz);
           bandit.cowboy.group.visible = true;
           bandit.state = "rising";
           bandit.timer = 0;
           this.toSpawn -= 1;
+          this.spawnGap = 1.2 + this.rng() * 1.4;
+        } else {
+          this.spawnGap = 0.4;
         }
-        this.spawnGap = 1.2 + this.rng() * 1.4;
       }
     }
     let allDone = this.toSpawn === 0 && this.pendingWave === null;
@@ -476,7 +545,7 @@ export class Gallery {
           this.ui.setScore(this.score, 0);
           this.ui.hitFlash();
           if (this.coachHp <= 0) {
-            this.finish(t("defeat"), this.mode === "bank" ? t("mgBankLose") : t("mgCoachLose"), false);
+            this.finish(t("defeat"), this.loseDetail(), false);
             return;
           }
         }
@@ -486,12 +555,14 @@ export class Gallery {
           if (bandit.cowboy.group.position.y <= bandit.hideY) {
             bandit.state = "hidden";
             bandit.cowboy.group.visible = false;
+            bandit.cowboy.reset();
           }
         }
       } else if (bandit.state === "dying") {
-        if (bandit.timer > 1.1) {
+        if (bandit.timer > 1.2) {
           bandit.state = "hidden";
           bandit.cowboy.group.visible = false;
+          bandit.cowboy.reset();
         }
       }
       if (bandit.state !== "hidden") {
@@ -501,7 +572,7 @@ export class Gallery {
     }
     if (allDone && this.wave >= 1 && this.pendingWave === null) {
       if (this.wave >= WAVES.length) {
-        this.finish(t("victory"), this.mode === "bank" ? t("mgBankWin") : t("mgCoachWin"), true);
+        this.finish(t("victory"), this.winDetail(), true);
         return;
       }
       this.pendingWave = 2.2;
@@ -555,12 +626,15 @@ export class Gallery {
     if (this.quickEnd !== null) {
       const quick = this.quickEnd;
       const result = this.won;
-      this.ui.setBig(title, this.won ? "gold" : null, 1000);
+      const reason = this.loseReason || null;
+      this.viewmodel.holster();
+      this.ui.setBig(title, this.won ? "gold" : null, 1400);
+      this.ui.setSub(detail);
       setTimeout(function () {
         if (!self.disposed) {
-          quick(result);
+          quick(result, reason);
         }
-      }, 1100);
+      }, 1500);
       return;
     }
     this.ui.matchEnd(title, detail, function () {}, function () {
@@ -583,8 +657,9 @@ export class Gallery {
       this.arena.scene.remove(bird.rig.group);
     }
     this.birds = [];
-    for (const bandit of this.bandits) {
-      this.arena.scene.remove(bandit.cowboy.group);
+    for (const b of this.bandits) {
+      b.cowboy.reset();
+      this.arena.scene.remove(b.cowboy.group);
     }
     this.bandits = [];
     for (const hostage of this.hostages) {
@@ -601,6 +676,7 @@ export class Gallery {
     if (document.pointerLockElement !== null) {
       document.exitPointerLock();
     }
+    this.viewmodel.holster();
     this.ui.hudVisible(false);
     this.ui.crosshair(false);
     this.ui.setBig("", null, 0);

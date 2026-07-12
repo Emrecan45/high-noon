@@ -1530,6 +1530,7 @@ function backToMenu() {
   activeDuel = null;
   setOnlineState("menu");
   resetDuelScene();
+  arena.setRangeProps(true);
   cowboy.group.visible = false;
   town.setActive(true);
   town.warpTo("home");
@@ -1981,6 +1982,8 @@ const storyMode = createStoryMode({
   ui: ui,
   audio: audio,
   music: music,
+  playerBody: playerBody,
+  cowboy: cowboy,
   youSpec: function () {
     const profile = duelProfile();
     return {
@@ -2067,13 +2070,13 @@ const storyMode = createStoryMode({
       mode: opts.mode,
       net: null,
       seed: randomSeed(),
-      quickEnd: function (won) {
+      quickEnd: function (won, reason) {
         const game = activeMinigame;
         activeMinigame = null;
         if (game !== null) {
           game.dispose();
         }
-        opts.onEnd(won);
+        opts.onEnd(won, reason);
       },
       onExit: function () {
         activeMinigame = null;
@@ -2081,7 +2084,7 @@ const storyMode = createStoryMode({
       }
     });
     activeMinigame.start();
-    music.setMode("combat");
+    music.setMode("standoff");
   },
   exitToMenu: function () {
     arena.interiors.hideAll();
@@ -2092,11 +2095,40 @@ const storyMode = createStoryMode({
     arena.interiors.hideAll();
     arena.applyModifier({ id: "noon", sway: 0 }, 19);
     storyXp(index).then(function (res) {
-      let label = t("stChapterDone", { n: index + 1 });
-      if (res !== null && res.xp_gained > 0) {
-        label += " · +" + res.xp_gained + " XP";
+      if (res !== null && res.reward_kind) {
+        let img = "";
+        let itemName = "";
+        if (res.reward_kind === "accessory") {
+          img = accessoryIconDataUrl(res.reward_ref, 96);
+          itemName = t(accessoryById(res.reward_ref).nameKey);
+        } else if (res.reward_kind === "weapon") {
+          img = weaponIconDataUrl(res.reward_ref, 96);
+          itemName = t(weaponById(res.reward_ref).nameKey);
+        }
+        let html = "";
+        if (img !== "") {
+          html += '<img class="popup-badge" src="' + img + '" alt="" />';
+        }
+        if (res.duplicate) {
+          html += "<p>" + t("stRewardDup", { item: itemName, n: res.reward_coins }) + "</p>";
+        } else if (res.reward_kind === "coins") {
+          html += '<div class="popup-prime">+' + res.reward_coins + " 🪙</div>";
+        } else {
+          html += "<p>" + t("stRewardItem", { item: itemName }) + "</p>";
+        }
+        if (res.xp_gained > 0) {
+          html += "<p>+" + res.xp_gained + " XP</p>";
+        }
+        showPopup(t("stChapterDone", { n: index + 1 }), html);
+        renderProfileChip();
+        refreshCoins();
+      } else {
+        let label = t("stChapterDone", { n: index + 1 });
+        if (res !== null && res.xp_gained > 0) {
+          label += " · +" + res.xp_gained + " XP";
+        }
+        showToast(label, null, null, 5000);
       }
-      showToast(label, null, null, 5000);
     });
     if (isLast) {
       storyReward().then(function (res) {

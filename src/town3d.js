@@ -189,10 +189,10 @@ function makeBuilding(spec) {
   return group;
 }
 
-function makeHorse() {
+function makeHorse(coatColor, darkColor) {
   const group = new THREE.Group();
-  const coat = mat(0x5c3a22);
-  const dark = mat(0x35230f);
+  const coat = mat(coatColor || 0x5c3a22);
+  const dark = mat(darkColor || 0x35230f);
   const body = box(0.52, 0.6, 1.35, coat);
   body.position.y = 1.15;
   group.add(body);
@@ -233,12 +233,30 @@ function makeHorse() {
   const tail = box(0.1, 0.62, 0.1, dark);
   tail.position.y = -0.28;
   tailPivot.add(tail);
+
+  const saddleMat = mat(0x3d2817);
+  const saddle = box(0.56, 0.12, 0.5, saddleMat);
+  saddle.position.set(0, 1.48, 0.1);
+  group.add(saddle);
+  const stirrupR = box(0.05, 0.55, 0.12, saddleMat);
+  stirrupR.position.set(0.28, 1.15, 0.1);
+  group.add(stirrupR);
+  const stirrupL = box(0.05, 0.55, 0.12, saddleMat);
+  stirrupL.position.set(-0.28, 1.15, 0.1);
+  group.add(stirrupL);
+
   group.traverse(function (child) {
     if (child.isMesh) {
       child.castShadow = true;
     }
   });
-  return { group: group, neck: neckPivot, tail: tailPivot, legs: legs, phase: Math.random() * 10 };
+    return {
+      group: group,
+      neck: neckPivot,
+      tail: tailPivot,
+      legs: legs,
+      phase: Math.random() * 10
+    };
 }
 
 function makeHitchRail(width) {
@@ -482,7 +500,7 @@ function labelSprite(getText) {
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(draw);
   }
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
   sprite.scale.set(3.4, 0.85, 1);
   sprite.userData.redraw = draw;
   return sprite;
@@ -516,7 +534,7 @@ function makeCrowTarget() {
   const crowBody = box(0.2, 0.16, 0.34, dark);
   crowBody.position.set(0.1, 3.45, 0);
   group.add(crowBody);
-  const crowHead = box(0.12, 0.12, 0.12, dark);
+  const crowHead = box(0.15, 0.12, 0.12, dark);
   crowHead.position.set(0.1, 3.58, 0.16);
   group.add(crowHead);
   const beak = box(0.05, 0.04, 0.1, mat(0xd8b13c, 1));
@@ -812,8 +830,8 @@ export function buildTown(scene, impactTargets) {
   group.add(railStable);
 
   const horses = [];
-  const horseA = makeHorse();
-  horseA.group.position.set(7.6, 0, -4.6);
+  const horseA = makeHorse(0xffffff, 0x8a5a2e);
+  horseA.group.position.set(6.5, 0, 3.1);
   horseA.group.rotation.y = -Math.PI / 2;
   group.add(horseA.group);
   horses.push(horseA);
@@ -867,8 +885,8 @@ export function buildTown(scene, impactTargets) {
 
   const walkers = [];
   const walkerPaths = [
-    { from: new THREE.Vector3(-4.3, 0, 6), to: new THREE.Vector3(-4.3, 0, -22), speed: 1.15 },
-    { from: new THREE.Vector3(4.3, 0, -18), to: new THREE.Vector3(4.3, 0, 4), speed: 1.0 }
+    { from: new THREE.Vector3(-5.2, 0.15, -4), to: new THREE.Vector3(-5.2, 0.15, -26), speed: 1.15 },
+    { from: new THREE.Vector3(5.3, 0.15, -22), to: new THREE.Vector3(5.3, 0.15, 0), speed: 1.0 }
   ];
   for (let i = 0; i < walkerPaths.length; i++) {
     const npc = createCowboy();
@@ -1065,6 +1083,12 @@ export function buildTown(scene, impactTargets) {
     }
   };
 
+  function setWalkersVisible(v) {
+    for (const w of walkers) {
+      w.cowboy.group.visible = v;
+    }
+  }
+
   return {
     update: update,
     anchors: anchors,
@@ -1072,6 +1096,7 @@ export function buildTown(scene, impactTargets) {
     interactables: interactables,
     setLabels: setLabels,
     setRangeProps: setRangeProps,
-    refreshBoard: refreshBoard
+    refreshBoard: refreshBoard,
+    setWalkersVisible: setWalkersVisible
   };
 }

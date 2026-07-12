@@ -6,7 +6,7 @@ export const PERSONAS = [
   {
     id: "nervous",
     icon: "🤠",
-    name: "Billy la Gâchette",
+    name: "Billy the Kid",
     descKey: "persona.nervous.desc",
     reaction: [275, 375],
     aim: [290, 430],
@@ -19,7 +19,7 @@ export const PERSONAS = [
   {
     id: "rapido",
     icon: "🌵",
-    name: "El Rápido",
+    name: "John Wesley Hardin",
     descKey: "persona.rapido.desc",
     reaction: [245, 315],
     aim: [260, 370],
@@ -32,7 +32,7 @@ export const PERSONAS = [
   {
     id: "patient",
     icon: "🥃",
-    name: "Doc Silence",
+    name: "Tom Horn",
     descKey: "persona.patient.desc",
     reaction: [355, 455],
     aim: [300, 420],
@@ -48,7 +48,7 @@ export const STORY_PERSONAS = {
   grace: {
     id: "grace",
     icon: "🕯️",
-    name: "Sœur Grace",
+    name: "RévéPasteur Silas",
     descKey: "persona.grace.desc",
     reaction: [385, 475],
     aim: [330, 430],
@@ -61,7 +61,7 @@ export const STORY_PERSONAS = {
   undertaker: {
     id: "undertaker",
     icon: "⚰️",
-    name: "Le Croque-Mort",
+    name: "Jesse James",
     descKey: "persona.undertaker.desc",
     reaction: [255, 330],
     aim: [250, 340],

@@ -38,6 +38,7 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
 
   function setActive(value) {
     active = value;
+    arena.setWalkersVisible(value);
     if (active) {
       playerBody.group.visible = true;
     }

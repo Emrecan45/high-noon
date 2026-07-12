@@ -3,13 +3,19 @@ import desertUrl from "./assets/audio/music_desert.mp3";
 import saloonUrl from "./assets/audio/piano_saloon.ogg";
 import frontierUrl from "./assets/audio/music_frontier.mp3";
 import missionUrl from "./assets/audio/music_mission.ogg";
+import townUrl from "./assets/audio/music_town.ogg";
+import saloon2Url from "./assets/audio/music_saloon2.ogg";
+import standoffUrl from "./assets/audio/music_standoff.ogg";
 
 const TRACKS = {
   menu: { url: desertUrl, gain: 0.85 },
   combat: { url: combatUrl, gain: 0.8 },
   saloon: { url: saloonUrl, gain: 0.7 },
   frontier: { url: frontierUrl, gain: 0.75 },
-  mission: { url: missionUrl, gain: 0.75 }
+  mission: { url: missionUrl, gain: 0.75 },
+  town: { url: townUrl, gain: 0.8 },
+  saloon2: { url: saloon2Url, gain: 0.7 },
+  standoff: { url: standoffUrl, gain: 0.8 }
 };
 
 export function createMusic(audio) {

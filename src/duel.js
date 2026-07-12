@@ -266,7 +266,9 @@ export class Duel {
         self.onDodge(1);
       });
     } else {
-      this.ui.showScreen("lock-prompt");
+      try {
+        canvas.requestPointerLock();
+      } catch (err) {}
     }
 
     if (this.net !== null && this.net !== undefined) {
@@ -372,12 +374,31 @@ export class Duel {
         this.onCombat();
       }
     }
+    this.prepareArenaCinematic();
     this.ui.duelIntro(info, 3200, function () {
       if (self.disposed || self.state === "matchend") {
         return;
       }
       self.startArenaCinematic();
     });
+  }
+
+  prepareArenaCinematic() {
+    if (this.playerBody === null) {
+      return;
+    }
+    this.arena.opponentAnchor.position.set(0, 0, OPP_START_Z);
+    this.cowboy.reset();
+    this.cowboy.setWalk(false);
+    this.playerBody.reset();
+    this.playerBody.setSkin(skinById(this.myProfile.skin).colors);
+    this.playerBody.setWeapon(weaponById(this.myProfile.weapon).colors);
+    this.playerBody.setAccessories(this.myProfile.acc);
+    this.playerBody.group.position.set(0, 0, YOU_START_Z);
+    this.playerBody.group.rotation.set(0, Math.PI, 0);
+    this.playerBody.group.visible = true;
+    this.playerBody.setWalk(false);
+    this.placeCamera(4.2, 3.2, 2.6, 0, 1.4, 1.8);
   }
 
   startArenaCinematic() {
@@ -405,12 +426,13 @@ export class Duel {
     document.getElementById("cine-you-title").textContent = this.ptsLabel(this.myProfile.elo);
     document.getElementById("cine-opp-name").textContent = this.decorateName(this.opponentName, this.oppId);
     document.getElementById("cine-opp-title").textContent = this.oppSubtitle();
-    document.getElementById("cine-overlay").classList.remove("hidden");
 
     this.ui.hideScreens();
     this.ui.hudVisible(false);
     this.state = "cinematic";
     this.cineStart = performance.now();
+    this.updateCinematic(this.cineStart, 0);
+    document.getElementById("cine-overlay").classList.remove("hidden");
 
     this.audio.wind();
     this.introTimers = [];
@@ -1775,11 +1797,13 @@ export class Duel {
     amp += this.dodgeSwayAmount;
     const time = now / 1000;
     let driftX = 0;
+    let driftY = 0;
     if (this.round !== null && this.round.modifier.sway > 0) {
-      driftX = Math.sin(time * 0.5) * WIND_DRIFT;
+      driftX = (Math.sin(time * 0.5) * 0.7 + Math.sin(time * 1.9 + 2.1) * 0.3) * WIND_DRIFT * 3;
+      driftY = Math.sin(time * 1.1 + 0.7) * WIND_DRIFT * 1.3;
     }
     this.swayX = Math.sin(time * 0.85) * amp + driftX;
-    this.swayY = Math.sin(time * 1.35 + 1.1) * amp * 0.7;
+    this.swayY = Math.sin(time * 1.35 + 1.1) * amp * 0.7 + driftY;
     this.ui.moveCrosshair(this.swayX, this.swayY);
 
     let killTracking = false;

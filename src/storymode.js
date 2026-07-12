@@ -79,6 +79,12 @@ export function createStoryMode(deps) {
   function playScript(name, onDone) {
     deps.ui.showScreen(null);
     deps.ui.hudVisible(false);
+    if (deps.playerBody) {
+      deps.playerBody.group.visible = false;
+    }
+    if (deps.cowboy) {
+      deps.cowboy.group.visible = false;
+    }
     const data = SCRIPTS[name](ctx());
     activeCine = new Cinematic({
       arena: deps.arena,
@@ -142,12 +148,16 @@ export function createStoryMode(deps) {
     if (step.type === "minigame") {
       deps.launchMinigame({
         mode: step.mode,
-        onEnd: function (won) {
+        onEnd: function (won, reason) {
           if (won) {
             stepIndex += 1;
             runStep();
           } else {
-            playScript(step.loseScript, function () {
+            let script = step.loseScript;
+            if (reason === "hostage" && step.loseScriptHostage !== undefined) {
+              script = step.loseScriptHostage;
+            }
+            playScript(script, function () {
               runStep();
             });
           }

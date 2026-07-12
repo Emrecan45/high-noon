@@ -172,7 +172,7 @@ export function skinById(id) {
 
 export const AI_SKINS = {
   nervous: {
-    colors: { skin: 0xc0895a, shirt: 0x9c2b22, pants: 0x33241a, hat: 0x5a3a18, bandana: 0xf0cf3e },
+    colors: { skin: 0xc0895a, shirt: 0x9a8460, pants: 0x3e3226, hat: 0x241c14, bandana: 0xb83a2a },
     weapon: "rose",
     acc: ["mustache"]
   },
@@ -194,7 +194,7 @@ export const AI_SKINS = {
   grace: {
     colors: { skin: 0xd8c2a8, shirt: 0x2a2a30, pants: 0x1c1c22, hat: 0x14141a, bandana: 0xe8e2d4 },
     weapon: "silver",
-    acc: ["star"]
+    acc: ["cross"]
   },
   undertaker: {
     colors: { skin: 0xd0b294, shirt: 0x16121c, pants: 0x0e0b12, hat: 0x0a080e, bandana: 0x3a3a44 },

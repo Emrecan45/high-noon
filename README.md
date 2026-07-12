@@ -66,7 +66,7 @@ Le perdant d'une manche choisit un avantage temporaire parmi 3 tirés au sort :
 Le jeu fonctionne sur une infrastructure temps réel (**Supabase Realtime**) garantissant l'équité des duels.
 
 - **Duel Classé :** Matchmaking en ligne.
-- **Mode Histoire :** 6 chapitres scénarisés contre la bande du Croque-Mort. Cinématiques, dialogues, duels et mini-jeux narratifs (escorte, braquage de banque).
+- **Mode Histoire :** 6 chapitres scénarisés contre la bande du Croque-Mort. Cinématiques, dialogues, duels et mini-jeux narratifs (défense de la ville, braquage de banque).
 - **Camp d'entraînement :** Duels d'échauffement contre 3 IA pendant la recherche d'adversaire.
 - **Amis :** Invitation directe par ID de joueur pour des duels privés.
 - **Mini-jeux :** Tir aux corbeaux (45s de survie) et Défense de diligence.

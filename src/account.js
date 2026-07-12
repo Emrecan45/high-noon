@@ -346,6 +346,15 @@ export async function storyXp(chapter) {
   if (Number.isFinite(Number(data.xp))) {
     profile.xp = Number(data.xp);
   }
+  if (Number.isFinite(Number(data.coins))) {
+    profile.coins = Number(data.coins);
+  }
+  if (data.reward_kind === "accessory" && !data.duplicate) {
+    ownedAcc.add(data.reward_ref);
+  }
+  if (data.reward_kind === "weapon" && !data.duplicate) {
+    ownedWeapons.add(data.reward_ref);
+  }
   return data;
 }
 

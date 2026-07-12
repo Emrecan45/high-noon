@@ -12,6 +12,27 @@ function box(w, h, d, material) {
   return mesh;
 }
 
+export function makeStarMesh(outer, depth, material) {
+  const shape = new THREE.Shape();
+  const inner = outer * 0.41;
+  for (let i = 0; i < 5; i++) {
+    const a = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+    const b = a + Math.PI / 5;
+    if (i === 0) {
+      shape.moveTo(Math.cos(a) * outer, -Math.sin(a) * outer);
+    } else {
+      shape.lineTo(Math.cos(a) * outer, -Math.sin(a) * outer);
+    }
+    shape.lineTo(Math.cos(b) * inner, -Math.sin(b) * inner);
+  }
+  shape.closePath();
+  const geo = new THREE.ExtrudeGeometry(shape, { depth: depth, bevelEnabled: false });
+  geo.translate(0, 0, -depth / 2);
+  const mesh = new THREE.Mesh(geo, material);
+  mesh.castShadow = true;
+  return mesh;
+}
+
 export function createCowboy() {
   const group = new THREE.Group();
   const hitMeshes = [];
@@ -142,6 +163,21 @@ export function createCowboy() {
   handGun.visible = false;
   armR.elbow.add(handGun);
 
+  const shovel = new THREE.Group();
+  const shovelStick = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.05, 6), leather);
+  shovelStick.position.y = -0.32;
+  shovel.add(shovelStick);
+  const shovelBlade = box(0.15, 0.24, 0.025, mat(0x3a3a40));
+  shovelBlade.position.y = -0.92;
+  shovel.add(shovelBlade);
+  const shovelGrip = box(0.1, 0.03, 0.03, leather);
+  shovelGrip.position.y = 0.21;
+  shovel.add(shovelGrip);
+  shovel.rotation.x = 0.6;
+  shovel.position.set(0, -0.31, 0.06);
+  shovel.visible = false;
+  armR.elbow.add(shovel);
+
   const flash = new THREE.Mesh(
     new THREE.ConeGeometry(0.12, 0.44, 8),
     new THREE.MeshBasicMaterial({ color: 0xffe08a, transparent: true, opacity: 1 })
@@ -181,6 +217,8 @@ export function createCowboy() {
     drawn: false,
     talk: false,
     talkSeed: Math.random() * 10,
+    dig: false,
+    digSeed: Math.random() * 10,
     seated: false,
     idleSeed: Math.random() * 10,
     hatFlying: false,
@@ -227,30 +265,39 @@ export function createCowboy() {
       const pZ = list.indexOf("poncho") !== -1 ? 0.06 : 0;
       if (id === "mustache") {
         const part = box(0.16, 0.035, 0.03, mat(0x2a1c10));
-        part.position.set(0, 0.75, 0.13 + pZ);
+        part.position.set(0, 0.75, 0.13);
         addAcc(torsoPivot, part);
       } else if (id === "beard") {
         const part = box(0.24, 0.1, 0.05, mat(0x3a2a18));
-        part.position.set(0, 0.7, 0.11 + pZ);
+        part.position.set(0, 0.7, 0.11);
         addAcc(torsoPivot, part);
       } else if (id === "cigar") {
         const part = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.12, 6), mat(0x5c3a1e));
         part.rotation.x = Math.PI / 2;
         part.rotation.z = 0.3;
-        part.position.set(0.06, 0.73, 0.16 + pZ);
+        part.position.set(0.06, 0.73, 0.16);
         addAcc(torsoPivot, part);
       } else if (id === "eyepatch") {
         const part = box(0.07, 0.05, 0.02, mat(0x14100a));
-        part.position.set(0.06, 0.83, 0.125 + pZ);
+        part.position.set(0.06, 0.83, 0.125);
         addAcc(torsoPivot, part);
         const strap = box(0.27, 0.018, 0.02, mat(0x14100a));
-        strap.position.set(0, 0.85, 0.12 + pZ);
+        strap.position.set(0, 0.85, 0.12);
         addAcc(torsoPivot, strap);
       } else if (id === "star") {
-        const part = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.02, 5), mat(0xe8b64c));
-        part.rotation.x = Math.PI / 2;
+        const part = makeStarMesh(0.06, 0.02, mat(0xe8b64c));
         part.position.set(-0.15, 0.43, 0.15 + pZ);
         addAcc(torsoPivot, part);
+      } else if (id === "cross") {
+        const post = box(0.024, 0.11, 0.016, mat(0xd8c48a));
+        post.position.set(0, 0.45, 0.15 + pZ);
+        addAcc(torsoPivot, post);
+        const beam = box(0.07, 0.024, 0.016, mat(0xd8c48a));
+        beam.position.set(0, 0.475, 0.15 + pZ);
+        addAcc(torsoPivot, beam);
+        const cord = box(0.012, 0.06, 0.012, mat(0x3a2a18));
+        cord.position.set(0, 0.54, 0.14 + pZ);
+        addAcc(torsoPivot, cord);
       } else if (id === "poncho") {
         const front = box(0.58, 0.4, 0.06, mat(0x2e6b4f));
         front.position.set(0, 0.4, 0.15);
@@ -266,10 +313,10 @@ export function createCowboy() {
         addAcc(hat, part);
       } else if (id === "monocle") {
         const rim = new THREE.Mesh(new THREE.TorusGeometry(0.045, 0.01, 6, 12), mat(0xd8b13c));
-        rim.position.set(0.06, 0.84, 0.135 + pZ);
+        rim.position.set(0.06, 0.84, 0.135);
         addAcc(torsoPivot, rim);
         const chain = box(0.012, 0.1, 0.012, mat(0xd8b13c));
-        chain.position.set(0.1, 0.76, 0.13 + pZ);
+        chain.position.set(0.1, 0.76, 0.13);
         addAcc(torsoPivot, chain);
       } else if (id === "scarf") {
         const wrap = box(0.3, 0.12, 0.3, mat(0xa83c2a));
@@ -291,15 +338,15 @@ export function createCowboy() {
         }
       } else if (id === "goldtooth") {
         const tooth = box(0.03, 0.025, 0.02, mat(0xe8b64c));
-        tooth.position.set(0.035, 0.725, 0.125 + pZ);
+        tooth.position.set(0.035, 0.725, 0.125);
         addAcc(torsoPivot, tooth);
       } else if (id === "pipe") {
         const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.1, 6), mat(0x5c3a1e));
         stem.rotation.x = Math.PI / 2 - 0.35;
-        stem.position.set(-0.06, 0.72, 0.16 + pZ);
+        stem.position.set(-0.06, 0.72, 0.16);
         addAcc(torsoPivot, stem);
         const bowl = box(0.04, 0.05, 0.04, mat(0x3a2412));
-        bowl.position.set(-0.075, 0.7, 0.2 + pZ);
+        bowl.position.set(-0.075, 0.7, 0.2);
         addAcc(torsoPivot, bowl);
       } else if (id === "skullbadge") {
         const badge = box(0.06, 0.06, 0.02, mat(0xe8e0cf));
@@ -317,23 +364,23 @@ export function createCowboy() {
         addAcc(hat, band);
       } else if (id === "sideburns") {
         const left = box(0.035, 0.13, 0.06, mat(0x3a2a18));
-        left.position.set(-0.135, 0.79, 0.06 + pZ);
+        left.position.set(-0.135, 0.79, 0.06);
         addAcc(torsoPivot, left);
         const right = box(0.035, 0.13, 0.06, mat(0x3a2a18));
-        right.position.set(0.135, 0.79, 0.06 + pZ);
+        right.position.set(0.135, 0.79, 0.06);
         addAcc(torsoPivot, right);
-      } else if (id === "warpaint") {
+      } else if (id === "longhair") { hat.visible = false; const hair = box(0.24, 0.35, 0.22, mat(0x2c2418)); hair.position.set(0, 0.72, -0.05); addAcc(torsoPivot, hair); } else if (id === "warpaint") {
         const lineL = box(0.06, 0.015, 0.02, mat(0xc0392b));
-        lineL.position.set(-0.08, 0.79, 0.125 + pZ);
+        lineL.position.set(-0.08, 0.79, 0.125);
         addAcc(torsoPivot, lineL);
         const lineL2 = box(0.06, 0.015, 0.02, mat(0xc0392b));
-        lineL2.position.set(-0.08, 0.755, 0.125 + pZ);
+        lineL2.position.set(-0.08, 0.755, 0.125);
         addAcc(torsoPivot, lineL2);
         const lineR = box(0.06, 0.015, 0.02, mat(0xc0392b));
-        lineR.position.set(0.08, 0.79, 0.125 + pZ);
+        lineR.position.set(0.08, 0.79, 0.125);
         addAcc(torsoPivot, lineR);
         const lineR2 = box(0.06, 0.015, 0.02, mat(0xc0392b));
-        lineR2.position.set(0.08, 0.755, 0.125 + pZ);
+        lineR2.position.set(0.08, 0.755, 0.125);
         addAcc(torsoPivot, lineR2);
       } else if (seasonBadgeInfo(id) !== null) {
         const info = seasonBadgeInfo(id);
@@ -384,6 +431,8 @@ export function createCowboy() {
     anim.walk = false;
     anim.walkPhase = 0;
     anim.talk = false;
+    anim.dig = false;
+    shovel.visible = false;
     anim.seated = false;
     setDrawn(false);
     group.rotation.set(0, 0, 0);
@@ -406,6 +455,8 @@ export function createCowboy() {
       torsoPivot.add(hat);
       hat.position.set(0, 0.925, 0);
       hat.rotation.set(0, 0, 0);
+      anim.hatVel.set(0, 0, 0);
+      anim.hatSpin.set(0, 0, 0);
     }
   }
 
@@ -426,6 +477,11 @@ export function createCowboy() {
 
   function setTalk(active) {
     anim.talk = active;
+  }
+
+  function setDig(active) {
+    anim.dig = active;
+    shovel.visible = active;
   }
 
   function setSeated(active) {
@@ -474,8 +530,8 @@ export function createCowboy() {
     anim.hatSpin.set(Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 6 - 3);
   }
 
-  function playDeath(sceneRef) {
-    anim.death = { t: 0 };
+  function playDeath(sceneRef, rest, back) {
+    anim.death = { t: 0, rest: rest === undefined ? -0.32 : rest, dir: back ? 1 : -1 };
     flyHat(sceneRef, new THREE.Vector3((Math.random() - 0.5) * 2, 3.2, -1.6));
   }
 
@@ -544,8 +600,15 @@ export function createCowboy() {
       }
       torsoPivot.rotation.y = Math.sin(anim.walkPhase) * 0.06;
     } else if (anim.death === null) {
-      const hipRest = anim.seated ? -1.45 : 0;
-      const kneeRest = anim.seated ? 1.5 : 0;
+      let hipRest = 0;
+      let kneeRest = 0;
+      if (anim.seated) {
+        hipRest = -1.45;
+        kneeRest = 1.5;
+      } else if (anim.dig) {
+        hipRest = -0.28;
+        kneeRest = 0.42;
+      }
       legL.hip.rotation.x += (hipRest - legL.hip.rotation.x) * Math.min(1, dt * 10);
       legR.hip.rotation.x += (hipRest - legR.hip.rotation.x) * Math.min(1, dt * 10);
       legL.knee.rotation.x += (kneeRest - legL.knee.rotation.x) * Math.min(1, dt * 10);
@@ -559,7 +622,16 @@ export function createCowboy() {
     }
 
     if (anim.death === null && !anim.walk && !anim.drawn && anim.armTarget === 0) {
-      if (anim.talk) {
+      if (anim.dig) {
+        const dtt = anim.time * 3.4 + anim.digSeed;
+        const cycle = (Math.sin(dtt) + 1) / 2;
+        armR.shoulder.rotation.x = -0.35 - cycle * 0.75;
+        armR.elbow.rotation.x = -0.15 - cycle * 0.3;
+        armL.shoulder.rotation.x = -0.5 - cycle * 0.6;
+        armL.elbow.rotation.x = -0.45 - cycle * 0.2;
+        torsoPivot.rotation.x = 0.16 + cycle * 0.22;
+        torsoPivot.rotation.y = Math.sin(dtt * 0.5) * 0.06;
+      } else if (anim.talk) {
         const tt = anim.time + anim.talkSeed;
         armR.shoulder.rotation.x = -0.55 + Math.sin(tt * 3.2) * 0.28 + Math.sin(tt * 5.1) * 0.12;
         armR.elbow.rotation.x = -0.55 + Math.sin(tt * 4.3 + 0.6) * 0.3;
@@ -580,10 +652,10 @@ export function createCowboy() {
       const buckle = Math.min(1, anim.death.t / 0.3);
       legL.knee.rotation.x = buckle * 1.3;
       legR.knee.rotation.x = buckle * 1.1;
-      group.position.y = -buckle * 0.32;
+      group.position.y = anim.death.rest * buckle;
       const fall = Math.max(0, (anim.death.t - 0.12) / 0.73);
       const eased = Math.min(1, fall * fall);
-      group.rotation.x = -Math.PI / 2 * eased;
+      group.rotation.x = anim.death.dir * Math.PI / 2 * eased;
       armR.shoulder.rotation.x += (0.4 - armR.shoulder.rotation.x) * Math.min(1, dt * 4);
       armL.shoulder.rotation.x += (0.3 - armL.shoulder.rotation.x) * Math.min(1, dt * 4);
     }
@@ -624,6 +696,7 @@ export function createCowboy() {
     playDodge: playDodge,
     setWalk: setWalk,
     setTalk: setTalk,
+    setDig: setDig,
     setSeated: setSeated,
     playFlinch: playFlinch,
     playDeath: playDeath,

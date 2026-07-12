@@ -1611,6 +1611,10 @@ declare
   uid uuid;
   mask integer;
   bit integer;
+  r_kind text := null;
+  r_ref text := null;
+  r_coins integer := 0;
+  dup boolean := false;
 begin
   uid := auth.uid();
   if uid is null then
@@ -1627,7 +1631,45 @@ begin
   end if;
   update profiles set story_mask = mask | bit where id = uid;
   perform grant_xp(uid, 60);
-  return json_build_object('xp_gained', 60, 'xp', (select xp from profiles where id = uid));
+  if p_chapter = 0 then
+    r_kind := 'coins'; r_coins := 80;
+  elsif p_chapter = 1 then
+    r_kind := 'accessory'; r_ref := 'star';
+  elsif p_chapter = 2 then
+    r_kind := 'coins'; r_coins := 120;
+  elsif p_chapter = 3 then
+    r_kind := 'coins'; r_coins := 200;
+  elsif p_chapter = 4 then
+    r_kind := 'weapon'; r_ref := 'silver';
+  end if;
+  if r_kind = 'coins' then
+    update profiles set coins = coins + r_coins where id = uid;
+  elsif r_kind = 'accessory' then
+    if exists (select 1 from profile_accessories where profile_id = uid and accessory_id = r_ref) then
+      dup := true;
+      r_coins := 100;
+      update profiles set coins = coins + r_coins where id = uid;
+    else
+      insert into profile_accessories (profile_id, accessory_id) values (uid, r_ref);
+    end if;
+  elsif r_kind = 'weapon' then
+    if exists (select 1 from profile_weapons where profile_id = uid and weapon_id = r_ref) then
+      dup := true;
+      r_coins := 150;
+      update profiles set coins = coins + r_coins where id = uid;
+    else
+      insert into profile_weapons (profile_id, weapon_id) values (uid, r_ref);
+    end if;
+  end if;
+  return json_build_object(
+    'xp_gained', 60,
+    'xp', (select xp from profiles where id = uid),
+    'reward_kind', r_kind,
+    'reward_ref', r_ref,
+    'reward_coins', r_coins,
+    'duplicate', dup,
+    'coins', (select coins from profiles where id = uid)
+  );
 end;
 $$;
 
