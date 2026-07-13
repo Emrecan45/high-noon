@@ -2692,3 +2692,52 @@ body.touch #hearts {
   border-color: #e8b64c;
   box-shadow: 0 0 22px rgba(232, 182, 76, 0.45);
 }
+
+#guide-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+}
+
+#guide-hole {
+  position: absolute;
+  border-radius: 10px;
+  border: 2px solid #e8b64c;
+  box-shadow: 0 0 0 9999px rgba(8, 5, 2, 0.82), 0 0 18px rgba(232, 182, 76, 0.6);
+  pointer-events: none;
+  transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+
+#guide-bubble {
+  position: absolute;
+  max-width: 240px;
+  background: #2a1c10;
+  border: 2px solid #e8b64c;
+  border-radius: 12px;
+  padding: 14px 14px 12px;
+  color: #f0e0c0;
+  z-index: 9001;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+}
+
+#guide-bubble p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+#guide-bubble button {
+  width: 100%;
+}
+
+.pass-draw {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.pass-draw-tag {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #e8b64c;
+  margin-top: 2px;
+}

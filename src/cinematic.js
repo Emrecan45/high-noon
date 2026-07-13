@@ -122,7 +122,7 @@ export class Cinematic {
   }
 
   seatY(mode) {
-    return mode === "floor" ? -0.55 : -0.34;
+    return mode === "floor" ? -0.72 : -0.34;
   }
 
   faceActor(name, target) {
@@ -191,7 +191,7 @@ export class Cinematic {
           body.group.rotation.y = p.ry;
         }
         if (p.seated) {
-          body.setSeated(true);
+          body.setSeated(p.seated);
           body.group.position.y = this.seatY(p.seated);
         }
         if (p.dig !== undefined) {
@@ -209,7 +209,7 @@ export class Cinematic {
       for (const p of [].concat(step.pose)) {
         const body = this.body(p.actor);
         if (p.seated !== undefined) {
-          body.setSeated(!!p.seated);
+          body.setSeated(p.seated);
           body.group.position.y = p.seated ? this.seatY(p.seated) : 0;
         }
         if (p.dig !== undefined) {

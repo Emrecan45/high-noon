@@ -20,6 +20,7 @@ create table if not exists public.profiles (
   same_opp_count integer not null default 0,
   accessories text[] not null default '{}',
   weapon text not null default 'iron',
+  free_draws integer not null default 0,
   created_at timestamptz not null default now(),
   constraint pseudo_format check (pseudo ~ '^[A-Za-z0-9_ .-]{3,16}$')
 );
@@ -34,7 +35,8 @@ alter table public.profiles
   add column if not exists last_opp_at timestamptz,
   add column if not exists same_opp_count integer not null default 0,
   add column if not exists accessories text[] not null default '{}',
-  add column if not exists weapon text not null default 'iron';
+  add column if not exists weapon text not null default 'iron',
+  add column if not exists free_draws integer not null default 0;
 
 create unique index if not exists profiles_pseudo_unique on public.profiles (lower(pseudo));
 create index if not exists profiles_elo_idx on public.profiles (elo desc);
@@ -337,17 +339,13 @@ begin
     opp_bounty := greatest(100, least(100000, p_opp_elo));
     if p_won then
       delta := 20 + round(opp_bounty * 0.15);
-      gained := 40;
+      gained := 10;
     else
       delta := -round(my_elo * 0.10);
-      gained := 10;
-    end if;
-  else
-    if p_won then
-      gained := 8;
-    else
       gained := 2;
     end if;
+  else
+    gained := 0;
   end if;
   track := p_ranked and p_opp_id is not null;
   if track then
@@ -646,16 +644,24 @@ declare
   cursor_weight integer := 0;
   row record;
   duplicate boolean := false;
+  free_left integer;
 begin
   uid := auth.uid();
   if uid is null then
     raise exception 'not authenticated';
   end if;
-  update profiles set coins = coins - 50
-  where id = uid and coins >= 50
-  returning coins into new_coins;
-  if new_coins is null then
-    raise exception 'not enough coins';
+  select free_draws into free_left from profiles where id = uid;
+  if free_left > 0 then
+    update profiles set free_draws = free_draws - 1
+    where id = uid
+    returning coins into new_coins;
+  else
+    update profiles set coins = coins - 60
+    where id = uid and coins >= 60
+    returning coins into new_coins;
+    if new_coins is null then
+      raise exception 'not enough coins';
+    end if;
   end if;
   select coalesce(sum(weight), 0) into total from (
     select weight from skins where weight > 0
@@ -699,9 +705,9 @@ begin
     end if;
   end if;
   if duplicate then
-    update profiles set coins = coins + 25 where id = uid returning coins into new_coins;
+    update profiles set coins = coins + 30 where id = uid returning coins into new_coins;
   end if;
-  return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'coins', new_coins);
+  return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'coins', new_coins, 'free_draws', (select free_draws from profiles where id = uid));
 end;
 $$;
 
@@ -826,10 +832,10 @@ begin
   if last_at is not null and now() - last_at < interval '45 seconds' then
     raise exception 'too soon';
   end if;
-  update profiles set coins = coins + 25, last_ad_at = now()
+  update profiles set coins = coins + 20, last_ad_at = now()
   where id = uid
   returning coins into new_coins;
-  return json_build_object('coins', new_coins, 'coins_delta', 25);
+  return json_build_object('coins', new_coins, 'coins_delta', 20);
 end;
 $$;
 
@@ -1069,19 +1075,9 @@ declare
 begin
   h := abs(hashtext(p_season::text || ':' || p_level::text));
   if p_level % 5 = 0 then
-    if h % 3 = 0 then
-      select id into ref from skins where weight > 0 order by id offset (h / 7) % (select count(*) from skins where weight > 0) limit 1;
-      kind := 'skin';
-    elsif h % 3 = 1 then
-      select id into ref from weapons where weight > 0 order by id offset (h / 7) % (select count(*) from weapons where weight > 0) limit 1;
-      kind := 'weapon';
-    else
-      select id into ref from accessories where weight > 0 order by id offset (h / 7) % (select count(*) from accessories where weight > 0) limit 1;
-      kind := 'accessory';
-    end if;
-    return json_build_object('kind', kind, 'ref', ref);
+    return json_build_object('kind', 'draw');
   end if;
-  return json_build_object('kind', 'coins', 'amount', 25 + (h % 5) * 10 + p_level * 3);
+  return json_build_object('kind', 'coins', 'amount', least(25, 6 + (h % 5) * 4 + (p_level / 6)));
 end;
 $$;
 
@@ -1148,32 +1144,13 @@ begin
   reward := pass_reward(cur, p_level);
   if reward ->> 'kind' = 'coins' then
     update profiles set coins = coins + (reward ->> 'amount')::integer where id = uid returning coins into new_coins;
-  elsif reward ->> 'kind' = 'skin' then
-    if exists (select 1 from profile_skins where profile_id = uid and skin_id = reward ->> 'ref') then
-      dup := true;
-    else
-      insert into profile_skins (profile_id, skin_id) values (uid, reward ->> 'ref');
-    end if;
-  elsif reward ->> 'kind' = 'weapon' then
-    if exists (select 1 from profile_weapons where profile_id = uid and weapon_id = reward ->> 'ref') then
-      dup := true;
-    else
-      insert into profile_weapons (profile_id, weapon_id) values (uid, reward ->> 'ref');
-    end if;
-  else
-    if exists (select 1 from profile_accessories where profile_id = uid and accessory_id = reward ->> 'ref') then
-      dup := true;
-    else
-      insert into profile_accessories (profile_id, accessory_id) values (uid, reward ->> 'ref');
-    end if;
-  end if;
-  if dup then
-    update profiles set coins = coins + 40 where id = uid returning coins into new_coins;
+  elsif reward ->> 'kind' = 'draw' then
+    update profiles set free_draws = free_draws + 1 where id = uid returning coins into new_coins;
   end if;
   if new_coins is null then
     select coins into new_coins from profiles where id = uid;
   end if;
-  return json_build_object('kind', reward ->> 'kind', 'ref', reward ->> 'ref', 'amount', reward ->> 'amount', 'duplicate', dup, 'coins', new_coins);
+  return json_build_object('kind', reward ->> 'kind', 'amount', reward ->> 'amount', 'coins', new_coins, 'free_draws', (select free_draws from profiles where id = uid));
 end;
 $$;
 
@@ -1251,6 +1228,35 @@ insert into public.accessories (id, slot, weight) values
   ('hatband', 'hat', 7),
   ('sideburns', 'face', 12),
   ('warpaint', 'face', 6)
+on conflict (id) do nothing;
+
+insert into public.accessories (id, slot, weight) values
+  ('goatee', 'face', 12),
+  ('handlebar', 'face', 9),
+  ('chinstrap', 'face', 11),
+  ('toothpick', 'mouth', 13),
+  ('cigarette', 'mouth', 11),
+  ('matchstick', 'mouth', 11),
+  ('rose', 'mouth', 7),
+  ('shades', 'eyes', 9),
+  ('spectacles', 'eyes', 9),
+  ('goggles', 'eyes', 6),
+  ('warstripe', 'eyes', 10),
+  ('blindfold', 'eyes', 8),
+  ('deputybadge', 'chest', 8),
+  ('bolotie', 'chest', 9),
+  ('pocketwatch', 'chest', 5),
+  ('medallion', 'chest', 6),
+  ('cape', 'back', 5),
+  ('duster', 'back', 8),
+  ('serape', 'back', 9),
+  ('bedroll', 'back', 10),
+  ('satchel', 'back', 10),
+  ('cardband', 'hat', 9),
+  ('conchos', 'hat', 8),
+  ('sheriffpin', 'hat', 7),
+  ('bulletband', 'hat', 9),
+  ('snakeband', 'hat', 6)
 on conflict (id) do nothing;
 
 grant execute on function public.current_season() to anon, authenticated;
@@ -1337,7 +1343,7 @@ begin
   else
     streak := 1;
   end if;
-  gained := 50;
+  gained := 20;
   update profiles set ad_day = current_date, ad_streak = streak where id = uid;
   update profiles set coins = coins + gained, last_ad_at = now()
   where id = uid
@@ -1419,7 +1425,7 @@ begin
     end if;
   end if;
   if duplicate then
-    update profiles set coins = coins + 15 where id = uid returning coins into new_coins;
+    update profiles set coins = coins + 30 where id = uid returning coins into new_coins;
   end if;
   return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'coins', new_coins, 'left', 0);
 end;
@@ -1631,36 +1637,36 @@ begin
   end if;
   update profiles set story_mask = mask | bit where id = uid;
   perform grant_xp(uid, 60);
+  r_coins := 0;
   if p_chapter = 0 then
-    r_kind := 'coins'; r_coins := 80;
+    r_kind := 'accessory'; r_ref := 'cigar';
   elsif p_chapter = 1 then
     r_kind := 'accessory'; r_ref := 'star';
   elsif p_chapter = 2 then
-    r_kind := 'coins'; r_coins := 120;
+    r_kind := 'accessory'; r_ref := 'poncho';
   elsif p_chapter = 3 then
-    r_kind := 'coins'; r_coins := 200;
+    r_kind := 'accessory'; r_ref := 'goldtooth';
   elsif p_chapter = 4 then
     r_kind := 'weapon'; r_ref := 'silver';
+  elsif p_chapter = 5 then
+    r_kind := 'accessory'; r_ref := 'skullbadge';
   end if;
-  if r_kind = 'coins' then
-    update profiles set coins = coins + r_coins where id = uid;
-  elsif r_kind = 'accessory' then
+  if r_kind = 'accessory' then
     if exists (select 1 from profile_accessories where profile_id = uid and accessory_id = r_ref) then
       dup := true;
-      r_coins := 100;
-      update profiles set coins = coins + r_coins where id = uid;
+      r_coins := r_coins + 30;
     else
       insert into profile_accessories (profile_id, accessory_id) values (uid, r_ref);
     end if;
   elsif r_kind = 'weapon' then
     if exists (select 1 from profile_weapons where profile_id = uid and weapon_id = r_ref) then
       dup := true;
-      r_coins := 150;
-      update profiles set coins = coins + r_coins where id = uid;
+      r_coins := r_coins + 30;
     else
       insert into profile_weapons (profile_id, weapon_id) values (uid, r_ref);
     end if;
   end if;
+  update profiles set coins = coins + r_coins where id = uid;
   return json_build_object(
     'xp_gained', 60,
     'xp', (select xp from profiles where id = uid),
@@ -1696,10 +1702,10 @@ begin
   update profiles set story_claimed = true where id = uid;
   if exists (select 1 from profile_skins where profile_id = uid and skin_id = 'undertaker') then
     dup := true;
-    update profiles set coins = coins + 400 where id = uid returning coins into new_coins;
+    update profiles set coins = coins + 30 where id = uid returning coins into new_coins;
   else
     insert into profile_skins (profile_id, skin_id) values (uid, 'undertaker');
-    update profiles set coins = coins + 150 where id = uid returning coins into new_coins;
+    new_coins := (select coins from profiles where id = uid);
   end if;
   perform grant_xp(uid, 250);
   return json_build_object('skin', 'undertaker', 'duplicate', dup, 'coins', new_coins);

@@ -15,7 +15,7 @@ import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineCount, onlineState, setOnlineState, listenChallenges, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
 import { getLang, setLang, t, applyStatic } from "./i18n.js";
 import { initSdk, isCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved, seasonInfo, passStateFetch, claimPassLevel, adState, adCase, adDouble, adWatchItem, minigameXp, storyXp, storyReward } from "./account.js";
+import { initAccount, getProfile, ensureAccount, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved, seasonInfo, passStateFetch, claimPassLevel, adState, adCase, adDouble, adWatchItem, minigameXp, storyXp, storyReward, freeDraws } from "./account.js";
 import { SKINS, skinById, portraitDataUrl, aiSkinFor, rarityOf } from "./skins.js";
 import { ACCESSORIES, accessoryById, accessoryIconDataUrl, accessoryRarity, seasonBadgeInfo } from "./accessories.js";
 import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
@@ -893,7 +893,7 @@ async function refreshHomeAd() {
   }
   const btn = el("btn-home-ad");
   const go = el("home-ad-go");
-  el("home-ad-amount").textContent = "+50 🪙";
+  el("home-ad-amount").textContent = "+20 🪙";
   if (homeAdTimer !== null) {
     clearInterval(homeAdTimer);
     homeAdTimer = null;
@@ -1085,6 +1085,15 @@ el("btn-ad-case").addEventListener("click", function () {
   });
 });
 
+function refreshSpinButton() {
+  const n = freeDraws();
+  if (n > 0) {
+    el("btn-spin").textContent = t("wheelFree", { n: n });
+  } else {
+    el("btn-spin").textContent = t("wheelSpin");
+  }
+}
+
 function openShop() {
   bootAudio();
   accountReady().then(function (profile) {
@@ -1098,6 +1107,7 @@ function openShop() {
       renderCaseIdle();
       applyAdShop();
       refreshAdShop();
+      refreshSpinButton();
       ui.showScreen("screen-shop");
     });
   });
@@ -1132,6 +1142,7 @@ el("btn-spin").addEventListener("click", async function () {
     spinning = false;
     el("btn-spin").disabled = false;
     refreshCoins();
+    refreshSpinButton();
     const item = caseItemFor(result.kind, result.ref);
     if (result.duplicate) {
       audio.coin();
@@ -2016,7 +2027,11 @@ const storyMode = createStoryMode({
     cowboy.setAccessories(aiSkin.acc);
     cowboy.setWeapon(weaponById(aiSkin.weapon).colors);
     applyMyWeapon();
-    const ai = new AiOpponent(opts.persona, createRng(randomSeed()));
+    let persona = opts.persona;
+    if (opts.tutorial) {
+      persona = Object.assign({}, opts.persona, { reaction: [1700, 2300], aim: [950, 1350], accHead: 0.08, accBody: 0.18, misfireChance: 0.35, dodgeChance: 0 });
+    }
+    const ai = new AiOpponent(persona, createRng(randomSeed()));
     const baseResult = handleResult(false);
     activeDuel = new Duel({
       arena: arena,
@@ -2034,6 +2049,7 @@ const storyMode = createStoryMode({
       forceModifier: opts.modifier,
       forceDistance: opts.distance,
       oppPerks: opts.perks,
+      tutorial: opts.tutorial === true,
       onResult: baseResult,
       onCombat: startCombatMusic,
       oppColors: aiSkin.colors,
@@ -2110,11 +2126,12 @@ const storyMode = createStoryMode({
           html += '<img class="popup-badge" src="' + img + '" alt="" />';
         }
         if (res.duplicate) {
-          html += "<p>" + t("stRewardDup", { item: itemName, n: res.reward_coins }) + "</p>";
-        } else if (res.reward_kind === "coins") {
-          html += '<div class="popup-prime">+' + res.reward_coins + " 🪙</div>";
+          html += "<p>" + t("stRewardDup", { item: itemName }) + "</p>";
         } else {
           html += "<p>" + t("stRewardItem", { item: itemName }) + "</p>";
+        }
+        if (res.reward_coins > 0) {
+          html += '<div class="popup-prime">+' + res.reward_coins + " 🪙</div>";
         }
         if (res.xp_gained > 0) {
           html += "<p>+" + res.xp_gained + " XP</p>";
@@ -2148,6 +2165,9 @@ const storyMode = createStoryMode({
       });
     } else {
       backToMenu();
+      if (index === 0) {
+        maybeRunMenuGuide();
+      }
     }
   }
 });
@@ -2330,11 +2350,15 @@ function renderPassPanel() {
       txt.textContent = reward.amount + " 🪙";
       cell.appendChild(txt);
     } else {
-      const item = caseItemFor(reward.kind, reward.ref);
-      cell.classList.add("rarity-" + item.rarity);
-      const img = document.createElement("img");
-      img.src = item.icon;
-      cell.appendChild(img);
+      cell.classList.add("rarity-epic");
+      const txt = document.createElement("div");
+      txt.className = "pass-draw";
+      txt.textContent = "🎁";
+      cell.appendChild(txt);
+      const tag = document.createElement("div");
+      tag.className = "pass-draw-tag";
+      tag.textContent = t("passDraw");
+      cell.appendChild(tag);
     }
     const unlocked = xp >= i * 200;
     const isClaimed = claimed.indexOf(i) !== -1;
@@ -2348,15 +2372,16 @@ function renderPassPanel() {
         if (res === null) {
           return;
         }
-        if (res.kind === "coins" || res.duplicate) {
-          audio.coin();
-        } else {
-          audio.wheelWin();
-        }
         passData.claimed.push(level);
         renderPassPanel();
         refreshCoins();
         renderProfileChip();
+        if (res.kind === "draw") {
+          audio.wheelWin();
+          openShop();
+        } else {
+          audio.coin();
+        }
       };
     } else {
       cell.classList.add("locked");
@@ -2601,6 +2626,84 @@ function finishBootProgress() {
   setBootPct(100);
 }
 
+function runMenuGuide() {
+  if (el("guide-overlay") !== null) {
+    return;
+  }
+  const steps = [
+    { id: "profile-chip", key: "guideProfile" },
+    { id: "btn-ranked", key: "guideRanked" },
+    { id: "btn-story", key: "guideStory" },
+    { id: "btn-shop", key: "guideShop" },
+    { id: "btn-board", key: "guideBoard" },
+    { id: "btn-minigames", key: "guideMinigames" },
+    { id: "btn-pass", key: "guidePass" }
+  ];
+  const overlay = document.createElement("div");
+  overlay.id = "guide-overlay";
+  const hole = document.createElement("div");
+  hole.id = "guide-hole";
+  const bubble = document.createElement("div");
+  bubble.id = "guide-bubble";
+  const text = document.createElement("p");
+  const next = document.createElement("button");
+  next.className = "btn btn-small";
+  bubble.appendChild(text);
+  bubble.appendChild(next);
+  overlay.appendChild(hole);
+  overlay.appendChild(bubble);
+  document.body.appendChild(overlay);
+  let i = 0;
+  function finish() {
+    overlay.remove();
+    localStorage.setItem("hn-guide-seen", "1");
+  }
+  function show() {
+    while (i < steps.length) {
+      const t0 = el(steps[i].id);
+      if (t0 !== null && t0.getBoundingClientRect().width > 0) {
+        break;
+      }
+      i += 1;
+    }
+    if (i >= steps.length) {
+      finish();
+      return;
+    }
+    const target = el(steps[i].id);
+    const r = target.getBoundingClientRect();
+    hole.style.left = (r.left - 6) + "px";
+    hole.style.top = (r.top - 6) + "px";
+    hole.style.width = (r.width + 12) + "px";
+    hole.style.height = (r.height + 12) + "px";
+    text.textContent = t(steps[i].key);
+    next.textContent = i === steps.length - 1 ? t("guideDone") : t("guideNext");
+    const bw = 260;
+    let bx = r.right + 18;
+    if (bx + bw > window.innerWidth - 12) {
+      bx = Math.max(12, r.left - bw - 18);
+    }
+    if (bx < 12) {
+      bx = 12;
+    }
+    bubble.style.left = bx + "px";
+    bubble.style.top = Math.max(12, Math.min(window.innerHeight - 140, r.top)) + "px";
+  }
+  next.onclick = function () {
+    audio.uiClick();
+    i += 1;
+    show();
+  };
+  show();
+}
+
+function maybeRunMenuGuide() {
+  if (localStorage.getItem("hn-guide-seen") !== null) {
+    return;
+  }
+  setTimeout(runMenuGuide, 600);
+}
+
 async function boot() {
   await initSdk();
   restoreStoryBackup();
@@ -2653,6 +2756,12 @@ async function boot() {
   if (isInstantMultiplayer() && netAvailable()) {
     accountReady();
     openFriendRoom(makeFriendCode(), true);
+    return;
+  }
+  if (!hadAccount && localStorage.getItem("hn-onboarded") === null) {
+    localStorage.setItem("hn-onboarded", "1");
+    bootAudio();
+    storyMode.start(0);
     return;
   }
   maybeShowNotesPopup();

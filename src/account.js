@@ -398,6 +398,9 @@ export async function spinWheel() {
     return { ok: false, reason: "network" };
   }
   profile.coins = data.coins;
+  if (profile !== null && Number.isFinite(Number(data.free_draws))) {
+    profile.free_draws = Number(data.free_draws);
+  }
   if (!data.duplicate) {
     if (data.kind === "skin") {
       owned.add(data.ref);
@@ -615,14 +618,12 @@ export async function claimPassLevel(level) {
   if (profile !== null && Number.isFinite(Number(data.coins))) {
     profile.coins = Number(data.coins);
   }
-  if (!data.duplicate && data.ref) {
-    if (data.kind === "skin") {
-      owned.add(data.ref);
-    } else if (data.kind === "weapon") {
-      ownedWeapons.add(data.ref);
-    } else if (data.kind === "accessory") {
-      ownedAcc.add(data.ref);
-    }
+  if (profile !== null && Number.isFinite(Number(data.free_draws))) {
+    profile.free_draws = Number(data.free_draws);
   }
   return data;
+}
+
+export function freeDraws() {
+  return profile !== null && Number.isFinite(Number(profile.free_draws)) ? Number(profile.free_draws) : 0;
 }

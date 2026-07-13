@@ -220,6 +220,7 @@ export function createCowboy() {
     dig: false,
     digSeed: Math.random() * 10,
     seated: false,
+    seatFloor: false,
     idleSeed: Math.random() * 10,
     hatFlying: false,
     hatVel: new THREE.Vector3(),
@@ -382,6 +383,183 @@ export function createCowboy() {
         const lineR2 = box(0.06, 0.015, 0.02, mat(0xc0392b));
         lineR2.position.set(0.08, 0.755, 0.125);
         addAcc(torsoPivot, lineR2);
+      } else if (id === "goatee") {
+        const part = box(0.09, 0.09, 0.05, mat(0x2a1c10));
+        part.position.set(0, 0.66, 0.12);
+        addAcc(torsoPivot, part);
+      } else if (id === "handlebar") {
+        const bar = box(0.18, 0.03, 0.03, mat(0x2a1c10));
+        bar.position.set(0, 0.75, 0.13);
+        addAcc(torsoPivot, bar);
+        for (const sx of [-1, 1]) {
+          const tip = box(0.04, 0.05, 0.03, mat(0x2a1c10));
+          tip.position.set(sx * 0.1, 0.775, 0.13);
+          addAcc(torsoPivot, tip);
+        }
+      } else if (id === "chinstrap") {
+        for (const sx of [-1, 1]) {
+          const side = box(0.035, 0.14, 0.05, mat(0x3a2a18));
+          side.position.set(sx * 0.135, 0.72, 0.06);
+          addAcc(torsoPivot, side);
+        }
+        const chin = box(0.22, 0.04, 0.05, mat(0x3a2a18));
+        chin.position.set(0, 0.65, 0.09);
+        addAcc(torsoPivot, chin);
+      } else if (id === "toothpick") {
+        const part = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.09, 5), mat(0xc8a86a));
+        part.rotation.x = Math.PI / 2;
+        part.rotation.z = 0.4;
+        part.position.set(0.05, 0.73, 0.15);
+        addAcc(torsoPivot, part);
+      } else if (id === "cigarette") {
+        const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.11, 6), mat(0xf0ead8));
+        stick.rotation.x = Math.PI / 2;
+        stick.position.set(0.05, 0.73, 0.16);
+        addAcc(torsoPivot, stick);
+        const ember = box(0.018, 0.018, 0.02, mat(0xff7a3c));
+        ember.position.set(0.05, 0.73, 0.215);
+        addAcc(torsoPivot, ember);
+      } else if (id === "matchstick") {
+        const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.1, 5), mat(0xc8a86a));
+        stick.rotation.x = Math.PI / 2;
+        stick.position.set(0.05, 0.73, 0.16);
+        addAcc(torsoPivot, stick);
+        const tip = box(0.02, 0.02, 0.02, mat(0xc0392b));
+        tip.position.set(0.05, 0.73, 0.21);
+        addAcc(torsoPivot, tip);
+      } else if (id === "rose") {
+        const stem = box(0.012, 0.07, 0.012, mat(0x3e6b4c));
+        stem.rotation.z = 0.5;
+        stem.position.set(0.02, 0.73, 0.15);
+        addAcc(torsoPivot, stem);
+        const bloom = box(0.05, 0.05, 0.05, mat(0xc0392b));
+        bloom.position.set(0.07, 0.76, 0.16);
+        addAcc(torsoPivot, bloom);
+      } else if (id === "shades") {
+        for (const sx of [-1, 1]) {
+          const lens = box(0.07, 0.04, 0.02, mat(0x14100a));
+          lens.position.set(sx * 0.06, 0.83, 0.13);
+          addAcc(torsoPivot, lens);
+        }
+        const bridge = box(0.05, 0.02, 0.02, mat(0x14100a));
+        bridge.position.set(0, 0.83, 0.13);
+        addAcc(torsoPivot, bridge);
+      } else if (id === "spectacles") {
+        for (const sx of [-1, 1]) {
+          const rim = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.007, 6, 12), mat(0xc8b06a));
+          rim.position.set(sx * 0.06, 0.83, 0.135);
+          addAcc(torsoPivot, rim);
+        }
+        const bridge = box(0.04, 0.008, 0.01, mat(0xc8b06a));
+        bridge.position.set(0, 0.83, 0.135);
+        addAcc(torsoPivot, bridge);
+      } else if (id === "goggles") {
+        for (const sx of [-1, 1]) {
+          const lens = box(0.06, 0.05, 0.02, mat(0x6a8ab0));
+          lens.position.set(sx * 0.06, 0.84, 0.13);
+          addAcc(torsoPivot, lens);
+        }
+        const strap = box(0.28, 0.02, 0.02, mat(0x4a3018));
+        strap.position.set(0, 0.86, 0.11);
+        addAcc(torsoPivot, strap);
+      } else if (id === "warstripe") {
+        const band = box(0.26, 0.05, 0.02, mat(0x7a2a1e));
+        band.position.set(0, 0.82, 0.125);
+        addAcc(torsoPivot, band);
+      } else if (id === "blindfold") {
+        const band = box(0.27, 0.07, 0.03, mat(0x3a2a18));
+        band.position.set(0, 0.83, 0.115);
+        addAcc(torsoPivot, band);
+      } else if (id === "deputybadge") {
+        const badge = box(0.07, 0.08, 0.02, mat(0xaeb3b8));
+        badge.position.set(0.15, 0.45, 0.15 + pZ);
+        addAcc(torsoPivot, badge);
+      } else if (id === "bolotie") {
+        const cord = box(0.012, 0.14, 0.012, mat(0x2a1c10));
+        cord.position.set(0, 0.55, 0.14 + pZ);
+        addAcc(torsoPivot, cord);
+        const clasp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.02, 10), mat(0xd8b13c));
+        clasp.rotation.x = Math.PI / 2;
+        clasp.position.set(0, 0.5, 0.15 + pZ);
+        addAcc(torsoPivot, clasp);
+      } else if (id === "pocketwatch") {
+        const chain = box(0.01, 0.12, 0.01, mat(0xd8b13c));
+        chain.rotation.z = 0.5;
+        chain.position.set(0.06, 0.48, 0.15 + pZ);
+        addAcc(torsoPivot, chain);
+        const watch = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.015, 12), mat(0xe8b64c));
+        watch.rotation.x = Math.PI / 2;
+        watch.position.set(0.12, 0.42, 0.15 + pZ);
+        addAcc(torsoPivot, watch);
+      } else if (id === "medallion") {
+        const cord = box(0.012, 0.08, 0.012, mat(0x3a2a18));
+        cord.position.set(0, 0.54, 0.14 + pZ);
+        addAcc(torsoPivot, cord);
+        const pendant = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.015, 12), mat(0xe8b64c));
+        pendant.rotation.x = Math.PI / 2;
+        pendant.position.set(0, 0.48, 0.15 + pZ);
+        addAcc(torsoPivot, pendant);
+      } else if (id === "cape") {
+        const part = box(0.54, 0.52, 0.05, mat(0x4a1c22));
+        part.position.set(0, 0.34, -0.16);
+        part.rotation.x = -0.05;
+        addAcc(torsoPivot, part);
+      } else if (id === "duster") {
+        const part = box(0.5, 0.72, 0.05, mat(0x6b4a2a));
+        part.position.set(0, 0.2, -0.16);
+        addAcc(torsoPivot, part);
+      } else if (id === "serape") {
+        const cloth = box(0.5, 0.46, 0.05, mat(0xb8562e));
+        cloth.position.set(0, 0.4, -0.15);
+        addAcc(torsoPivot, cloth);
+        const stripe = box(0.5, 0.05, 0.052, mat(0xe0d3a8));
+        stripe.position.set(0, 0.45, -0.15);
+        addAcc(torsoPivot, stripe);
+      } else if (id === "bedroll") {
+        const roll = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.5, 8), mat(0x8a6a3c));
+        roll.rotation.z = Math.PI / 2;
+        roll.position.set(0, 0.62, -0.15);
+        addAcc(torsoPivot, roll);
+      } else if (id === "satchel") {
+        const bag = box(0.18, 0.2, 0.1, mat(0x5c3a1e));
+        bag.position.set(0.22, 0.34, -0.02);
+        addAcc(torsoPivot, bag);
+        const strap = box(0.05, 0.5, 0.03, mat(0x3a2412));
+        strap.rotation.z = 0.5;
+        strap.position.set(0.08, 0.5, 0.06);
+        addAcc(torsoPivot, strap);
+      } else if (id === "cardband") {
+        const card = box(0.06, 0.09, 0.02, mat(0xf0ead8));
+        card.position.set(0.1, 0.08, 0.14);
+        addAcc(hat, card);
+      } else if (id === "conchos") {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.172, 0.05, 12), mat(0x4a3018));
+        band.position.y = 0.045;
+        addAcc(hat, band);
+        for (let ci = 0; ci < 3; ci++) {
+          const stud = box(0.03, 0.03, 0.02, mat(0xaeb3b8));
+          const a = ci * 0.5 - 0.5;
+          stud.position.set(Math.sin(a) * 0.17, 0.045, Math.cos(a) * 0.17);
+          addAcc(hat, stud);
+        }
+      } else if (id === "sheriffpin") {
+        const star = makeStarMesh(0.035, 0.015, mat(0xe8b64c));
+        star.position.set(0, 0.09, 0.16);
+        addAcc(hat, star);
+      } else if (id === "bulletband") {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.172, 0.05, 12), mat(0x4a3018));
+        band.position.y = 0.045;
+        addAcc(hat, band);
+        for (let bi = 0; bi < 3; bi++) {
+          const bullet = box(0.02, 0.05, 0.02, mat(0xd8b13c));
+          const a = bi * 0.45 - 0.45;
+          bullet.position.set(Math.sin(a) * 0.17, 0.05, Math.cos(a) * 0.17);
+          addAcc(hat, bullet);
+        }
+      } else if (id === "snakeband") {
+        const band = new THREE.Mesh(new THREE.CylinderGeometry(0.165, 0.172, 0.055, 12), mat(0x3e6b4c));
+        band.position.y = 0.045;
+        addAcc(hat, band);
       } else if (seasonBadgeInfo(id) !== null) {
         const info = seasonBadgeInfo(id);
         const ribbon = box(0.05, 0.06, 0.02, mat(0xa83c2a));
@@ -485,7 +663,8 @@ export function createCowboy() {
   }
 
   function setSeated(active) {
-    anim.seated = active;
+    anim.seated = !!active;
+    anim.seatFloor = active === "floor";
   }
 
   function playShoot() {
@@ -576,8 +755,12 @@ export function createCowboy() {
         anim.flinch -= dt;
         flinchLean = Math.sin(anim.flinch * 12) * 0.3;
       }
+      let seatLean = 0;
+      if (anim.seated && anim.seatFloor) {
+        seatLean = -0.45;
+      }
       torsoPivot.rotation.z = lean * 0.4;
-      torsoPivot.rotation.x = -flinchLean;
+      torsoPivot.rotation.x = -flinchLean + seatLean;
 
       const step = (anim.dodgeTarget - anim.dodgeCurrent) * Math.min(1, dt * 8);
       anim.dodgeCurrent += step;
@@ -602,7 +785,10 @@ export function createCowboy() {
     } else if (anim.death === null) {
       let hipRest = 0;
       let kneeRest = 0;
-      if (anim.seated) {
+      if (anim.seated && anim.seatFloor) {
+        hipRest = -1.5;
+        kneeRest = 0.4;
+      } else if (anim.seated) {
         hipRest = -1.45;
         kneeRest = 1.5;
       } else if (anim.dig) {
@@ -639,10 +825,12 @@ export function createCowboy() {
         armL.elbow.rotation.x = -0.4 + Math.sin(tt * 3.4 + 0.8) * 0.24;
         torsoPivot.rotation.x = Math.sin(tt * 2.8) * 0.02;
       } else if (anim.seated) {
-        armR.shoulder.rotation.x += (-0.5 - armR.shoulder.rotation.x) * Math.min(1, dt * 8);
-        armR.elbow.rotation.x += (-0.45 - armR.elbow.rotation.x) * Math.min(1, dt * 8);
-        armL.shoulder.rotation.x += (-0.5 - armL.shoulder.rotation.x) * Math.min(1, dt * 8);
-        armL.elbow.rotation.x += (-0.45 - armL.elbow.rotation.x) * Math.min(1, dt * 8);
+        const shoulderRest = anim.seatFloor ? 0.7 : -0.5;
+        const elbowRest = anim.seatFloor ? -0.2 : -0.45;
+        armR.shoulder.rotation.x += (shoulderRest - armR.shoulder.rotation.x) * Math.min(1, dt * 8);
+        armR.elbow.rotation.x += (elbowRest - armR.elbow.rotation.x) * Math.min(1, dt * 8);
+        armL.shoulder.rotation.x += (shoulderRest - armL.shoulder.rotation.x) * Math.min(1, dt * 8);
+        armL.elbow.rotation.x += (elbowRest - armL.elbow.rotation.x) * Math.min(1, dt * 8);
       }
     }
 
