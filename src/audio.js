@@ -377,4 +377,20 @@ export class AudioEngine {
     this.ensure();
     this.playSample("bellChurch", { gain: 0.7, rate: 0.45 });
   }
+
+  textBlip() {
+    this.ensure();
+    const t = this.now();
+    const o = this.ctx.createOscillator();
+    o.type = "square";
+    o.frequency.setValueAtTime(360 + Math.random() * 60, t);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.045, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+    o.connect(g);
+    g.connect(this.sfxGain);
+    o.start(t);
+    o.stop(t + 0.06);
+  }
 }

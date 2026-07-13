@@ -103,6 +103,27 @@ export class Cinematic {
     this.addListener(el("btn-cine-quit"), "click", function () {
       self.quit();
     });
+    for (const step of this.steps) {
+      if (step.cut !== undefined) {
+        this.camPos.copy(this.resolve(step.cut.pos));
+        this.camLook.copy(this.resolve(step.cut.look));
+        if (step.cut.fov !== undefined) {
+          this.fov = step.cut.fov;
+        }
+        break;
+      }
+      if (step.cam !== undefined) {
+        this.camPos.copy(this.resolve(step.cam.pos));
+        this.camLook.copy(this.resolve(step.cam.look));
+        if (step.cam.fov !== undefined) {
+          this.fov = step.cam.fov;
+        }
+        break;
+      }
+    }
+    const fade = el("fade-overlay");
+    fade.style.transition = "none";
+    fade.style.opacity = "1";
     this.applyCamera();
     this.nextStep();
   }
@@ -281,7 +302,7 @@ export class Cinematic {
       if (step.doors === "open") this.arena.interiors.setSaloonDoors(true);
       else if (step.doors === "close") this.arena.interiors.setSaloonDoors(false);
       else if (step.doors === true) {
-        this.arena.interiors.setSaloonDoors(false); // trigger swing back
+        this.arena.interiors.setSaloonDoors(false); 
       }
     }
     if (step.call !== undefined) {
@@ -464,7 +485,19 @@ export class Cinematic {
       this.applyCamera();
     }
     if (this.typing !== null && this.typing.shown < this.typing.full.length) {
+      const before = Math.floor(this.typing.shown);
       this.typing.shown = Math.min(this.typing.full.length, this.typing.shown + dt * CHARS_PER_SEC);
+      const after = Math.floor(this.typing.shown);
+      for (let i = before; i < after; i++) {
+        const ch = this.typing.full[i];
+        if (ch !== " " && ch !== "\n" && ch !== " ") {
+          this.typing.blip = (this.typing.blip || 0) + 1;
+          if (this.typing.blip >= 2) {
+            this.typing.blip = 0;
+            this.audio.textBlip();
+          }
+        }
+      }
       el("cine-say-text").textContent = this.typing.full.slice(0, Math.floor(this.typing.shown));
       if (this.typing.shown >= this.typing.full.length) {
         el("cine-say-more").classList.remove("hidden");

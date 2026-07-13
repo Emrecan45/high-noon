@@ -179,13 +179,13 @@ export function createArena(container) {
   const weed = makeTumbleweed();
   scene.add(weed);
   const weedPaths = [
-    // Through alleys: left gap → right gap (slight diagonal)
+    
     { sx: -14, sz: -10.85, ex: 14, ez: -7.35 },
     { sx: -14, sz: -21.5, ex: 14, ez: -16.9 },
-    // Reverse: right gap → left gap
+    
     { sx: 14, sz: -7.35, ex: -14, ez: -10.85 },
     { sx: 14, sz: -16.9, ex: -14, ez: -21.5 },
-    // Open areas above/below the town
+    
     { sx: -14, sz: 13, ex: 14, ez: 13 },
     { sx: 14, sz: -30, ex: -14, ez: -30 }
   ];

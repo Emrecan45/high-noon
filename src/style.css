@@ -2703,7 +2703,7 @@ body.touch #hearts {
   position: absolute;
   border-radius: 10px;
   border: 2px solid #e8b64c;
-  box-shadow: 0 0 0 9999px rgba(8, 5, 2, 0.82), 0 0 18px rgba(232, 182, 76, 0.6);
+  box-shadow: 0 0 18px rgba(232, 182, 76, 0.7), 0 0 0 4px rgba(232, 182, 76, 0.22);
   pointer-events: none;
   transition: left 0.25s ease, top 0.25s ease, width 0.25s ease, height 0.25s ease;
 }

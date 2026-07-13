@@ -209,6 +209,7 @@ let audioBooted = false;
 let menuMusicAllowed = false;
 function bootAudio() {
   if (audioBooted) {
+    audio.ensure();
     return;
   }
   audioBooted = true;
@@ -308,25 +309,32 @@ function hideToast() {
 
 const popupQueue = [];
 let popupOpen = false;
+let currentPopup = null;
 
-function showPopup(title, html) {
-  popupQueue.push({ title: title, html: html });
+function showPopup(title, html, onClose) {
+  popupQueue.push({ title: title, html: html, onClose: onClose || null });
   if (!popupOpen) {
     nextPopup();
   }
 }
 
 function nextPopup() {
+  const prev = currentPopup;
+  currentPopup = null;
   const item = popupQueue.shift();
   if (item === undefined) {
     popupOpen = false;
     el("popup-overlay").classList.add("hidden");
-    return;
+  } else {
+    currentPopup = item;
+    popupOpen = true;
+    el("popup-title").textContent = item.title;
+    el("popup-body").innerHTML = item.html;
+    el("popup-overlay").classList.remove("hidden");
   }
-  popupOpen = true;
-  el("popup-title").textContent = item.title;
-  el("popup-body").innerHTML = item.html;
-  el("popup-overlay").classList.remove("hidden");
+  if (prev !== null && prev.onClose !== null) {
+    prev.onClose();
+  }
 }
 
 el("btn-popup-ok").addEventListener("click", function () {
@@ -2027,11 +2035,7 @@ const storyMode = createStoryMode({
     cowboy.setAccessories(aiSkin.acc);
     cowboy.setWeapon(weaponById(aiSkin.weapon).colors);
     applyMyWeapon();
-    let persona = opts.persona;
-    if (opts.tutorial) {
-      persona = Object.assign({}, opts.persona, { reaction: [1700, 2300], aim: [950, 1350], accHead: 0.08, accBody: 0.18, misfireChance: 0.35, dodgeChance: 0 });
-    }
-    const ai = new AiOpponent(persona, createRng(randomSeed()));
+    const ai = new AiOpponent(opts.persona, createRng(randomSeed()));
     const baseResult = handleResult(false);
     activeDuel = new Duel({
       arena: arena,
@@ -2049,7 +2053,6 @@ const storyMode = createStoryMode({
       forceModifier: opts.modifier,
       forceDistance: opts.distance,
       oppPerks: opts.perks,
-      tutorial: opts.tutorial === true,
       onResult: baseResult,
       onCombat: startCombatMusic,
       oppColors: aiSkin.colors,
@@ -2165,9 +2168,6 @@ const storyMode = createStoryMode({
       });
     } else {
       backToMenu();
-      if (index === 0) {
-        maybeRunMenuGuide();
-      }
     }
   }
 });
@@ -2637,7 +2637,9 @@ function runMenuGuide() {
     { id: "btn-shop", key: "guideShop" },
     { id: "btn-board", key: "guideBoard" },
     { id: "btn-minigames", key: "guideMinigames" },
-    { id: "btn-pass", key: "guidePass" }
+    { id: "btn-pass", key: "guidePass" },
+    { id: "btn-friends", key: "guideFriends" },
+    { id: "challenges-toggle", key: "guideChallenges" }
   ];
   const overlay = document.createElement("div");
   overlay.id = "guide-overlay";
@@ -2687,7 +2689,13 @@ function runMenuGuide() {
       bx = 12;
     }
     bubble.style.left = bx + "px";
-    bubble.style.top = Math.max(12, Math.min(window.innerHeight - 140, r.top)) + "px";
+    let by = Math.max(12, r.top - 6);
+    bubble.style.top = by + "px";
+    const bh = bubble.offsetHeight;
+    if (by + bh > window.innerHeight - 12) {
+      by = Math.max(12, window.innerHeight - 12 - bh);
+      bubble.style.top = by + "px";
+    }
   }
   next.onclick = function () {
     audio.uiClick();
@@ -2695,13 +2703,6 @@ function runMenuGuide() {
     show();
   };
   show();
-}
-
-function maybeRunMenuGuide() {
-  if (localStorage.getItem("hn-guide-seen") !== null) {
-    return;
-  }
-  setTimeout(runMenuGuide, 600);
 }
 
 async function boot() {
@@ -2760,8 +2761,10 @@ async function boot() {
   }
   if (!hadAccount && localStorage.getItem("hn-onboarded") === null) {
     localStorage.setItem("hn-onboarded", "1");
-    bootAudio();
-    storyMode.start(0);
+    localStorage.setItem("hn-notes-seen", LATEST_VERSION);
+    showPopup(t("welcomeTitle"), t("welcomeBody"), function () {
+      runMenuGuide();
+    });
     return;
   }
   maybeShowNotesPopup();

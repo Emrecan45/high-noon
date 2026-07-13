@@ -110,8 +110,6 @@ export class Duel {
     this.quickEnd = deps.quickEnd || null;
     this.startingOppPerks = deps.oppPerks || null;
     this.prevTopId = deps.prevTopId || null;
-    this.tutorial = deps.tutorial === true;
-    this.tutDodgeShown = false;
     this.resetMatch();
   }
 
@@ -917,9 +915,6 @@ export class Duel {
     } else {
       this.ui.setSub(t(this.round.modifier.descKey));
     }
-    if (this.tutorial) {
-      this.ui.setSub(t("tutIntro"));
-    }
     this.state = "intro";
     this.introUntil = performance.now() + 3600;
   }
@@ -931,9 +926,6 @@ export class Duel {
     this.ui.setBig(t("fire"), "fire", 1300);
     this.ui.setSub("");
     this.ui.setGunState(t("drawPrompt"));
-    if (this.tutorial) {
-      this.ui.setSub(t("tutSignal"));
-    }
   }
 
   playerDraw(now) {
@@ -1120,9 +1112,6 @@ export class Duel {
     this.round.playerBusyUntil = now + duration;
     this.viewmodel.reload(duration / 1000);
     this.ui.setGunState(t("reloading"));
-    if (this.tutorial) {
-      this.ui.setSub(t("tutReload"));
-    }
   }
 
   onDodge(dir) {
@@ -1152,12 +1141,6 @@ export class Duel {
       this.net.send("dodge", { t: dodgeT, dir: dir });
     } else {
       this.ai.onPlayerDodge(dodgeT);
-    }
-    if (this.tutorial) {
-      this.cowboy.playShoot();
-      this.audio.distantShot();
-      this.spawnNearImpact();
-      this.tutDodgeShown = true;
     }
   }
 
@@ -1679,7 +1662,7 @@ export class Duel {
       } else if (now >= this.introUntil) {
         this.state = "waiting";
         this.waitStart = now;
-        this.ui.setSub(this.tutorial ? t("tutWait") : t("waitSignal"));
+        this.ui.setSub(t("waitSignal"));
       }
     } else if (this.state === "waiting") {
       if (!this.isTouch && !this.locked && this.net === null) {

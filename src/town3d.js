@@ -746,12 +746,7 @@ export function buildTown(scene, impactTargets) {
   trough.rotation.y = 0.2;
   group.add(trough);
 
-  const wheelProp = makeWagonWheel();
-  wheelProp.position.set(-6.9, 0.56, -2.6);
-  wheelProp.rotation.set(0, 0.5, 0.32);
-  group.add(wheelProp);
-
-  for (const spot of [[-6.6, -8.9], [-6.2, -8.2], [6.5, -14.5]]) {
+  for (const spot of [[-5.9, -8.9], [-6.0, -8.2], [5.9, -14.5]]) {
     const crate = makeCrate();
     crate.position.set(spot[0], crate.position.y, spot[1]);
     crate.rotation.y = Math.random() * 1.5;
@@ -835,11 +830,6 @@ export function buildTown(scene, impactTargets) {
   horseA.group.rotation.y = -Math.PI / 2;
   group.add(horseA.group);
   horses.push(horseA);
-  const horseB = makeHorse();
-  horseB.group.position.set(7.6, 0, 9.6);
-  horseB.group.rotation.y = -Math.PI / 2 + 0.3;
-  group.add(horseB.group);
-  horses.push(horseB);
 
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 9.6, 4), mat(0xd8c48a, 1));
   rope.rotation.x = Math.PI / 2;

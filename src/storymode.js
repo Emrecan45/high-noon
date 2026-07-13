@@ -132,7 +132,6 @@ export function createStoryMode(deps) {
         modifier: step.modifier,
         distance: step.distance,
         perks: step.perks || null,
-        tutorial: step.tutorial === true,
         onEnd: function (won) {
           if (won) {
             stepIndex += 1;

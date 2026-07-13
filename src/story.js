@@ -28,7 +28,7 @@ export const CHAPTERS = [
     descKey: "st.ch1.desc",
     steps: [
       { type: "cine", script: "ch1_intro" },
-      { type: "duel", persona: "nervous", modifier: "noon", distance: "close", loseScript: "ch1_lose", tutorial: true },
+      { type: "duel", persona: "nervous", modifier: "noon", distance: "close", loseScript: "ch1_lose" },
       { type: "cine", script: "ch1_win" }
     ]
   },
