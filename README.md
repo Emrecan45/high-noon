@@ -1,6 +1,6 @@
 <div align="center">
 
-![High Noon](docs/logo.png)
+![High Noon](src/assets/logo.png)
 
 **High Noon** est un jeu de duel western 1v1 en 3D à la première personne, développé en **JavaScript** avec **Three.js**.
 
@@ -10,7 +10,7 @@ La clé du succès : dégainer, viser et tirer plus vite que votre adversaire.
 ![Version](https://img.shields.io/badge/version-v1.3-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
 ![Supabase](https://img.shields.io/badge/supabase-realtime-3ECF8E)
-![Licence](https://img.shields.io/badge/licence-MIT-lightgrey)
+![Licence](https://img.shields.io/badge/licence-All%20Rights%20Reserved-red)
 
 </div>
 
@@ -81,6 +81,7 @@ Le jeu fonctionne sur une infrastructure temps réel (**Supabase Realtime**) gar
 ## 🤠 Profil et Boutique
 
 - **Garde-robe :** Personnalisation complète (Chapeaux, chemises, armes, accessoires).
+- **Affiche de prime :** Personnalise ton avis de recherche (papier, tampon, encre, pose, titre).
 - **Boutique :** Caisse du destin permettant de débloquer de l'équipement avec un système de rareté (Commun à Légendaire).
 
 ## 🌐 Jouer dans le navigateur
@@ -130,7 +131,7 @@ high-noon/
     ├── ai.js             # Comportement des adversaires IA
     ├── ui.js             # Gestion de l'interface et du DOM
     ├── style.css         # Styles (Design System et Responsive)
-    └── assets/           # Ressources audio (musiques, sfx)
+    └── assets/           # Ressources (audio, logo, icônes)
 ```
 
 ## 🎨 Crédits
@@ -139,4 +140,4 @@ La liste détaillée des auteurs pour les ressources audio est disponible dans l
 
 ## 📄 Licence
 
-Ce projet est distribué sous licence **MIT**. Voir le fichier [`LICENSE`](LICENSE).
+Ce projet est distribué sous une licence **Tous droits réservés**. Il est strictement interdit de copier, publier ou exploiter commercialement ce code. Voir le fichier [`LICENSE`](LICENSE) pour plus de détails.
