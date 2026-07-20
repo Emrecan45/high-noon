@@ -8,14 +8,14 @@ export const WEAPONS = [
   },
   {
     id: "silver",
-    price: 200,
+    price: 650,
     weight: 3,
     nameKey: "weapon.silver.name",
     colors: { body: 0xb8c0c8, metal: 0xd8e0e8, grip: 0x3a2a18 }
   },
   {
     id: "ivory",
-    price: 300,
+    price: 200,
     weight: 3,
     nameKey: "weapon.ivory.name",
     colors: { body: 0x30302f, metal: 0x44444c, grip: 0xe8e0cf }
@@ -36,7 +36,7 @@ export const WEAPONS = [
   },
   {
     id: "navy",
-    price: 250,
+    price: 200,
     weight: 3,
     nameKey: "weapon.navy.name",
     colors: { body: 0x2a3a4a, metal: 0x5a6b7a, grip: 0x4a3018 }
@@ -64,28 +64,28 @@ export const WEAPONS = [
   },
   {
     id: "midnight",
-    price: 550,
+    price: 200,
     weight: 2,
     nameKey: "weapon.midnight.name",
     colors: { body: 0x14141c, metal: 0x2a2a3a, grip: 0x1c1c26 }
   },
   {
     id: "bone",
-    price: 500,
+    price: 300,
     weight: 2,
     nameKey: "weapon.bone.name",
     colors: { body: 0x44403a, metal: 0x6b665e, grip: 0xf0ead8 }
   },
   {
     id: "scarlet",
-    price: 650,
+    price: 500,
     weight: 1,
     nameKey: "weapon.scarlet.name",
     colors: { body: 0x5a141a, metal: 0xa82a34, grip: 0x2a0c10 }
   },
   {
     id: "deputy",
-    price: 400,
+    price: 300,
     weight: 2,
     nameKey: "weapon.deputy.name",
     colors: { body: 0x46464e, metal: 0x8a8f98, grip: 0x5c3a1e }

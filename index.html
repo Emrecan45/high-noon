@@ -14,7 +14,7 @@
 </head>
 <body>
   <div id="boot-loading">
-    <div class="boot-logo">HIGH NOON</div>
+    <img src="./src/assets/logo.png" alt="HIGH NOON" class="boot-logo">
     <div class="boot-bar"><div id="boot-bar-fill"></div></div>
     <div id="boot-pct">0%</div>
   </div>
@@ -77,6 +77,22 @@
       </div>
     </div>
     <div id="right-rail">
+    <div id="event-banner" class="hidden">
+      <h3 id="ev-title"></h3>
+      <div class="ch-item" id="ev-item">
+        <div class="ch-info">
+          <div class="ch-label" id="ev-desc"></div>
+          <div class="ch-bar"><div class="ch-fill" id="ev-fill"></div></div>
+          <div class="ch-prog" id="ev-count"></div>
+        </div>
+        <div class="ch-reward" id="ev-reward-row">
+          <img id="ev-reward-icon" alt="" />
+          <span id="ev-reward-name"></span>
+        </div>
+        <div id="ev-time"></div>
+        <button id="btn-ev-claim" class="btn btn-small ch-claim hidden"></button>
+      </div>
+    </div>
     <div id="challenges-bar" class="hidden">
       <h3 data-i18n="challengesTitle"></h3>
       <div class="ch-tabs">
@@ -94,7 +110,7 @@
     </div>
     <button id="challenges-toggle" class="hidden" aria-label="Challenges">🎯</button>
     <div id="hub-title">
-      <h1 class="logo">HIGH NOON</h1>
+      <img src="./src/assets/logo.png" alt="HIGH NOON" class="logo">
       <p class="tagline" data-i18n="tagline"></p>
     </div>
     <div class="menu" id="hub-menu">
@@ -109,7 +125,13 @@
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
         <button id="btn-patch" class="btn btn-small" data-i18n="btnPatch"></button>
       </div>
-      <p id="players-online" class="players-online hidden"></p>
+        <p id="players-online" class="players-online hidden"></p>
+      </div>
+    <div style="position: absolute; bottom: 20px; left: 20px; z-index: 20;">
+      <button id="btn-cg-login" class="btn btn-cg-login hidden" style="margin: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+        <img src="https://www.google.com/s2/favicons?domain=crazygames.com&sz=64" alt="CG" style="width: 52px; height: 52px; vertical-align: middle; margin-left: 24px; margin-right: 12px; border-radius: 10px;">
+        <span data-i18n="cgLogin" style="vertical-align: middle;">Se Connecter</span>
+      </button>
     </div>
     <div class="home-footer">
       <p class="footer-note"><span data-i18n="footer"></span> <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
@@ -123,11 +145,17 @@
         <span id="version-tag"></span>
       </p>
     </div>
-  </div>
-
-  <div id="coins-badge" class="hidden">
-    <span id="coins-value">0</span>
-    <span class="coin-ico">🪙</span>
+    <div id="hud-badges" class="hidden">
+      <div id="level-badge" class="hud-badge">
+        <span class="lvl-ico">Niv.</span>
+        <span class="badge-num" id="level-value">1</span>
+        <span class="lvl-xp" id="level-xp">0/200</span>
+      </div>
+      <div id="coins-badge" class="hud-badge">
+        <span id="coins-value">0</span>
+        <span class="coin-ico">🪙</span>
+      </div>
+    </div>
   </div>
 
   <div id="screen-help" class="screen station hidden">
@@ -144,31 +172,33 @@
         <button id="btn-copy-id" class="btn btn-small" data-i18n="copyId"></button>
       </div>
     </div>
-    <div class="di-poster" id="profile-poster" style="width: 250px; margin-bottom: 12px; margin-top: 10px;">
-      <div class="di-wanted">WANTED</div>
-      <img class="di-fig" id="profile-poster-fig" alt="" />
-      <div class="di-name" id="profile-poster-name"></div>
-      <div class="di-title" id="profile-poster-title"></div>
-      <div class="di-doa">DEAD OR ALIVE</div>
-    </div>
+    <div class="di-poster" id="profile-poster" style="width: 250px; margin-bottom: 12px; margin-top: 10px;"></div>
+    <button id="btn-poster-edit" class="btn btn-small" data-i18n="posterEdit"></button>
     <div id="stats-block" class="stats-grid"></div>
     <div id="career-title" data-i18n="careerTitle"></div>
     <div id="career-block" class="stats-grid"></div>
     <div id="profile-view"></div>
     <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
     <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
+    <div id="poster-editor" class="hidden">
+      <h2 data-i18n="invPoster"></h2>
+      <div class="ch-tabs" id="poster-tabs"></div>
+      <div id="poster-items"></div>
+      <button id="btn-poster-back" class="btn btn-small" data-i18n="back"></button>
+    </div>
   </div>
 
   <div id="screen-inventory" class="screen docked hidden">
     <h2 data-i18n="invTitle"></h2>
-    <div class="ch-tabs">
-      <button id="inv-tab-skins" class="ch-tab active" data-i18n="invSkins"></button>
-      <button id="inv-tab-weapons" class="ch-tab" data-i18n="invWeapons"></button>
-      <button id="inv-tab-acc" class="ch-tab" data-i18n="invAcc"></button>
-    </div>
-    <div id="inv-view"></div>
-    <div class="inv-scroll">
-      <div id="inv-skins" class="inv-grid"></div>
+      <div class="ch-tabs">
+        <button id="inv-tab-skins" class="ch-tab active" data-i18n="invSkins"></button>
+        <button id="inv-tab-weapons" class="ch-tab" data-i18n="invWeapons"></button>
+        <button id="inv-tab-acc" class="ch-tab" data-i18n="invAcc"></button>
+      </div>
+      <div id="inv-view"></div>
+      <input type="range" id="inv-rotation" min="-180" max="180" value="0">
+      <div class="inv-scroll">
+        <div id="inv-skins" class="inv-grid"></div>
       <div id="inv-weapons" class="inv-grid hidden"></div>
       <div id="inv-acc" class="hidden"></div>
     </div>
@@ -212,6 +242,15 @@
       <h3 id="legal-title"></h3>
       <div id="legal-body"></div>
       <button id="legal-close" class="btn btn-small" data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="levelup" class="hidden">
+    <div id="lvl-caption" data-i18n="statsLevel"></div>
+    <div class="lvl-stage">
+      <div class="lvl-num" id="lvl-old"><span id="lvl-old-num"></span></div>
+      <div class="lvl-num" id="lvl-new"></div>
+      <div class="lvl-dust" id="lvl-dust"></div>
     </div>
   </div>
 
@@ -261,26 +300,14 @@
     <div class="di-sun"></div>
     <div class="di-stage">
       <div class="di-side di-you">
-        <div class="di-poster">
-          <div class="di-wanted">WANTED</div>
-          <img class="di-fig" id="di-you-fig" alt="" />
-          <div class="di-name" id="di-you-name"></div>
-          <div class="di-title" id="di-you-title"></div>
-          <div class="di-doa">DEAD OR ALIVE</div>
-        </div>
+        <div class="di-poster" id="di-you-poster"></div>
       </div>
       <div class="di-center">
         <div class="di-vs">VS</div>
         <div class="di-tag" data-i18n="duelTag"></div>
       </div>
       <div class="di-side di-opp">
-        <div class="di-poster">
-          <div class="di-wanted">WANTED</div>
-          <img class="di-fig" id="di-opp-fig" alt="" />
-          <div class="di-name" id="di-opp-name"></div>
-          <div class="di-title" id="di-opp-title"></div>
-          <div class="di-doa">DEAD OR ALIVE</div>
-        </div>
+        <div class="di-poster" id="di-opp-poster"></div>
       </div>
     </div>
   </div>
@@ -306,7 +333,6 @@
       <p id="matchend-detail"></p>
       <div id="matchend-recap" class="stats-grid hidden"></div>
       <div class="mend-buttons">
-        <button id="btn-double-ad" class="btn btn-small hidden"></button>
         <button id="btn-menu" class="btn btn-small" data-i18n="menu"></button>
       </div>
     </div>
@@ -339,6 +365,7 @@
 
   <div id="lock-prompt" class="screen overlay opaque hidden">
     <h2 data-i18n="lockTitle"></h2>
+    <p id="lock-error" style="color: #e8b64c; font-size: 14px; margin-top: 10px;"></p>
     <button id="btn-lock-quit" class="btn btn-small" data-i18n="btnQuit"></button>
   </div>
 
@@ -359,15 +386,61 @@
   </div>
 
   <div id="screen-story" class="screen station hidden">
-    <h2 data-i18n="storyTitle"></h2>
-    <p id="story-sub" class="story-sub" data-i18n="storySub"></p>
-    <div id="story-list"></div>
+    <h2 id="story-h2" data-i18n="btnStory"></h2>
+    <p id="story-sub" class="story-sub hidden" data-i18n="storySub"></p>
+    <div id="shelf">
+      <div class="shelf-book" id="shelf-ep1">
+        <span class="jr-cover-title" data-i18n="storyTitle"></span>
+      </div>
+      <div class="shelf-book soon">
+        <span class="jr-cover-title" data-i18n="jrSoon"></span>
+      </div>
+      <div class="shelf-book soon">
+        <span class="jr-cover-title" data-i18n="jrSoon"></span>
+      </div>
+    </div>
+    <div id="journal" class="hidden">
+      <div class="jr-book closed snap" id="jr-book">
+        <div class="jr-half jr-half-right">
+          <div class="jr-paper jr-paper-right">
+            <div class="jr-inner" id="jr-inner-right"></div>
+          </div>
+        </div>
+        <div class="jr-half jr-flap" id="jr-flap">
+          <div class="jr-face jr-face-inside">
+            <div class="jr-paper jr-paper-left">
+              <div class="jr-inner" id="jr-inner-left"></div>
+            </div>
+          </div>
+          <div class="jr-face jr-face-cover">
+            <span class="jr-cover-title" data-i18n="storyTitle"></span>
+          </div>
+        </div>
+        <div class="jr-leaf hidden" id="jr-leaf">
+          <div class="jr-leaf-face jr-leaf-front" id="jr-leaf-front"></div>
+          <div class="jr-leaf-face jr-leaf-back" id="jr-leaf-back"></div>
+        </div>
+        <div class="jr-spine"></div>
+        <button id="jr-prev" class="jr-nav jr-nav-l">❮</button>
+        <button id="jr-next" class="jr-nav jr-nav-r">❯</button>
+      </div>
+      <div class="jr-dots" id="jr-dots"></div>
+      <div class="jr-level" id="jr-level"></div>
+    </div>
     <button id="btn-story-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
   </div>
 
   <div id="fade-overlay"></div>
+
+  <div id="ban-overlay" class="hidden">
+    <div class="ban-box">
+      <div class="ban-icon">🚫</div>
+      <h2 id="ban-title"></h2>
+      <p id="ban-reason"></p>
+    </div>
+  </div>
 
   <script type="module" src="./src/main.js"></script>
 </body>

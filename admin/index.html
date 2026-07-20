@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>High Noon - Admin</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, sans-serif; background: #1a120a; color: #e8dcc4; }
+  header { background: #2b190b; padding: 14px 20px; border-bottom: 2px solid #7a4c15; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  header h1 { margin: 0; font-size: 18px; color: #e8b64c; letter-spacing: 1px; }
+  header .who { margin-left: auto; font-size: 13px; color: #b59a5c; }
+  main { max-width: 960px; margin: 0 auto; padding: 20px; }
+  .card { background: #241a10; border: 1px solid #4a3018; border-radius: 8px; padding: 18px; margin-bottom: 20px; }
+  .card h2 { margin: 0 0 14px; font-size: 16px; color: #e8b64c; }
+  label { display: block; font-size: 12px; color: #b59a5c; margin: 10px 0 4px; }
+  input, select { width: 100%; padding: 9px 10px; background: #16100a; border: 1px solid #5a3d1c; border-radius: 5px; color: #e8dcc4; font-size: 14px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 120px; }
+  button { padding: 9px 16px; background: linear-gradient(#e8b64c, #c68a2e); border: none; border-radius: 6px; color: #2a1706; font-weight: 700; font-size: 14px; cursor: pointer; }
+  button.ghost { background: transparent; border: 1px solid #7a4c15; color: #cdb491; }
+  button.danger { background: linear-gradient(#c0453a, #8a2f22); color: #fff; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+  th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid #3a2814; }
+  th { color: #b59a5c; font-weight: 600; }
+  .tag { display: inline-block; padding: 1px 7px; border-radius: 10px; font-size: 11px; }
+  .tag.ban { background: #6a201a; color: #ffd7cf; }
+  .tag.ok { background: #24401f; color: #cfe8c4; }
+  .tag.cg { background: #5e30d4; color: #ffffff; }
+  .tag.offline { background: #3a2e1d; color: #a49175; }
+  .msg { padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+  .msg.err { background: #4a1410; color: #ffc9c0; }
+  .msg.ok { background: #1c3416; color: #c8e8b8; }
+  .hidden { display: none; }
+  .hint { font-size: 12px; color: #8a7048; line-height: 1.5; }
+  code { background: #16100a; padding: 1px 5px; border-radius: 3px; color: #e8b64c; }
+</style>
+</head>
+<body>
+<header>
+  <h1>HIGH NOON - Admin</h1>
+  <span class="who" id="who"></span>
+  <button class="ghost hidden" id="logout">Déconnexion</button>
+</header>
+<main>
+
+  <div class="card" id="setup">
+    <h2>Connexion</h2>
+    <label>Supabase URL</label>
+    <input id="url" placeholder="https://xxxx.supabase.co">
+    <label>Anon key</label>
+    <input id="key" placeholder="eyJ...">
+    <div class="row">
+      <div><label>Email admin</label><input id="email" type="email"></div>
+      <div><label>Mot de passe</label><input id="pass" type="password"></div>
+    </div>
+    <div class="actions"><button id="login">Se connecter</button></div>
+    <div id="loginMsg"></div>
+  </div>
+
+  <div class="card hidden" id="eventsCard">
+    <h2>Événements</h2>
+    <div class="row">
+      <div><label>ID (unique)</label><input id="ev-id" placeholder="event-noel"></div>
+      <div><label>Titre affiché</label><input id="ev-title" placeholder="Défi de Noël"></div>
+      <div><label>Emoji (Icone)</label><input id="ev-icon" placeholder="⭐" maxlength="4" style="width: 80px;"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Stat suivie</label>
+        <select id="ev-stat">
+          <option value="played">Parties jouées</option>
+          <option value="won">Victoires</option>
+          <option value="ranked_won">Victoires classées</option>
+          <option value="shots">Tirs</option>
+          <option value="hits">Touches</option>
+          <option value="heads">Headshots</option>
+        </select>
+      </div>
+      <div><label>Objectif</label><input id="ev-goal" type="number" value="20"></div>
+      <div><label>Durée (jours)</label><input id="ev-days" type="number" value="7"></div>
+    </div>
+    <div class="row">
+      <div>
+        <label>Type de récompense</label>
+        <select id="ev-rkind">
+          <option value="skin">Skin</option>
+          <option value="weapon">Arme</option>
+          <option value="accessory">Accessoire</option>
+          <option value="coins">Pièces</option>
+        </select>
+      </div>
+      <div><label>ID récompense (skin/arme/acc)</label><input id="ev-rref" placeholder="sombra"></div>
+      <div><label>Montant (si pièces)</label><input id="ev-ramount" type="number" value="0"></div>
+    </div>
+    <div class="actions">
+      <button id="ev-save">Créer / mettre à jour</button>
+      <button class="ghost" id="ev-clear">Vider le formulaire</button>
+    </div>
+    <div id="ev-msg"></div>
+    <table id="ev-table"><thead><tr><th>ID</th><th>Titre</th><th>Objectif</th><th>Récompense</th><th>Fin</th><th></th></tr></thead><tbody id="ev-rows"></tbody></table>
+  </div>
+
+  <div class="card hidden" id="playersCard">
+    <h2>Joueurs</h2>
+    <div class="row">
+      <div><label>Recherche (pseudo, code ami, pseudo CG ou uid)</label><input id="pl-q" placeholder="Pseudo, code, CG, uid..."></div>
+      <div style="flex:0 0 auto; align-self:flex-end;"><button id="pl-search">Chercher</button></div>
+      <div style="flex:0 0 auto; align-self:flex-end;"><button class="ghost" id="pl-banned">Voir les bannis</button></div>
+    </div>
+    <p class="hint">Clique sur une ligne pour ouvrir la fiche détaillée.</p>
+    <div id="pl-msg"></div>
+    <table id="pl-table"><thead><tr><th>Pseudo</th><th>Prime</th><th>V/D</th><th>Code</th><th>Statut</th><th></th></tr></thead><tbody id="pl-rows"></tbody></table>
+    <div id="pl-pager" style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+      <button class="ghost" id="pl-prev">‹ Précédent</button>
+      <span id="pl-page" class="hint"></span>
+      <button class="ghost" id="pl-next">Suivant ›</button>
+    </div>
+  </div>
+
+  <div class="card hidden" id="detailCard">
+    <h2>Fiche joueur <button class="ghost" id="pd-close" style="float:right;">Fermer</button></h2>
+    <div id="pd-body"></div>
+    <div class="actions"><button id="pd-ban" class="danger">Bannir</button></div>
+    <div id="pd-msg"></div>
+  </div>
+
+</main>
+<script type="module">
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const $ = (id) => document.getElementById(id);
+let sb = null;
+
+function msg(node, text, kind) {
+  node.className = "msg " + (kind || "");
+  node.textContent = text;
+}
+
+$("url").value = localStorage.getItem("hn-admin-url") || "";
+$("key").value = localStorage.getItem("hn-admin-key") || "";
+$("email").value = localStorage.getItem("hn-admin-email") || "";
+
+(async function autoLogin() {
+  const url = localStorage.getItem("hn-admin-url");
+  const key = localStorage.getItem("hn-admin-key");
+  if (!url || !key) return;
+  sb = createClient(url, key);
+  const { data } = await sb.auth.getSession();
+  if (!data || !data.session) return;
+  const { error } = await sb.rpc("admin_list_events");
+  if (error) return;
+  onLoggedIn(localStorage.getItem("hn-admin-email") || data.session.user.email);
+})();
+
+$("login").addEventListener("click", async () => {
+  const url = $("url").value.trim();
+  const key = $("key").value.trim();
+  const email = $("email").value.trim();
+  const pass = $("pass").value;
+  if (!url || !key || !email || !pass) { msg($("loginMsg"), "Remplis tous les champs.", "err"); return; }
+  localStorage.setItem("hn-admin-url", url);
+  localStorage.setItem("hn-admin-key", key);
+  localStorage.setItem("hn-admin-email", email);
+  sb = createClient(url, key);
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { msg($("loginMsg"), "Échec: " + error.message, "err"); return; }
+  const { error: adminErr } = await sb.rpc("admin_list_events");
+  if (adminErr) { msg($("loginMsg"), "Connecté mais pas admin (" + adminErr.message + "). Ajoute ton uid dans la table admins.", "err"); return; }
+  onLoggedIn(email);
+});
+
+$("logout").addEventListener("click", async () => {
+  if (sb) await sb.auth.signOut();
+  location.reload();
+});
+
+function onLoggedIn(email) {
+  $("setup").classList.add("hidden");
+  $("eventsCard").classList.remove("hidden");
+  $("playersCard").classList.remove("hidden");
+  $("logout").classList.remove("hidden");
+  $("who").textContent = email;
+  trackOnline();
+  loadEvents();
+  plPage = 0;
+  loadPlayers();
+}
+
+async function loadEvents() {
+  const { data, error } = await sb.rpc("admin_list_events");
+  if (error) { msg($("ev-msg"), error.message, "err"); return; }
+  const rows = $("ev-rows");
+  rows.innerHTML = "";
+  for (const e of (data || [])) {
+    const tr = document.createElement("tr");
+    const reward = e.reward_kind === "coins" ? (e.reward_amount + " $") : (e.reward_kind + ": " + (e.reward_ref || "?"));
+    const ends = new Date(e.ends_at).toLocaleDateString();
+    tr.innerHTML = "<td>" + (e.icon || "") + " " + e.id + "</td><td>" + e.title + "</td><td>" + e.stat + " / " + e.goal + "</td><td>" + reward + "</td><td>" + ends + "</td>";
+    const td = document.createElement("td");
+    const edit = document.createElement("button"); edit.className = "ghost"; edit.textContent = "Éditer";
+    edit.onclick = () => fillForm(e);
+    const end = document.createElement("button"); end.className = "ghost"; end.textContent = "Terminer";
+    end.onclick = async () => {
+      if (!confirm("Terminer " + e.id + " ?")) { return; }
+      await sb.rpc("admin_end_event", { p_id: e.id });
+      msg($("ev-msg"), "Événement " + e.id + " terminé !", "ok");
+      loadEvents();
+    };
+    const del = document.createElement("button"); del.className = "danger"; del.textContent = "Suppr";
+    del.onclick = async () => { if (confirm("Supprimer " + e.id + " ?")) { await sb.rpc("admin_delete_event", { p_id: e.id }); loadEvents(); } };
+    td.append(edit, end, del);
+    tr.appendChild(td);
+    rows.appendChild(tr);
+  }
+}
+
+function fillForm(e) {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  $("ev-id").value = e.id;
+  $("ev-title").value = e.title;
+  $("ev-icon").value = e.icon || "⭐";
+  $("ev-stat").value = e.stat;
+  $("ev-goal").value = e.goal;
+  $("ev-days").value = 7;
+  $("ev-rkind").value = e.reward_kind;
+  $("ev-rref").value = e.reward_ref || "";
+  $("ev-ramount").value = e.reward_amount || 0;
+}
+
+$("ev-clear").addEventListener("click", () => {
+  ["ev-id","ev-title","ev-rref","ev-icon"].forEach(id => $(id).value = "");
+  $("ev-goal").value = 20; $("ev-days").value = 7; $("ev-ramount").value = 0;
+});
+
+$("ev-save").addEventListener("click", async () => {
+  const id = $("ev-id").value.trim();
+  if (!id) { msg($("ev-msg"), "ID requis.", "err"); return; }
+  const { error } = await sb.rpc("admin_upsert_event", {
+    p_id: id,
+    p_title: $("ev-title").value.trim(),
+    p_stat: $("ev-stat").value,
+    p_goal: parseInt($("ev-goal").value, 10) || 1,
+    p_reward_kind: $("ev-rkind").value,
+    p_reward_ref: $("ev-rref").value.trim(),
+    p_reward_amount: parseInt($("ev-ramount").value, 10) || 0,
+    p_days: parseInt($("ev-days").value, 10) || 7,
+    p_icon: $("ev-icon").value.trim() || "⭐"
+  });
+  if (error) { msg($("ev-msg"), error.message, "err"); return; }
+  msg($("ev-msg"), "Événement enregistré.", "ok");
+  loadEvents();
+});
+
+let lastMode = "search";
+let plPage = 0;
+let plCount = 0;
+let currentPlData = [];
+const PL_SIZE = 25;
+let onlineIds = new Set();
+let onlineChannel = null;
+
+function trackOnline() {
+  if (onlineChannel) return;
+  onlineChannel = sb.channel("hn-online");
+  onlineChannel.on("presence", { event: "sync" }, () => {
+    const state = onlineChannel.presenceState();
+    onlineIds = new Set(Object.keys(state));
+    renderRows(currentPlData);
+  });
+  onlineChannel.subscribe();
+}
+
+$("pl-search").addEventListener("click", searchPlayers);
+$("pl-banned").addEventListener("click", loadBanned);
+$("pl-q").addEventListener("keydown", (e) => { if (e.key === "Enter") searchPlayers(); });
+$("pd-close").addEventListener("click", () => $("detailCard").classList.add("hidden"));
+$("pl-prev").addEventListener("click", () => { if (plPage > 0) { plPage--; loadPlayers(); } });
+$("pl-next").addEventListener("click", () => { if (plCount >= PL_SIZE) { plPage++; loadPlayers(); } });
+
+function fmtDate(s) { return s ? new Date(s).toLocaleString() : "-"; }
+function accuracy(p) { return p.shots_fired > 0 ? Math.round(p.shots_hit / p.shots_fired * 100) + "%" : "-"; }
+
+async function toggleBan(p) {
+  let reason = "";
+  if (!p.banned) { 
+    const res = prompt("Raison du ban (optionnel):", "");
+    if (res === null) return false;
+    reason = res || "";
+  }
+  const { error } = await sb.rpc("admin_set_ban", { p_id: p.id, p_banned: !p.banned, p_reason: reason });
+  if (error) { msg($("pl-msg"), error.message, "err"); return false; }
+  if (lastMode === "banned") loadBanned(); else loadPlayers();
+  return true;
+}
+
+function renderRows(data) {
+  if (data) {
+    currentPlData = data;
+  }
+  const rows = $("pl-rows");
+  rows.innerHTML = "";
+  
+  const sorted = currentPlData.slice().sort((a, b) => {
+    const aOn = onlineIds.has(a.id);
+    const bOn = onlineIds.has(b.id);
+    if (aOn && !bOn) return -1;
+    if (!aOn && bOn) return 1;
+    return 0;
+  });
+
+  for (const p of sorted) {
+      const tr = document.createElement("tr");
+      tr.style.cursor = "pointer";
+      
+      const isOnline = onlineIds.has(p.id);
+      const status = isOnline ? '<span class="tag ok">En ligne</span>' : '<span class="tag offline">Hors ligne</span>';
+      
+      let pseudoTags = p.pseudo;
+      if (p.banned) {
+        pseudoTags += ' <span class="tag ban" title="Compte banni">Banni</span>';
+      }
+      if (p.cg_username && !/^User\d+$/.test(p.cg_username)) {
+        pseudoTags += ' <span class="tag cg" title="Compte CrazyGames authentifié">CG</span>';
+      }
+      
+      tr.innerHTML = "<td>" + pseudoTags + "</td><td>" + p.prime + "</td><td>" + p.wins + "/" + p.losses + "</td><td>" + (p.friend_code || "-") + "</td><td>" + status + "</td>";
+    const td = document.createElement("td");
+    const btn = document.createElement("button");
+    btn.className = p.banned ? "ghost" : "danger";
+    btn.textContent = p.banned ? "Débannir" : "Bannir";
+    btn.onclick = (e) => { e.stopPropagation(); toggleBan(p); };
+    td.appendChild(btn);
+    tr.appendChild(td);
+    tr.onclick = () => openDetail(p);
+    rows.appendChild(tr);
+  }
+}
+
+function updatePager() {
+  $("pl-pager").style.display = lastMode === "search" ? "flex" : "none";
+  $("pl-page").textContent = "Page " + (plPage + 1);
+  $("pl-prev").disabled = plPage === 0;
+  $("pl-next").disabled = plCount < PL_SIZE;
+}
+
+async function loadPlayers() {
+  lastMode = "search";
+  const { data, error } = await sb.rpc("admin_search_players", { p_query: $("pl-q").value.trim(), p_offset: plPage * PL_SIZE, p_limit: PL_SIZE });
+  if (error) { msg($("pl-msg"), error.message, "err"); return; }
+  plCount = (data || []).length;
+  renderRows(data);
+  updatePager();
+  msg($("pl-msg"), plCount + " joueur(s) - page " + (plPage + 1) + ".", "ok");
+}
+
+async function searchPlayers() {
+  plPage = 0;
+  await loadPlayers();
+}
+
+async function loadBanned() {
+  lastMode = "banned";
+  const { data, error } = await sb.rpc("admin_list_banned");
+  if (error) { msg($("pl-msg"), error.message, "err"); return; }
+  renderRows(data);
+  updatePager();
+  msg($("pl-msg"), (data || []).length + " banni(s).", "ok");
+}
+
+function openDetail(p) {
+  $("detailCard").classList.remove("hidden");
+  const info = [
+    ["Pseudo", p.pseudo + (p.cg_username ? "  (CG: " + p.cg_username + ")" : "")],
+    ["Code ami (ID)", p.friend_code || "-"],
+    ["uid", p.id],
+    ["Statut", p.banned ? "BANNI" + (p.ban_reason ? " - " + p.ban_reason : "") : "Actif"],
+    ["Prime", p.prime],
+    ["Pièces", p.coins],
+    ["Victoires / Défaites", p.wins + " / " + p.losses],
+    ["Classé V / D", p.ranked_wins + " / " + p.ranked_losses],
+    ["Tirs / Touches / Précision", p.shots_fired + " / " + p.shots_hit + " / " + accuracy(p)],
+    ["Headshots", p.headshots],
+    ["Série actuelle / record", p.win_streak + " / " + p.best_streak],
+    ["Skin / Arme", p.skin + " / " + p.weapon],
+    ["Inscrit le", fmtDate(p.created_at)],
+    ["Dernière connexion", fmtDate(p.last_seen)],
+    ["Dernière partie", fmtDate(p.last_result_at)]
+  ];
+  $("pd-body").innerHTML = "<table>" + info.map((r) => "<tr><th style='width:42%'>" + r[0] + "</th><td>" + r[1] + "</td></tr>").join("") + "</table>";
+  const banBtn = $("pd-ban");
+  banBtn.className = p.banned ? "ghost" : "danger";
+  banBtn.textContent = p.banned ? "Débannir" : "Bannir";
+  banBtn.onclick = async () => {
+    const ok = await toggleBan(p);
+    if (ok) $("detailCard").classList.add("hidden");
+  };
+  $("detailCard").scrollIntoView({ behavior: "smooth" });
+}
+</script>
+</body>
+</html>

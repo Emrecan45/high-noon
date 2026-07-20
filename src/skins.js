@@ -1,150 +1,168 @@
 import * as THREE from "three";
 import { createCowboy } from "./cowboy.js";
+import { weaponById } from "./weapons.js";
 
 export const SKINS = [
   {
     id: "drifter",
+    outfit: { kind: "suspenders", c1: 0x4a3018 },
     price: 0,
     nameKey: "skin.drifter.name",
     colors: { skin: 0xc98f5e, shirt: 0x7a2f24, pants: 0x30425c, hat: 0x4a3018, bandana: 0xc9a227 }
   },
   {
     id: "sheriff",
-    price: 150,
+    outfit: { kind: "vest", c1: 0x3f2a14, c2: 0xd8b13c },
+    price: 100,
     nameKey: "skin.sheriff.name",
     colors: { skin: 0xc98f5e, shirt: 0x8a6f3a, pants: 0x4a3524, hat: 0x6b4a1f, bandana: 0xd8c48a }
   },
   {
     id: "bandit",
-    price: 200,
+    outfit: { kind: "crossstrap", c1: 0x35230f, c2: 0xd8b13c },
+    price: 150,
     nameKey: "skin.bandit.name",
     colors: { skin: 0xb5825a, shirt: 0x23211f, pants: 0x1c1a18, hat: 0x141210, bandana: 0xb3271e }
   },
   {
-    id: "poncho",
-    price: 250,
-    nameKey: "skin.poncho.name",
-    colors: { skin: 0xa9744a, shirt: 0x2e6b4f, pants: 0x5a4326, hat: 0x7a5a2a, bandana: 0xe0d3a8 }
-  },
-  {
     id: "cavalry",
-    price: 350,
+    outfit: { kind: "cavalry", c1: 0x2a4a8a, c2: 0xe8b64c },
+    price: 300,
     nameKey: "skin.cavalry.name",
-    colors: { skin: 0xc98f5e, shirt: 0x1f3a6b, pants: 0x14243f, hat: 0x2b2b30, bandana: 0xd8b13c }
+    colors: { skin: 0xc98f5e, shirt: 0x2a4a8a, pants: 0x2a4a8a, hat: 0x1c3054, bandana: 0xe8b64c }
   },
   {
     id: "undertaker",
+    outfit: { kind: "frock", c1: 0x362145, c2: 0x8a8f98 },
     price: 500,
+    rarity: "rare",
     nameKey: "skin.undertaker.name",
-    colors: { skin: 0xd0b294, shirt: 0x2b2233, pants: 0x191423, hat: 0x0f0c14, bandana: 0x8a8f98 }
+    colors: { skin: 0xd0b294, shirt: 0x412954, pants: 0x191423, hat: 0x181424, bandana: 0x8a8f98 }
   },
   {
     id: "ghost",
-    price: 650,
+    outfit: { kind: "tatters", c1: 0xcfc6b8 },
+    price: 600,
     nameKey: "skin.ghost.name",
     colors: { skin: 0xd8cdbf, shirt: 0xcfc6b8, pants: 0xa89f8f, hat: 0xe4dccd, bandana: 0xffffff }
   },
   {
     id: "golden",
-    price: 900,
+    outfit: { kind: "tailcoat", c1: 0xd4a017, c2: 0xfff1c4, c3: 0x8a6510 },
+    price: 800,
     nameKey: "skin.golden.name",
     colors: { skin: 0xc98f5e, shirt: 0xd4a017, pants: 0x8a6510, hat: 0xe8b64c, bandana: 0xfff1c4 }
   },
   {
     id: "marshal",
-    price: 300,
+    outfit: { kind: "duster", c1: 0x3a3a44 },
+    price: 150,
     nameKey: "skin.marshal.name",
     colors: { skin: 0xc98f5e, shirt: 0x3a3a44, pants: 0x22222a, hat: 0x3a3a44, bandana: 0xd8b13c }
   },
   {
-    id: "outlaw",
-    price: 250,
-    nameKey: "skin.outlaw.name",
-    colors: { skin: 0xb5825a, shirt: 0x5a3a2a, pants: 0x3a2a1e, hat: 0x2a1c12, bandana: 0x1a1a1a }
-  },
-  {
-    id: "rangercoat",
-    price: 350,
-    nameKey: "skin.rangercoat.name",
-    colors: { skin: 0xc98f5e, shirt: 0x6b5232, pants: 0x3e3020, hat: 0x8a6a3c, bandana: 0x2e4a3a }
-  },
-  {
-    id: "gambler",
-    price: 400,
-    nameKey: "skin.gambler.name",
-    colors: { skin: 0xd0b294, shirt: 0x8a1e2a, pants: 0x1c1c22, hat: 0x14141a, bandana: 0xe8e0cf }
-  },
-  {
-    id: "vaquero",
-    price: 300,
-    nameKey: "skin.vaquero.name",
-    colors: { skin: 0xa9744a, shirt: 0xb05a1e, pants: 0x4a3018, hat: 0x6b4a1f, bandana: 0xe8c87a }
-  },
-  {
     id: "preacher",
-    price: 450,
+    outfit: { kind: "cassock", c1: 0x1a1a1e, c2: 0xf0ede4, c3: 0xd8b13c },
+    price: 350,
     nameKey: "skin.preacher.name",
-    colors: { skin: 0xd8c2a8, shirt: 0x1a1a1e, pants: 0x121216, hat: 0x1a1a1e, bandana: 0xf0ede4 }
-  },
-  {
-    id: "miner",
-    price: 200,
-    nameKey: "skin.miner.name",
-    colors: { skin: 0xb5825a, shirt: 0x4a5a6b, pants: 0x5a4326, hat: 0x8a7042, bandana: 0xa84632 }
-  },
-  {
-    id: "tracker",
-    price: 250,
-    nameKey: "skin.tracker.name",
-    colors: { skin: 0xa9744a, shirt: 0x556b4a, pants: 0x3a3026, hat: 0x4a3e28, bandana: 0xc9a227 }
+    colors: { skin: 0xd8c2a8, shirt: 0x1a1a1e, pants: 0x141416, hat: 0x1a1a1e, bandana: 0xf0ede4 }
   },
   {
     id: "duchess",
-    price: 500,
+    outfit: { kind: "dress", c1: 0x6b2a5a, c2: 0x4a1e40, c3: 0xe8d8b0 },
+    price: 350,
     nameKey: "skin.duchess.name",
     colors: { skin: 0xd8c2a8, shirt: 0x6b2a5a, pants: 0x2a1428, hat: 0x4a1e40, bandana: 0xe8d8b0 }
   },
   {
     id: "kid",
-    price: 200,
+    outfit: { kind: "overalls", c1: 0x30425c, c2: 0xd8b13c },
+    price: 150,
     nameKey: "skin.kid.name",
     colors: { skin: 0xd0a274, shirt: 0x4a76a8, pants: 0x30425c, hat: 0xb59a5c, bandana: 0xd85a3a }
   },
   {
     id: "mariachi",
-    price: 550,
+    outfit: { kind: "bolero", c1: 0x2a2a30, c2: 0x8a1e2a, c3: 0xd8b13c },
+    price: 200,
     nameKey: "skin.mariachi.name",
     colors: { skin: 0xa9744a, shirt: 0x2a2a30, pants: 0x1e1e24, hat: 0x2a2a30, bandana: 0xd8b13c }
   },
   {
     id: "sombra",
-    price: 600,
+    outfit: { kind: "shroud", c1: 0x2c1b45, c2: 0x8254cf, c3: 0x4a2e78 },
+    price: 350,
     nameKey: "skin.sombra.name",
-    colors: { skin: 0x8a6a52, shirt: 0x2a1e3a, pants: 0x1a1226, hat: 0x120c1e, bandana: 0x6b46a8 }
+    colors: { skin: 0x8a6a52, shirt: 0x38225a, pants: 0x24163b, hat: 0x2b1b42, bandana: 0x8254cf }
+  },
+
+  {
+    id: "nightowl",
+    outfit: { kind: "cloak", c1: 0x232938, c2: 0x5486ba },
+    price: 0,
+    event: true,
+    rarity: "epic",
+    nameKey: "skin.nightowl.name",
+    colors: { skin: 0x9a8a76, shirt: 0x232938, pants: 0x141822, hat: 0x141822, bandana: 0x5486ba }
+  },
+  {
+    id: "eldorado",
+    outfit: { kind: "poncho", c1: 0xe8c05a, c2: 0x8a1e2a },
+    price: 200,
+    nameKey: "skin.eldorado.name",
+    colors: { skin: 0xc98f5e, shirt: 0xe8c05a, pants: 0xb08a2a, hat: 0xf0d070, bandana: 0x8a1e2a }
+  },
+  {
+    id: "trapper",
+    outfit: { kind: "furcoat", c1: 0x4a3420, c2: 0xcfc0a8 },
+    price: 0,
+    event: true,
+    rarity: "epic",
+    nameKey: "skin.trapper.name",
+    colors: { skin: 0xc98f5e, shirt: 0x4a3420, pants: 0x3a2a18, hat: 0x5a4326, bandana: 0xcfc0a8 }
+  },
+  {
+    id: "skeleton",
+    outfit: { kind: "bones", c1: 0x14141a, c2: 0xe8e4dc },
+    price: 0,
+    event: true,
+    rarity: "legendary",
+    nameKey: "skin.skeleton.name",
+    colors: { skin: 0xd8d4cc, shirt: 0x14141a, pants: 0x0e0e12, hat: 0x0e0e12, bandana: 0x1a1a1e }
   },
   {
     id: "bounty",
-    price: 650,
+    outfit: { kind: "serape", c1: 0x7a1e1e, c2: 0xd8d0c0 },
+    price: 0,
+    event: true,
+    rarity: "rare",
     nameKey: "skin.bounty.name",
     colors: { skin: 0xb5825a, shirt: 0x7a1e1e, pants: 0x26201a, hat: 0x1c1610, bandana: 0xd8d0c0 }
   },
   {
-    id: "bluecoat",
-    price: 350,
-    nameKey: "skin.bluecoat.name",
-    colors: { skin: 0xc98f5e, shirt: 0x2a4a8a, pants: 0x1c3054, hat: 0x14243f, bandana: 0xe8b64c }
+    id: "gambler",
+    outfit: { kind: "suit", c1: 0x2a1418, c2: 0xffffff, c3: 0x8a1e2a },
+    price: 0,
+    event: true,
+    rarity: "epic",
+    nameKey: "skin.riverboat.name",
+    colors: { skin: 0xd0b294, shirt: 0x5c1a2a, pants: 0x2a1218, hat: 0x1a0e12, bandana: 0xe8e0cf }
   },
   {
-    id: "nightowl",
-    price: 700,
-    nameKey: "skin.nightowl.name",
-    colors: { skin: 0x9a8a76, shirt: 0x16161c, pants: 0x101014, hat: 0x0c0c10, bandana: 0x4a6b8a }
+    id: "calamity",
+    outfit: { kind: "fringe", c1: 0x8a6a3c, c2: 0xd8c48a },
+    price: 200,
+    nameKey: "skin.calamity.name",
+    colors: { skin: 0xd8b892, shirt: 0x8a6a3c, pants: 0x5a4326, hat: 0x6b4a2a, bandana: 0xa83c2a }
   },
   {
-    id: "eldorado",
-    price: 950,
-    nameKey: "skin.eldorado.name",
-    colors: { skin: 0xc98f5e, shirt: 0xe8c05a, pants: 0xb08a2a, hat: 0xf0d070, bandana: 0x8a1e2a }
+    id: "phantom",
+    outfit: { kind: "greatcoat", c1: 0x5a6b7a },
+    price: 0,
+    event: true,
+    rarity: "epic",
+    nameKey: "skin.phantom.name",
+    colors: { skin: 0xc8d0d8, shirt: 0x4a5a6a, pants: 0x3a4a5a, hat: 0x2a3a4a, bandana: 0x8a9aaa }
   }
 ];
 
@@ -170,16 +188,23 @@ export function skinById(id) {
   return SKINS[0];
 }
 
+export function skinRarity(skin) {
+  if (skin && skin.rarity) {
+    return skin.rarity;
+  }
+  return rarityOf(skin ? skin.price : 0);
+}
+
 export const AI_SKINS = {
   nervous: {
-    colors: { skin: 0xc0895a, shirt: 0x9c2b22, pants: 0x33241a, hat: 0x5a3a18, bandana: 0xf0cf3e },
+    colors: { skin: 0xd0a878, shirt: 0x6e2f3a, pants: 0x2a2622, hat: 0x9c855a, bandana: 0x3a4a5c },
     weapon: "rose",
-    acc: ["mustache"]
+    acc: ["bandolier"]
   },
   rapido: {
     colors: { skin: 0xa9744a, shirt: 0x1f6b47, pants: 0x22331d, hat: 0x2c4a2a, bandana: 0xe9e2c4 },
     weapon: "ranger",
-    acc: ["poncho", "cigar"]
+    acc: ["cigar"]
   },
   patient: {
     colors: { skin: 0xd0b294, shirt: 0x241a2e, pants: 0x14101c, hat: 0x0e0a14, bandana: 0x8a4f8a },
@@ -192,12 +217,14 @@ export const AI_SKINS = {
     acc: ["feather"]
   },
   grace: {
-    colors: { skin: 0xd8c2a8, shirt: 0x2a2a30, pants: 0x1c1c22, hat: 0x14141a, bandana: 0xe8e2d4 },
+    colors: skinById("preacher").colors,
+    outfit: skinById("preacher").outfit,
     weapon: "silver",
-    acc: ["star"]
+    acc: []
   },
   undertaker: {
-    colors: { skin: 0xd0b294, shirt: 0x16121c, pants: 0x0e0b12, hat: 0x0a080e, bandana: 0x3a3a44 },
+    colors: skinById("undertaker").colors,
+    outfit: skinById("undertaker").outfit,
     weapon: "golden",
     acc: ["eyepatch", "cigar"]
   }
@@ -238,24 +265,41 @@ function ensurePortraitKit() {
   return portraitKit;
 }
 
-function bustCamera(kit) {
-  kit.camera.position.set(0.18, 1.66, 1.95);
-  kit.camera.lookAt(0, 1.54, 0);
+function bustCamera(kit, size) {
+  kit.camera.position.set(0.18, 1.35, 2.3);
+  kit.camera.lookAt(0, 1.45, 0);
   kit.camera.aspect = 1;
   kit.camera.updateProjectionMatrix();
 }
 
-export function portraitDataUrl(skinId, size, acc) {
+function applyPortraitPose(kit, list) {
+  kit.model.reset();
+  kit.model.group.rotation.y = 0.4;
+  const draw = list.indexOf("pose-draw") !== -1;
+  const holster = list.indexOf("pose-holster") !== -1;
+  kit.model.holdGun(draw, true);
+  kit.model.setHolsterHand(holster);
+  if (kit.model.gun) {
+    kit.model.gun.visible = draw;
+  }
+  kit.model.update(3);
+  kit.model.update(3);
+}
+
+export function portraitDataUrl(skinId, size, acc, weaponId) {
   const list = Array.isArray(acc) ? acc : [];
-  const key = skinId + "|" + list.join(",") + "@" + size;
+  const key = skinId + "|" + list.join(",") + "|" + (weaponId || "iron") + "@" + size;
   const cached = portraitCache.get(key);
   if (cached !== undefined) {
     return cached;
   }
   const kit = ensurePortraitKit();
   kit.model.setSkin(skinById(skinId).colors);
+  kit.model.setOutfit(skinById(skinId).outfit || null);
   kit.model.setAccessories(list);
-  bustCamera(kit);
+  kit.model.setWeapon(weaponById(weaponId || "iron").colors);
+  applyPortraitPose(kit, list);
+  bustCamera(kit, size);
   kit.renderer.setSize(size, size, false);
   kit.renderer.render(kit.scene, kit.camera);
   const url = kit.renderer.domElement.toDataURL();
@@ -263,17 +307,19 @@ export function portraitDataUrl(skinId, size, acc) {
   return url;
 }
 
-export function portraitColorsDataUrl(colors, acc, size) {
+export function portraitColorsDataUrl(colors, acc, size, outfit) {
   const list = acc || [];
-  const key = JSON.stringify(colors) + "|" + list.join(",") + "@" + size;
+  const key = JSON.stringify(colors) + "|" + list.join(",") + "@" + size + "|" + JSON.stringify(outfit || null);
   const cached = portraitCache.get(key);
   if (cached !== undefined) {
     return cached;
   }
   const kit = ensurePortraitKit();
   kit.model.setSkin(colors);
+  kit.model.setOutfit(outfit || null);
   kit.model.setAccessories(list);
-  bustCamera(kit);
+  applyPortraitPose(kit, list);
+  bustCamera(kit, size);
   kit.renderer.setSize(size, size, false);
   kit.renderer.render(kit.scene, kit.camera);
   const url = kit.renderer.domElement.toDataURL();
@@ -292,7 +338,9 @@ export function figureDataUrl(skinId, w, h) {
   }
   const kit = ensurePortraitKit();
   kit.model.setSkin(skinById(skinId).colors);
+  kit.model.setOutfit(skinById(skinId).outfit || null);
   kit.model.setAccessories([]);
+  applyPortraitPose(kit, []);
   kit.camera.position.set(0.32, 1.05, 3.7);
   kit.camera.lookAt(0, 0.9, 0);
   kit.camera.aspect = w / h;
@@ -301,6 +349,6 @@ export function figureDataUrl(skinId, w, h) {
   kit.renderer.render(kit.scene, kit.camera);
   const url = kit.renderer.domElement.toDataURL();
   figureCache.set(key, url);
-  bustCamera(kit);
+  bustCamera(kit, 0);
   return url;
 }

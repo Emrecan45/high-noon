@@ -26,6 +26,9 @@ L'audio utilise des enregistrements sous licences libres (CC0 ou Domaine Public)
 | Piano de saloon (Maple Leaf Rag) | Scott Joplin (1899) | https://commons.wikimedia.org/wiki/File:Scott_Joplin_-_Maple_Leaf_Rag_(1899).ogg |
 | No Country For Old Alex | Pro Sensory | https://opengameart.org/content/no-country-for-old-alex |
 | Spaghetti Western | Spring Spring | https://opengameart.org/content/spaghetti-western |
+| Un désert | Komiku (Loyalty Freak Music) | https://opengameart.org/content/un-désert |
+| Miniature Saloon | Zane Little Music | https://opengameart.org/content/miniature-saloon |
+| Gone with the Wind | Graciano Choc (Bz.gamedev) | https://opengameart.org/content/gone-with-the-wind |
 
 ### Bruitages
 

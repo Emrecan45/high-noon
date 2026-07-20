@@ -17,6 +17,10 @@ export function createViewmodel(camera) {
 
   const gun = new THREE.Group();
   const revolver = createRevolver(gunMats, true);
+  const povBarrel = revolver.getObjectByName("barrelGroup");
+  if (povBarrel) {
+    povBarrel.scale.z = 1.6;
+  }
   revolver.scale.setScalar(1.4);
   revolver.rotation.y = -0.07;
   gun.add(revolver);
@@ -47,11 +51,11 @@ export function createViewmodel(camera) {
     new THREE.MeshBasicMaterial({ color: 0xffd977, transparent: true, opacity: 0.95 })
   );
   flash.rotation.x = -Math.PI / 2;
-  flash.position.set(0, 0.05, -0.55);
+  flash.position.set(0, 0.05, -0.53);
   flash.visible = false;
   gun.add(flash);
   const flashLight = new THREE.PointLight(0xffc26b, 0, 4);
-  flashLight.position.set(0, 0.04, -0.56);
+  flashLight.position.set(0, 0.04, -0.54);
   gun.add(flashLight);
 
   group.add(gun);
@@ -132,6 +136,10 @@ export function createViewmodel(camera) {
     return state.mode === "ready";
   }
 
+  function isReloading() {
+    return state.mode === "reloading";
+  }
+
   function update(dt) {
     state.time += dt;
     updateShells(dt);
@@ -187,6 +195,7 @@ export function createViewmodel(camera) {
     shoot: shoot,
     reload: reload,
     isReady: isReady,
+    isReloading: isReloading,
     setWeapon: setWeapon,
     update: update
   };

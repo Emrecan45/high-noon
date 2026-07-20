@@ -107,7 +107,7 @@ export function createArena(container) {
   const hemi = new THREE.HemisphereLight(0xffe8c0, 0x8a6a45, 0.9);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff2d8, 2.2);
-  sun.position.set(24, 34, 12);
+  sun.position.set(22, 38, -40);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.left = -30;
@@ -159,11 +159,11 @@ export function createArena(container) {
   }
 
   const barrelSpots = [
-    [-6.2, -3], [-6.4, -1.8], [6.3, 2], [6.1, -9]
+    [-5.9, -3], [5.9, -9]
   ];
   for (const spot of barrelSpots) {
     const barrel = makeBarrel();
-    barrel.position.set(spot[0], 0, spot[1]);
+    barrel.position.set(spot[0], 0.45, spot[1]);
     scene.add(barrel);
     impactTargets.push(barrel);
   }
@@ -179,20 +179,35 @@ export function createArena(container) {
   const weed = makeTumbleweed();
   scene.add(weed);
   const weedPaths = [
-    // Through alleys: left gap → right gap (slight diagonal)
-    { sx: -14, sz: -10.85, ex: 14, ez: -7.35 },
-    { sx: -14, sz: -21.5, ex: 14, ez: -16.9 },
-    // Reverse: right gap → left gap
-    { sx: 14, sz: -7.35, ex: -14, ez: -10.85 },
-    { sx: 14, sz: -16.9, ex: -14, ez: -21.5 },
-    // Open areas above/below the town
-    { sx: -14, sz: 13, ex: 14, ez: 13 },
-    { sx: 14, sz: -30, ex: -14, ez: -30 }
+    [[-26, -10.85], [-5.8, -10.85], [5.8, -7.35], [48, -7.35]],
+    [[26, -7.35], [5.8, -7.35], [-5.8, -10.85], [-48, -10.85]],
+    [[-26, -21.5], [-5.8, -21.5], [5.8, -16.9], [48, -16.9]],
+    [[26, -16.9], [5.8, -16.9], [-5.8, -21.5], [-48, -21.5]],
+    [[-26, 13], [48, 13]],
+    [[26, -30], [-48, -30]]
   ];
-  const weedState = { active: false, nextAt: 2 + Math.random() * 6, x: 0, z: 0, dx: 0, dz: 0 };
+  const weedState = { active: false, nextAt: 2 + Math.random() * 6, x: 0, z: 0, dx: 0, pts: null, seg: 0 };
 
   let windy = false;
   let elapsed = 0;
+  const dustMat = new THREE.MeshBasicMaterial({ color: 0xd8b98a, transparent: true, opacity: 0.5 });
+  const dustGeo = new THREE.BoxGeometry(1, 0.02, 0.02);
+  const dusts = [];
+  for (let i = 0; i < 70; i++) {
+    const streak = new THREE.Mesh(dustGeo, dustMat);
+    streak.visible = false;
+    scene.add(streak);
+    dusts.push({ mesh: streak, speed: 0, baseY: 0, phase: Math.random() * 10, active: false });
+  }
+
+  function resetDust(d, fresh) {
+    d.active = true;
+    d.speed = 9 + Math.random() * 8;
+    d.baseY = 0.15 + Math.random() * 2.4;
+    d.mesh.visible = true;
+    d.mesh.scale.x = 0.6 + Math.random() * 1.3;
+    d.mesh.position.set(fresh ? -32 - Math.random() * 6 : -32 + Math.random() * 64, d.baseY, -34 + Math.random() * 54);
+  }
   let isFoggy = false;
   let fogFarNormal = 22;
   let fogFarThick = 22;
@@ -201,47 +216,104 @@ export function createArena(container) {
   const bursts = [];
   const chipGeo = new THREE.BoxGeometry(0.05, 0.05, 0.05);
 
-  function castEnvironment(raycaster) {
-    const hits = raycaster.intersectObjects(impactTargets, true);
-    if (hits.length === 0) {
-      return null;
+  function isVisible(obj) {
+    let curr = obj;
+    while (curr !== null) {
+      if (curr.visible === false) return false;
+      curr = curr.parent;
     }
-    const hit = hits[0];
-    let kind = "wood";
-    if (hit.object === ground) {
-      kind = "dust";
-    }
-    return { point: hit.point, kind: kind };
+    return true;
   }
 
-  function spawnImpact(point, kind) {
-    let color = 0x6b4a26;
-    let count = 7;
-    let speed = 2.4;
-    if (kind === "dust") {
-      color = 0xcfa36a;
-      count = 9;
-      speed = 1.6;
+  function castEnvironment(raycaster) {
+    const hits = raycaster.intersectObjects(impactTargets, true);
+    for (let i = 0; i < hits.length; i++) {
+      const hit = hits[i];
+      if (isVisible(hit.object)) {
+        let kind = "wood";
+        if (hit.object === ground) {
+          kind = "sand";
+        } else if (hit.object.userData && hit.object.userData.impact) {
+          kind = hit.object.userData.impact;
+        }
+        return { point: hit.point, kind: kind };
+      }
     }
-    const material = new THREE.MeshBasicMaterial({ color: color, transparent: true, opacity: 0.95 });
+    return null;
+  }
+
+  let impactAudio = null;
+  function setImpactAudio(a) {
+    impactAudio = a;
+  }
+
+  function impactSound(kind) {
+    if (impactAudio === null) {
+      return;
+    }
+    if (kind === "sand" || kind === "dust") {
+      impactAudio.sandHit();
+    } else if (kind === "glass") {
+      impactAudio.glassHit();
+    } else if (kind === "metal") {
+      impactAudio.ricochet();
+    } else {
+      impactAudio.woodHit();
+    }
+  }
+
+  function terrainAt(x, z) {
+    if (z < -90) {
+      if (x > -6 && x < 6) return "wood";
+      if (x > 35 && x < 45) return "wood";
+      if (x > 74 && x < 86) return "wood";
+      return "sand";
+    }
+    const ax = Math.abs(x);
+    if (z > -31 && z < 12) {
+      if (ax > 4.2 && ax < 6.7) return "wood";
+      if (ax > 14.3 && ax < 16.7) return "wood";
+    }
+    return "sand";
+  }
+
+  function shotImpact(point, kind) {
+    spawnImpact(point, kind);
+    impactSound(kind);
+  }
+
+  const impactColorDefault = 0x6b4a26;
+  const impactColorDust = 0xe9d8b4;
+
+  function spawnImpact(point, kind) {
+    const isDust = kind === "dust" || kind === "sand";
+    const count = isDust ? 12 : 7;
+    const speed = isDust ? 1.7 : 2.4;
+    const material = new THREE.MeshBasicMaterial({
+      color: isDust ? impactColorDust : impactColorDefault,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false
+    });
     const parts = [];
     for (let i = 0; i < count; i++) {
       const mesh = new THREE.Mesh(chipGeo, material);
       mesh.position.copy(point);
-      const scale = 0.5 + Math.random() * 0.9;
+      const scale = isDust ? (2.2 + Math.random() * 3.4) : (0.5 + Math.random() * 0.9);
       mesh.scale.setScalar(scale);
       scene.add(mesh);
       parts.push({
         mesh: mesh,
+        grow: isDust ? 1.6 : 0,
         vel: new THREE.Vector3(
           (Math.random() - 0.5) * speed * 2,
-          Math.random() * speed * 1.4 + 0.6,
+          Math.random() * speed * 1.4 + (isDust ? 1.1 : 0.6),
           (Math.random() - 0.5) * speed * 2
         ),
         spin: new THREE.Vector3(Math.random() * 8 - 4, Math.random() * 8 - 4, Math.random() * 8 - 4)
       });
     }
-    bursts.push({ parts: parts, material: material, life: 0, maxLife: 0.75 });
+    bursts.push({ parts: parts, material: material, life: 0, maxLife: isDust ? 0.6 : 0.75 });
   }
 
   function updateBursts(dt) {
@@ -259,7 +331,10 @@ export function createArena(container) {
       }
       burst.material.opacity = fade * 0.95;
       for (const part of burst.parts) {
-        part.vel.y -= 7.5 * dt;
+        if (part.grow) {
+          part.mesh.scale.multiplyScalar(1 + part.grow * dt);
+        }
+        part.vel.y -= (part.grow ? 2.4 : 7.5) * dt;
         part.mesh.position.addScaledVector(part.vel, dt);
         if (part.mesh.position.y < 0.02) {
           part.mesh.position.y = 0.02;
@@ -322,40 +397,68 @@ export function createArena(container) {
   function update(dt) {
     elapsed += dt;
     updateBursts(dt);
+    for (const d of dusts) {
+      if (windy) {
+        if (!d.active) {
+          resetDust(d, false);
+        }
+        d.mesh.position.x += d.speed * dt;
+        d.mesh.position.y = d.baseY + Math.sin(elapsed * 2.2 + d.phase) * 0.25;
+        if (d.mesh.position.x > 34) {
+          resetDust(d, true);
+        }
+      } else if (d.active) {
+        d.active = false;
+        d.mesh.visible = false;
+      }
+    }
     town.update(dt);
     interiors.update(dt);
     let interval = 8;
     if (windy) {
       interval = 2.5;
     }
-    if (!weedState.active) {
-      weedState.nextAt -= dt;
-      if (weedState.nextAt <= 0) {
-        weedState.active = true;
-        const path = weedPaths[Math.floor(Math.random() * weedPaths.length)];
-        weedState.x = path.sx;
-        weedState.z = path.sz;
-        const pdx = path.ex - path.sx;
-        const pdz = path.ez - path.sz;
-        const len = Math.sqrt(pdx * pdx + pdz * pdz);
-        weedState.dx = pdx / len;
-        weedState.dz = pdz / len;
-        weed.visible = true;
-      }
+      if (!weedState.active) {
+        weedState.nextAt -= dt;
+        if (weedState.nextAt <= 0) {
+          weedState.active = true;
+          if (windy) {
+            const windPaths = [weedPaths[0], weedPaths[2], weedPaths[4]];
+            weedState.pts = windPaths[Math.floor(Math.random() * windPaths.length)];
+          } else {
+            weedState.pts = weedPaths[Math.floor(Math.random() * weedPaths.length)];
+          }
+          weedState.seg = 0;
+          weedState.x = weedState.pts[0][0];
+          weedState.z = weedState.pts[0][1];
+          weed.visible = true;
+        }
     } else {
-      let speed = 4;
+      let speed = 5;
       if (windy) {
         speed = 9;
       }
-      weedState.x += speed * dt * weedState.dx;
-      weedState.z += speed * dt * weedState.dz;
+      const step = speed * dt;
+      const target = weedState.pts[weedState.seg + 1];
+      const tdx = target[0] - weedState.x;
+      const tdz = target[1] - weedState.z;
+      const dist = Math.sqrt(tdx * tdx + tdz * tdz);
+      if (dist <= step) {
+        weedState.x = target[0];
+        weedState.z = target[1];
+        weedState.seg += 1;
+        if (weedState.seg >= weedState.pts.length - 1) {
+          weedState.active = false;
+          weed.visible = false;
+          weedState.nextAt = interval * (0.5 + Math.random());
+        }
+      } else {
+        weedState.dx = tdx / dist;
+        weedState.x += step * (tdx / dist);
+        weedState.z += step * (tdz / dist);
+      }
       weed.position.set(weedState.x, 0.4 + Math.abs(Math.sin(elapsed * 6)) * 0.15, weedState.z);
       weed.rotation.z -= speed * dt * weedState.dx;
-      if (Math.abs(weedState.x) > 15) {
-        weedState.active = false;
-        weed.visible = false;
-        weedState.nextAt = interval * (0.5 + Math.random());
-      }
     }
   }
 
@@ -377,12 +480,16 @@ export function createArena(container) {
     interactables: town.interactables,
     interiors: interiors,
     setTownLabels: town.setLabels,
+      setWalkersVisible: town.setWalkersVisible,
     setRangeProps: town.setRangeProps,
     refreshBoard: town.refreshBoard,
     applyModifier: applyModifier,
     setFogPulse: setFogPulse,
     castEnvironment: castEnvironment,
     spawnImpact: spawnImpact,
+    shotImpact: shotImpact,
+    setImpactAudio: setImpactAudio,
+    terrainAt: terrainAt,
     update: update
   };
 }

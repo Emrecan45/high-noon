@@ -12,6 +12,8 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
   let arriveCb = null;
   let roadWalking = false;
   let seq = null;
+  let inHomeIdle = false;
+  let homeSwayStart = 0;
   const camPos = new THREE.Vector3();
   const camLook = new THREE.Vector3();
   const fromPos = new THREE.Vector3();
@@ -38,9 +40,16 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
 
   function setActive(value) {
     active = value;
+    arena.setWalkersVisible(value);
+    arena.setRangeProps(value);
     if (active) {
       playerBody.group.visible = true;
     }
+  }
+
+  function setWalkersOnlyVisible(value) {
+    arena.setWalkersVisible(value);
+    arena.setRangeProps(false);
   }
 
   function jumpTo(target) {
@@ -79,6 +88,36 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
           seq.i += 1;
           continue;
         }
+        return;
+      }
+      if (step.curve !== undefined) {
+        if (!seq.started) {
+          seq.started = true;
+          seq.t = 0;
+          seq.posCurve = new THREE.CatmullRomCurve3([camPos.clone(), ...step.curve.map(p => p.cam)]);
+          seq.lookCurve = new THREE.CatmullRomCurve3([camLook.clone(), ...step.curve.map(p => p.look)]);
+        }
+        seq.t += dt / step.dur;
+        if (seq.t >= 1) {
+          camPos.copy(step.curve[step.curve.length - 1].cam);
+          camLook.copy(step.curve[step.curve.length - 1].look);
+          applyCamera();
+          seq.t = 0;
+          seq.started = false;
+          seq.i += 1;
+          continue;
+        }
+        let e = seq.t;
+        if (step.ease === "in") {
+          e = e * e;
+        } else if (step.ease === "out") {
+          e = 1 - (1 - e) * (1 - e);
+        } else if (step.ease !== "linear") {
+          e = smooth(e);
+        }
+        seq.posCurve.getPointAt(e, camPos);
+        seq.lookCurve.getPointAt(e, camLook);
+        applyCamera();
         return;
       }
       if (step.tween !== undefined) {
@@ -120,23 +159,22 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
     station = "store";
     arriveCb = onArrived || null;
     const door = target.door;
+    door.set(true);
+    if (onDoor) { onDoor(); }
     runSeq([
-      { tween: target.approach, dur: 0.65, ease: "in" },
-      { call: function () { door.set(true); if (onDoor) { onDoor(); } } },
-      { tween: door.outside, dur: 0.45, ease: "linear" },
-      { tween: door.inside, dur: 0.4, ease: "linear" },
-      { tween: { cam: target.cam, look: target.look }, dur: 0.65, ease: "out" },
+      { curve: [target.approach, door.outside, door.inside, { cam: target.cam, look: target.look }], dur: 1.1, ease: "inOut" },
       { call: finishArrival }
     ]);
   }
 
   function goStoreExit(target) {
+    setTimeout(function () {
+      if (target && target.door) {
+        target.door.set(false);
+      }
+    }, 140);
     runSeq([
-      { tween: target.door.inside, dur: 0.4, ease: "in" },
-      { tween: target.door.outside, dur: 0.4, ease: "linear" },
-      { call: function () { target.door.set(false); } },
-      { tween: target.approach, dur: 0.45, ease: "linear" },
-      { tween: anchors.home, dur: 0.7, ease: "out" },
+      { curve: [target.door.inside, target.door.outside, target.approach, anchors.home], dur: 1.1, ease: "inOut" },
       { call: finishArrival }
     ]);
   }
@@ -255,11 +293,13 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
       return;
     }
     if (seq !== null) {
+      inHomeIdle = false;
       stepSeq(dt);
       playerBody.update(dt);
       return;
     }
     if (roadWalking) {
+      inHomeIdle = false;
       const body = playerBody.group;
       if (body.position.z > ROAD_END_Z) {
         body.position.z -= ROAD_SPEED * dt;
@@ -276,6 +316,7 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
       return;
     }
     if (camTween !== null) {
+      inHomeIdle = false;
       camTween.t += dt / CAM_TIME;
       if (camTween.t >= 1) {
         camPos.copy(camTween.toPos);
@@ -298,7 +339,11 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
         applyCamera();
       }
     } else if (station === "home") {
-      const sway = Math.sin(performance.now() / 1000 * 0.22);
+      if (!inHomeIdle) {
+        inHomeIdle = true;
+        homeSwayStart = performance.now();
+      }
+      const sway = Math.sin((performance.now() - homeSwayStart) / 1000 * 0.22);
       arena.camera.position.set(0, 0, 0);
       arena.playerRig.position.set(camPos.x + sway * 0.1, camPos.y, camPos.z);
       arena.camera.lookAt(camLook);
@@ -316,6 +361,7 @@ export function createTown(arena, playerBody, fadeThrough, onDoor) {
 
   return {
     setActive: setActive,
+    setWalkersOnlyVisible: setWalkersOnlyVisible,
     goHome: goHome,
     goTo: goTo,
     warpTo: warpTo,

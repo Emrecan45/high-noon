@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { createCowboy } from "./cowboy.js";
-import { portraitDataUrl } from "./skins.js";
+import { portraitDataUrl, aiSkinFor } from "./skins.js";
+import { drawWantedPoster } from "./wanted.js";
 
 function mat(color, roughness) {
   return new THREE.MeshStandardMaterial({ color: color, roughness: roughness || 0.9 });
@@ -125,8 +126,15 @@ function makeBuilding(spec) {
   if (!spec.noDoor) {
     const doorMat = mat(0x241608, 1);
     const door = box(0.9, 1.9, 0.08, doorMat);
-    door.position.set(spec.doorX || 0, 0.95, 3.04);
+    const dx = spec.doorX || 0;
+    door.position.set(dx, 0.95, 3.04);
     group.add(door);
+    
+    if (!spec.saloon) {
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), mat(0xc7a34a, 1));
+      knob.position.set(dx + 0.35, 0.95, 3.1);
+      group.add(knob);
+    }
   }
 
   const winMat = mat(0x121a24, 0.4);
@@ -189,10 +197,10 @@ function makeBuilding(spec) {
   return group;
 }
 
-function makeHorse() {
+function makeHorse(coatColor, darkColor) {
   const group = new THREE.Group();
-  const coat = mat(0x5c3a22);
-  const dark = mat(0x35230f);
+  const coat = mat(coatColor || 0x5c3a22);
+  const dark = mat(darkColor || 0x35230f);
   const body = box(0.52, 0.6, 1.35, coat);
   body.position.y = 1.15;
   group.add(body);
@@ -233,12 +241,30 @@ function makeHorse() {
   const tail = box(0.1, 0.62, 0.1, dark);
   tail.position.y = -0.28;
   tailPivot.add(tail);
+
+  const saddleMat = mat(0x3d2817);
+  const saddle = box(0.56, 0.12, 0.5, saddleMat);
+  saddle.position.set(0, 1.48, 0.1);
+  group.add(saddle);
+  const stirrupR = box(0.05, 0.55, 0.12, saddleMat);
+  stirrupR.position.set(0.28, 1.15, 0.1);
+  group.add(stirrupR);
+  const stirrupL = box(0.05, 0.55, 0.12, saddleMat);
+  stirrupL.position.set(-0.28, 1.15, 0.1);
+  group.add(stirrupL);
+
   group.traverse(function (child) {
     if (child.isMesh) {
       child.castShadow = true;
     }
   });
-  return { group: group, neck: neckPivot, tail: tailPivot, legs: legs, phase: Math.random() * 10 };
+    return {
+      group: group,
+      neck: neckPivot,
+      tail: tailPivot,
+      legs: legs,
+      phase: Math.random() * 10
+    };
 }
 
 function makeHitchRail(width) {
@@ -274,91 +300,51 @@ function makeLeaderBoard() {
   roof.position.set(0, 3.94, 0.06);
   roof.rotation.x = 0.25;
   group.add(roof);
+
+  const lanternObj = new THREE.Group();
+  lanternObj.position.set(0, 3.65, 0.28);
+  const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.2, 0.14), new THREE.MeshBasicMaterial({ color: 0xffd98a }));
+  lanternObj.add(bulb);
+  const lanternLight = new THREE.PointLight(0xffc27a, 0.8, 15, 1.0);
+  lanternObj.add(lanternLight);
+  const hook = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), mat(0x2c2c30, 1));
+  hook.position.y = 0.1;
+  lanternObj.add(hook);
+  group.add(lanternObj);
+
   const canvas = document.createElement("canvas");
-  canvas.width = 720;
-  canvas.height = 840;
+  canvas.width = 1440;
+  canvas.height = 1680;
   const ctx = canvas.getContext("2d");
+  ctx.scale(2, 2);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
   let seq = 0;
 
   function drawPoster(info, rank, cx, cy, k, tilt) {
-    ctx.fillStyle = "#8a2f1d";
-    ctx.font = "bold " + Math.round(24 * k) + "px Rye, serif";
-    ctx.textAlign = "center";
-    ctx.fillText("#" + rank, cx, cy - Math.round(113 * k) - 10);
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(tilt);
-    ctx.scale(k, k);
-    ctx.fillStyle = "#ece0bc";
-    ctx.fillRect(-88, -113, 176, 226);
-    ctx.strokeStyle = "#5a4020";
-    ctx.lineWidth = 5;
-    ctx.strokeRect(-84, -109, 168, 218);
-    ctx.fillStyle = "#241a10";
-    ctx.beginPath();
-    ctx.arc(0, -100, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#2c1a0a";
-    ctx.font = "26px Rye, serif";
-    ctx.textAlign = "center";
-    ctx.fillText("WANTED", 0, -67);
-    if (!info) {
-      ctx.strokeStyle = "#8a6a3c";
-      ctx.lineWidth = 3;
-      ctx.strokeRect(-40, -55, 80, 88);
-      ctx.fillStyle = "#a88c58";
-      ctx.font = "46px Rye, serif";
-      ctx.fillText("?", 0, 5);
-      ctx.fillStyle = "#8a6a3c";
-      ctx.font = "20px 'Special Elite', serif";
-      ctx.fillText("- - -", 0, 53);
-      ctx.restore();
-      return;
-    }
-    ctx.fillStyle = "#2c1a0a";
-    let size = 21;
-    ctx.font = size + "px 'Special Elite', serif";
-    const name = String(info.pseudo);
-    while (ctx.measureText(name).width > 152 && size > 11) {
-      size -= 1;
-      ctx.font = size + "px 'Special Elite', serif";
-    }
-    ctx.fillText(name, 0, 49);
-    ctx.fillStyle = "#8a2f1d";
-    ctx.font = "27px Rye, serif";
-    ctx.fillText(info.elo + " $", 0, 80);
-    ctx.fillStyle = "#5a4020";
-    ctx.font = "12px 'Special Elite', serif";
-    ctx.fillText("DEAD OR ALIVE", 0, 100);
-    ctx.restore();
     const my = seq;
-    const px = cx;
-    const py = cy;
-    const pt = tilt;
-    const pk = k;
-    const img = new Image();
-    img.onload = function () {
-      if (my !== seq) {
-        return;
-      }
-      ctx.save();
-      ctx.translate(px, py);
-      ctx.rotate(pt);
-      ctx.scale(pk, pk);
-      ctx.drawImage(img, -46, -63, 92, 92);
-      ctx.restore();
-      tex.needsUpdate = true;
-    };
-    img.src = portraitDataUrl(info.skin, 128);
+    drawWantedPoster(ctx, {
+      cx: cx,
+      cy: cy,
+      w: 200 * k,
+      tilt: tilt,
+      rank: rank,
+      pseudo: info ? info.pseudo : null,
+      bounty: info ? info.prime : null,
+      skin: info ? info.skin : "drifter",
+      acc: info ? info.acc : null,
+      weapon: info ? info.weapon : null,
+      valid: function () { return my === seq; },
+      onReady: function () { tex.needsUpdate = true; }
+    });
   }
 
   function posterInfo(row) {
     if (!row) {
       return null;
     }
-    return { pseudo: row.pseudo, elo: row.elo, skin: row.skin };
+    return { pseudo: row.pseudo, prime: row.prime, skin: row.skin, acc: row.accessories };
   }
 
   tex.userData.draw = function (title, rows, sub) {
@@ -383,17 +369,9 @@ function makeLeaderBoard() {
       ctx.fillText(sub, 360, 108);
     }
     const list = Array.isArray(rows) ? rows : [];
-    drawPoster(posterInfo(list[1]), 2, 140, 330, 1, 0.03);
-    drawPoster(posterInfo(list[2]), 3, 580, 352, 0.86, -0.03);
-    drawPoster(posterInfo(list[0]), 1, 360, 294, 1.18, 0);
-    if (list.length === 0) {
-      ctx.fillStyle = "#7a5a34";
-      ctx.font = "30px 'Special Elite', serif";
-      ctx.textAlign = "center";
-      ctx.fillText("…", 360, 620);
-      tex.needsUpdate = true;
-      return;
-    }
+    if (list[1]) drawPoster(posterInfo(list[1]), 2, 140, 330, 0.9, 0.03);
+    if (list[2]) drawPoster(posterInfo(list[2]), 3, 580, 352, 0.8, -0.03);
+    if (list[0]) drawPoster(posterInfo(list[0]), 1, 360, 294, 1.05, 0);
     ctx.textAlign = "left";
     for (let i = 3; i < list.length && i < 10; i++) {
       const y = 532 + (i - 3) * 42;
@@ -406,7 +384,7 @@ function makeLeaderBoard() {
       }
       ctx.fillText(name, 192, y);
       ctx.textAlign = "right";
-      ctx.fillText(list[i].elo + " $", 664, y);
+      ctx.fillText(list[i].prime + " $", 664, y);
       ctx.textAlign = "left";
       const my = seq;
       const img = new Image();
@@ -418,15 +396,15 @@ function makeLeaderBoard() {
         ctx.drawImage(img, 132, iy - 28, 38, 38);
         tex.needsUpdate = true;
       };
-      img.src = portraitDataUrl(list[i].skin, 64);
+      img.src = portraitDataUrl(list[i].skin, 64, list[i].accessories, list[i].weapon);
     }
     tex.needsUpdate = true;
   };
   tex.userData.draw("", null);
-  const sheet = new THREE.Mesh(
-    new THREE.PlaneGeometry(2.8, 3.27),
-    new THREE.MeshStandardMaterial({ map: tex, roughness: 1 })
-  );
+    const sheet = new THREE.Mesh(
+      new THREE.PlaneGeometry(2.8, 3.27),
+      new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 })
+    );
   sheet.position.set(0, 2.05, 0.06);
   group.add(sheet);
   return { group: group, tex: tex };
@@ -482,7 +460,7 @@ function labelSprite(getText) {
   if (document.fonts && document.fonts.ready) {
     document.fonts.ready.then(draw);
   }
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false }));
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
   sprite.scale.set(3.4, 0.85, 1);
   sprite.userData.redraw = draw;
   return sprite;
@@ -495,7 +473,7 @@ function makeCrowTarget() {
   post.position.y = 1.1;
   post.castShadow = true;
   group.add(post);
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.1, 18), mat(0xd8c48a, 1));
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.1, 18), mat(0xe8e4e1, 1));
   disc.rotation.x = Math.PI / 2;
   disc.position.y = 2.6;
   disc.castShadow = true;
@@ -504,7 +482,7 @@ function makeCrowTarget() {
   ring1.rotation.x = Math.PI / 2;
   ring1.position.set(0, 2.6, 0.04);
   group.add(ring1);
-  const ring2 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.1, 18), mat(0xe4d3a8, 1));
+  const ring2 = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.1, 18), mat(0xffffff, 1));
   ring2.rotation.x = Math.PI / 2;
   ring2.position.set(0, 2.6, 0.08);
   group.add(ring2);
@@ -514,13 +492,13 @@ function makeCrowTarget() {
   group.add(bullseye);
   const dark = mat(0x1a140c, 1);
   const crowBody = box(0.2, 0.16, 0.34, dark);
-  crowBody.position.set(0.1, 3.45, 0);
+  crowBody.position.set(0.1, 3.40, 0);
   group.add(crowBody);
-  const crowHead = box(0.12, 0.12, 0.12, dark);
-  crowHead.position.set(0.1, 3.58, 0.16);
+  const crowHead = box(0.15, 0.12, 0.12, dark);
+  crowHead.position.set(0.1, 3.53, 0.16);
   group.add(crowHead);
   const beak = box(0.05, 0.04, 0.1, mat(0xd8b13c, 1));
-  beak.position.set(0.1, 3.56, 0.26);
+  beak.position.set(0.1, 3.51, 0.26);
   group.add(beak);
   return group;
 }
@@ -629,13 +607,13 @@ export function buildTown(scene, impactTargets) {
   scene.add(group);
 
   const buildings = [
-    { x: -9.5, z: 2, ry: Math.PI / 2, w: 7, h: 5.6, color: 0x74522f, sign: "SHERIFF", doorX: -1.2 },
+    { x: -9.5, z: 2, ry: Math.PI / 2, w: 7, h: 5.6, color: 0x74522f, sign: "SHERIFF", doorX: 0 },
     { x: -9.5, z: -6, ry: Math.PI / 2, w: 8.4, h: 6, color: 0x8a5a2e, sign: "GENERAL STORE", doorX: 0, noDoor: true, hollow: true },
     { x: -9.5, z: -16, ry: Math.PI / 2, w: 9, h: 8, color: 0x9c6b38, sign: "HOTEL", doorX: 0, windows: [-3, -1.5, 1.5, 3] },
     { x: -9.5, z: -26, ry: Math.PI / 2, w: 7, h: 6.2, color: 0x6b4a26, sign: "BANK", doorX: 0 },
     { x: 9.5, z: -2, ry: -Math.PI / 2, w: 9, h: 7, color: 0x84603a, sign: "SALOON", doorX: 0, saloon: true, windows: [-2.8, 2.8] },
     { x: 9.5, z: -12, ry: -Math.PI / 2, w: 7.6, h: 5.4, color: 0x74522f, sign: "GUNSMITH", doorX: 1 },
-    { x: 9.5, z: -22, ry: -Math.PI / 2, w: 8, h: 6.4, color: 0x8a5a2e, sign: "TELEGRAPH", doorX: -1.4 },
+    { x: 9.5, z: -22, ry: -Math.PI / 2, w: 8, h: 6.4, color: 0x8a5a2e, sign: "TELEGRAPH", doorX: 0 },
     { x: 9.5, z: 8, ry: -Math.PI / 2, w: 8.6, h: 5.2, color: 0x6b4a26, sign: "STABLE", doorX: 0 },
     { x: -19.5, z: -2, ry: Math.PI / 2, w: 7, h: 4.6, color: 0x74522f },
     { x: -19.5, z: -11, ry: Math.PI / 2, w: 8, h: 5.2, color: 0x84603a },
@@ -676,37 +654,8 @@ export function buildTown(scene, impactTargets) {
     doorOpenTarget = open ? 1 : 0;
   }
 
-  const screenMat = mat(0x8a4632, 1);
-  const paravent = new THREE.Group();
-  for (let i = 0; i < 3; i++) {
-    const panel = box(0.72, 1.7, 0.05, screenMat);
-    panel.position.set((i - 1) * 0.68, 0.85, i === 1 ? 0 : 0.18);
-    panel.rotation.y = (i - 1) * -0.5;
-    paravent.add(panel);
-  }
-  paravent.position.set(-7.1, 0, -13.2);
-  paravent.rotation.y = 1.15;
-  group.add(paravent);
 
-  const mirror = new THREE.Group();
-  const mirrorFrame = box(0.66, 1.5, 0.06, mat(0x5c3a1d, 1));
-  mirrorFrame.position.y = 1.15;
-  mirror.add(mirrorFrame);
-  const mirrorGlass = new THREE.Mesh(
-    new THREE.BoxGeometry(0.54, 1.36, 0.04),
-    new THREE.MeshStandardMaterial({ color: 0xb8ccd8, roughness: 0.15, metalness: 0.7 })
-  );
-  mirrorGlass.position.set(0, 1.15, 0.03);
-  mirror.add(mirrorGlass);
-  const mirrorFootL = box(0.1, 0.06, 0.4, mat(0x5c3a1d, 1));
-  mirrorFootL.position.set(-0.24, 0.03, 0);
-  mirror.add(mirrorFootL);
-  const mirrorFootR = box(0.1, 0.06, 0.4, mat(0x5c3a1d, 1));
-  mirrorFootR.position.set(0.24, 0.03, 0);
-  mirror.add(mirrorFootR);
-  mirror.position.set(-7, 0, -15.1);
-  mirror.rotation.y = 1.35;
-  group.add(mirror);
+
 
   const lanternSpots = [[-6.2, 2.5, -6], [-6.2, 2.3, -14.1], [6.2, 2.5, -2]];
   for (const spot of lanternSpots) {
@@ -724,16 +673,11 @@ export function buildTown(scene, impactTargets) {
   group.add(chair);
 
   const trough = makeTrough();
-  trough.position.set(6.4, 0, 6.4);
+  trough.position.set(5.7, 0, 6.4);
   trough.rotation.y = 0.2;
   group.add(trough);
 
-  const wheelProp = makeWagonWheel();
-  wheelProp.position.set(-6.9, 0.56, -2.6);
-  wheelProp.rotation.set(0, 0.5, 0.32);
-  group.add(wheelProp);
-
-  for (const spot of [[-6.6, -8.9], [-6.2, -8.2], [6.5, -14.5]]) {
+  for (const spot of [[-5.9, -8.9], [-6.0, -8.2], [5.9, -14.5]]) {
     const crate = makeCrate();
     crate.position.set(spot[0], crate.position.y, spot[1]);
     crate.rotation.y = Math.random() * 1.5;
@@ -751,6 +695,7 @@ export function buildTown(scene, impactTargets) {
   stagecoach.traverse(function (child) {
     if (child.isMesh) {
       child.userData.action = "coach";
+      child.userData.root = stagecoach;
       interactables.push(child);
     }
   });
@@ -762,11 +707,12 @@ export function buildTown(scene, impactTargets) {
 
   const crowTarget = makeCrowTarget();
   crowTarget.position.set(-2.2, 0, 15.6);
-  crowTarget.rotation.y = Math.PI + 0.35;
+  crowTarget.rotation.y = 2.03;
   group.add(crowTarget);
   crowTarget.traverse(function (child) {
     if (child.isMesh) {
       child.userData.action = "birds";
+      child.userData.root = crowTarget;
       interactables.push(child);
     }
   });
@@ -776,12 +722,35 @@ export function buildTown(scene, impactTargets) {
   birdsLabel.position.set(-2.2, 4.15, 15.6);
   group.add(birdsLabel);
 
+  const oldJed = createCowboy();
+  const jedSkin = aiSkinFor("training");
+  oldJed.setSkin(jedSkin.colors);
+  oldJed.setOutfit(jedSkin.outfit || null);
+  oldJed.setAccessories(jedSkin.acc);
+  oldJed.setHolsterHand(true);
+  const jedX = 1.2;
+  const jedZ = 14.2;
+  oldJed.group.position.set(jedX, 0.15, jedZ);
+  oldJed.group.rotation.y = Math.atan2(0.6 - jedX, 12.4 - jedZ) + 0.15;
+  group.add(oldJed.group);
+  for (const mesh of oldJed.hitMeshes) {
+    mesh.userData.action = "oldjed";
+    mesh.userData.root = oldJed.group;
+    interactables.push(mesh);
+  }
+  const jedLabel = labelSprite(function () {
+    return group.userData.jedLabel || "";
+  });
+  jedLabel.position.set(jedX, 2.7, jedZ);
+  group.add(jedLabel);
 
-  function setLabels(birds, coach) {
+  function setLabels(birds, coach, jed) {
     group.userData.birdsLabel = birds;
     group.userData.coachLabel = coach;
+    group.userData.jedLabel = jed;
     birdsLabel.userData.redraw();
     coachLabel.userData.redraw();
+    jedLabel.userData.redraw();
   }
 
   function setRangeProps(visible) {
@@ -789,6 +758,8 @@ export function buildTown(scene, impactTargets) {
     birdsLabel.visible = visible;
     stagecoach.visible = visible;
     coachLabel.visible = visible;
+    oldJed.group.visible = visible;
+    jedLabel.visible = visible;
   }
 
   const coverSpots = [[-4.5, 21], [1.5, 19.5], [6.2, 24], [-1.2, 26], [4.2, 28]];
@@ -812,16 +783,11 @@ export function buildTown(scene, impactTargets) {
   group.add(railStable);
 
   const horses = [];
-  const horseA = makeHorse();
-  horseA.group.position.set(7.6, 0, -4.6);
+  const horseA = makeHorse(0xffffff, 0x8a5a2e);
+  horseA.group.position.set(6.5, 0, 3.1);
   horseA.group.rotation.y = -Math.PI / 2;
   group.add(horseA.group);
   horses.push(horseA);
-  const horseB = makeHorse();
-  horseB.group.position.set(7.6, 0, 9.6);
-  horseB.group.rotation.y = -Math.PI / 2 + 0.3;
-  group.add(horseB.group);
-  horses.push(horseB);
 
   const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 9.6, 4), mat(0xd8c48a, 1));
   rope.rotation.x = Math.PI / 2;
@@ -867,8 +833,8 @@ export function buildTown(scene, impactTargets) {
 
   const walkers = [];
   const walkerPaths = [
-    { from: new THREE.Vector3(-4.3, 0, 6), to: new THREE.Vector3(-4.3, 0, -22), speed: 1.15 },
-    { from: new THREE.Vector3(4.3, 0, -18), to: new THREE.Vector3(4.3, 0, 4), speed: 1.0 }
+    { from: new THREE.Vector3(-5.2, 0.15, -4), to: new THREE.Vector3(-5.2, 0.15, -26), speed: 1.15 },
+    { from: new THREE.Vector3(5.3, 0.15, -22), to: new THREE.Vector3(5.3, 0.15, 0), speed: 1.0 }
   ];
   for (let i = 0; i < walkerPaths.length; i++) {
     const npc = createCowboy();
@@ -994,8 +960,9 @@ export function buildTown(scene, impactTargets) {
       walker.cowboy.update(dt);
     }
     vendor.update(dt);
+    oldJed.update(dt);
     const doorGoal = doorOpenTarget * -1.52;
-    storeDoorPivot.rotation.y += (doorGoal - storeDoorPivot.rotation.y) * Math.min(1, dt * 7);
+    storeDoorPivot.rotation.y += (doorGoal - storeDoorPivot.rotation.y) * Math.min(1, dt * 2);
   }
 
   const anchors = {
@@ -1065,6 +1032,15 @@ export function buildTown(scene, impactTargets) {
     }
   };
 
+  function setWalkersVisible(v) {
+    for (const w of walkers) {
+      w.cowboy.group.visible = v;
+    }
+    for (const horse of horses) {
+      horse.group.visible = v;
+    }
+  }
+
   return {
     update: update,
     anchors: anchors,
@@ -1072,6 +1048,7 @@ export function buildTown(scene, impactTargets) {
     interactables: interactables,
     setLabels: setLabels,
     setRangeProps: setRangeProps,
-    refreshBoard: refreshBoard
+    refreshBoard: refreshBoard,
+    setWalkersVisible: setWalkersVisible
   };
 }
