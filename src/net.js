@@ -252,7 +252,7 @@ let onlineStates = new Map();
 let onlineHandler = function () {};
 let personalChannel = null;
 
-export function goOnline(profileId, onSync, onFriendUpdate) {
+export function goOnline(profileId, onSync, onFriendUpdate, onBan) {
   if (onlineChannel !== null) {
     return;
   }
@@ -288,6 +288,30 @@ export function goOnline(profileId, onSync, onFriendUpdate) {
       })
       .subscribe();
   }
+
+  if (onBan) {
+    supabase.channel("hn-ban-" + profileId)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${profileId}` }, function (payload) {
+        if (payload.new) {
+          onBan(payload.new.banned === true, payload.new.ban_reason || "");
+        }
+      })
+      .subscribe();
+  }
+}
+
+let eventsChannel = null;
+
+export function listenEvents(handler) {
+  if (eventsChannel !== null) {
+    return;
+  }
+  const supabase = getClient();
+  eventsChannel = supabase.channel("hn-events")
+    .on("postgres_changes", { event: "*", schema: "public", table: "events" }, function () {
+      handler();
+    })
+    .subscribe();
 }
 
 export function isOnline(profileId) {

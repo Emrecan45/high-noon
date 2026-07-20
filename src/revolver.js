@@ -14,19 +14,24 @@ export function createRevolver(gunMats, detail) {
   topStrap.position.set(0, 0.05, -0.02);
   group.add(topStrap);
 
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.017, 0.24, 8), metal);
-  barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.035, -0.21);
-  group.add(barrel);
+  const barrelGroup = new THREE.Group();
+  barrelGroup.name = "barrelGroup";
+  barrelGroup.position.set(0, 0, -0.09);
+  group.add(barrelGroup);
 
-  const ejector = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.17, 6), metal);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.017, 0.18, 8), metal);
+  barrel.rotation.x = Math.PI / 2;
+  barrel.position.set(0, 0.035, -0.09);
+  barrelGroup.add(barrel);
+
+  const ejector = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.135, 6), metal);
   ejector.rotation.x = Math.PI / 2;
-  ejector.position.set(0.014, 0.008, -0.18);
-  group.add(ejector);
+  ejector.position.set(0.014, 0.008, -0.0725);
+  barrelGroup.add(ejector);
 
   const sight = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.016, 0.02), metal);
-  sight.position.set(0, 0.055, -0.315);
-  group.add(sight);
+  sight.position.set(0, 0.055, -0.165);
+  barrelGroup.add(sight);
 
   const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.062, 12), metal);
   cylinder.rotation.x = Math.PI / 2;

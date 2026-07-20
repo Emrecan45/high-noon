@@ -5,8 +5,13 @@ import { t } from "./i18n.js";
 
 const BIRD_DURATION = 45;
 const RELOAD_TIME = 1.3;
+const SWAY_BASE = 0.011;
+const RECOIL_PITCH = 0.055;
 const LIVES = 2;
-const WAVES = [3, 4, 5];
+const WAVES = [4, 5, 6, 7];
+const BANK_WAVES = [6, 8, 10, 12];
+const BANDIT_COOLDOWN = 1.6;
+const BANDIT_HIT_CHANCE = 0.4;
 const COVERS = [
   [-4.5, 21],
   [1.5, 19.5],
@@ -21,11 +26,31 @@ const BANK_COVERS = [
   [79.2, -96.9],
   [80.8, -96.9]
 ];
-const TOWN_COVERS = [[-6.2, -2.5], [-6.2, -11.5], [5.8, -7.5], [6.2, 1.4], [-5.5, 2.5]];
+const TOWN_ALLEYS = [
+  { x: 6.0, z: -7.3, side: 1 },
+  { x: -6.0, z: -10.85, side: -1 },
+  { x: 6.0, z: -16.9, side: 1 },
+  { x: -6.0, z: -21.5, side: -1 }
+];
+const BANK_DOORS = [
+  { x: 78.7, z: -95.9, leanZ: 0.55, leftHanded: false },
+  { x: 81.3, z: -95.9, leanZ: -0.55, leftHanded: true }
+];
+const BANK_WINDOWS = [
+  { x: 77.2, z: -95.9, hideY: -1.55, leftHanded: true },
+  { x: 82.8, z: -95.9, hideY: -1.55 }
+];
+const BANK_OPENERS = [
+  { x: 79.5, z: -97.0, leftHanded: true },
+  { x: 80.7, z: -96.8, leftHanded: false }
+];
+const TOWN_ENTER = 1.9;
+const ENTER_TIME = 0.35;
 const BANK_HOSTAGES = [
   [75.7, -99.1, 1.25],
   [84.3, -98.7, -1.25]
 ];
+const HOSTAGE_SEAT_Y = -0.40;
 const BANK_CLERK = { at: [77.1, -101.6], ry: 0.35, skin: { skin: 0xe0b287, shirt: 0x8a4a5c, pants: 0x2c2418, hat: 0x5a4020, bandana: 0xd8b13c } };
 const BANDIT_SKIN = { skin: 0xb5825a, shirt: 0x23211f, pants: 0x1c1a18, hat: 0x141210, bandana: 0xb3271e };
 const HOSTAGE_SKINS = [
@@ -69,7 +94,9 @@ export class Gallery {
     this.listeners = [];
     this.baseYaw = deps.mode === "town" ? 0 : Math.PI;
     this.aimYaw = this.baseYaw;
-    this.aimPitch = 0.08;
+    this.aimPitch = deps.mode === "town" ? -0.04 : 0.08;
+    this.pitchMin = deps.mode === "town" ? -0.5 : -0.3;
+    this.pitchMax = deps.mode === "town" ? 0.45 : 0.7;
     this.busyUntil = 0;
     this.time = 0;
     this.score = 0;
@@ -88,6 +115,15 @@ export class Gallery {
     this.coachHp = LIVES;
     this.pendingWave = 1.5;
     this.shake = 0;
+    this.swayX = 0;
+    this.swayY = 0;
+    this.reloadSway = 0;
+    this.envSolids = null;
+    this.baseX = deps.mode === "bank" ? 80 : (deps.mode === "town" ? 0 : 0.6);
+    this.stepX = 0;
+    this.dodgeUntil = 0;
+    this.dodgeCooldownUntil = 0;
+    this.dodges = 2;
   }
 
   addListener(target, type, handler) {
@@ -99,10 +135,10 @@ export class Gallery {
     const self = this;
     const rig = this.arena.playerRig;
     if (this.mode === "bank") {
-      rig.position.set(78.4, 1.6, -101.6);
+      rig.position.set(80, 1.6, -101.6);
       this.arena.interiors.show("bank");
     } else if (this.mode === "town") {
-      rig.position.set(0.6, 1.6, 8);
+      rig.position.set(0, 1.6, 7);
     } else {
       rig.position.set(0.6, 1.6, 12.4);
     }
@@ -113,6 +149,22 @@ export class Gallery {
     this.ui.setHearts(this.mode === "birds" ? 0 : this.coachHp);
     this.ui.setDodges(0);
     this.ui.setGunState("");
+    this.ui.setDodges(this.dodges);
+    this.addListener(document, "keydown", function (e) {
+      if (e.code === "KeyA" || e.code === "KeyQ") {
+        self.onDodge(-1);
+      } else if (e.code === "KeyD" || e.code === "KeyE") {
+        self.onDodge(1);
+      }
+    });
+    const btnL = document.getElementById("btn-dodge-l");
+    if (btnL) {
+      this.addListener(btnL, "touchstart", function (e) { e.preventDefault(); self.onDodge(-1); });
+    }
+    const btnR = document.getElementById("btn-dodge-r");
+    if (btnR) {
+      this.addListener(btnR, "touchstart", function (e) { e.preventDefault(); self.onDodge(1); });
+    }
     let tag = t("mgCoachName");
     if (this.mode === "birds") {
       tag = t("mgBirdsName");
@@ -121,7 +173,7 @@ export class Gallery {
     } else if (this.mode === "town") {
       tag = t("mgTownName");
     }
-    this.ui.setOppTag(tag.toUpperCase());
+    this.ui.setOppTag(tag);
     this.ui.crosshair(true);
     this.ui.moveCrosshair(0, 0);
     this.ui.touchControls(this.isTouch);
@@ -146,8 +198,19 @@ export class Gallery {
         self.ui.showScreen(null);
       }
     });
-    this.addListener(document.getElementById("lock-prompt"), "click", function () {
-      canvas.requestPointerLock();
+    this.addListener(document.getElementById("lock-prompt"), "click", function (e) {
+      if (e.target.id === "btn-lock-quit") return;
+      if (self.disposed || self.locked) return;
+      const elErr = document.getElementById("lock-error");
+      if (elErr) elErr.textContent = "";
+      try {
+        const p = canvas.requestPointerLock();
+        if (p) {
+          p.catch(err => {
+            if (elErr) elErr.textContent = "Navigateur : Veuillez patienter 1 seconde avant de cliquer.";
+          });
+        }
+      } catch (err) {}
     });
     if (this.isTouch) {
       let lastX = 0;
@@ -196,6 +259,8 @@ export class Gallery {
     }
     if (this.mode === "bank") {
       this.setupHostages();
+      this.envSolids = this.arena.interiors.sets.bank.group;
+      this.spawnHeistOpeners();
     }
   }
 
@@ -214,9 +279,6 @@ export class Gallery {
   coverPool() {
     if (this.mode === "bank") {
       return BANK_COVERS;
-    }
-    if (this.mode === "town") {
-      return TOWN_COVERS;
     }
     return COVERS;
   }
@@ -245,6 +307,7 @@ export class Gallery {
     for (let i = 0; i < 3; i++) {
       const bandit = createCowboy();
       bandit.setSkin(BANDIT_SKIN);
+      bandit.setOutfit({ kind: "crossstrap", c1: 0x35230f, c2: 0xd8b13c });
       bandit.setAccessories(["eyepatch"]);
       bandit.group.visible = false;
       this.arena.scene.add(bandit.group);
@@ -258,31 +321,77 @@ export class Gallery {
       const hostage = createCowboy();
       hostage.setSkin(HOSTAGE_SKINS[i]);
       hostage.setAccessories([]);
-      hostage.setSeated(true);
-      hostage.group.position.set(spot[0], -0.55, spot[1]);
+      hostage.setUnarmed(true);
+      hostage.setSeated("seiza");
+      hostage.group.position.set(spot[0], HOSTAGE_SEAT_Y, spot[1]);
       hostage.group.rotation.y = spot[2];
       this.arena.scene.add(hostage.group);
       this.hostages.push(hostage);
     }
     const clerk = createCowboy();
     clerk.setSkin(BANK_CLERK.skin);
-    clerk.setAccessories([]);
-    clerk.setSeated(true);
-    clerk.group.position.set(BANK_CLERK.at[0], -0.55, BANK_CLERK.at[1]);
+    clerk.setAccessories(["longhair"]);
+    clerk.setUnarmed(true);
+    clerk.setSeated("seiza");
+    clerk.group.position.set(BANK_CLERK.at[0], HOSTAGE_SEAT_Y, BANK_CLERK.at[1]);
     clerk.group.rotation.y = BANK_CLERK.ry;
     this.arena.scene.add(clerk.group);
     this.hostages.push(clerk);
   }
 
+  onDodge(dir) {
+    const now = performance.now();
+    if (this.finished || this.dodges <= 0) return;
+    if (now < this.dodgeCooldownUntil) return;
+    const realDir = this.baseYaw === Math.PI ? -dir : dir;
+    const nextStep = Math.max(-2.6, Math.min(2.6, this.stepX + realDir * 1.5));
+    if (nextStep === this.stepX) return;
+    this.dodges -= 1;
+    this.ui.setDodges(this.dodges);
+    this.dodgeUntil = now + 750;
+    this.dodgeCooldownUntil = now + 1100;
+    this.stepX = nextStep;
+    this.audio.whoosh();
+    this.audio.step();
+  }
+
   applyAim(dx, dy, sens) {
     this.aimYaw -= dx * sens;
     this.aimPitch -= dy * sens;
-    this.aimYaw = Math.max(this.baseYaw - 1, Math.min(this.baseYaw + 1, this.aimYaw));
-    this.aimPitch = Math.max(-0.3, Math.min(0.7, this.aimPitch));
+    this.aimYaw = Math.max(this.baseYaw - 0.8, Math.min(this.baseYaw + 0.8, this.aimYaw));
+    this.aimPitch = Math.max(this.pitchMin, Math.min(this.pitchMax, this.aimPitch));
+  }
+
+  timeScale(now) {
+    if (this.killcamUntil && this.killcamUntil > now) {
+      return 0.3;
+    }
+    return 1;
+  }
+
+  startKillcam(now) {
+    if (this.killcamUntil && this.killcamUntil > now) {
+      return;
+    }
+    this.killcamUntil = now + 2500;
+    this.audio.muffle(true);
+    document.body.classList.add("killcam");
+  }
+
+  endKillcam() {
+    if (!this.killcamUntil) {
+      return;
+    }
+    this.killcamUntil = 0;
+    this.audio.muffle(false);
+    document.body.classList.remove("killcam");
   }
 
   onFire() {
-    if (this.finished || this.disposed) {
+    if (this.finished || this.disposed || this.playerDead) {
+      return;
+    }
+    if (this.mode === "bank" && this.wave < 1) {
       return;
     }
     if (this.time * 1000 < this.busyUntil) {
@@ -290,9 +399,10 @@ export class Gallery {
     }
     this.viewmodel.shoot();
     this.audio.gunshot();
-    this.shake = 0.8;
+    this.shake = 1;
     const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), this.arena.camera);
+    raycaster.setFromCamera(new THREE.Vector2(this.swayX, this.swayY), this.arena.camera);
+    this.aimPitch = Math.min(0.7, this.aimPitch + RECOIL_PITCH);
     if (this.mode === "birds") {
       this.fireBirds(raycaster);
     } else {
@@ -304,7 +414,9 @@ export class Gallery {
   startReload() {
     this.busyUntil = this.time * 1000 + RELOAD_TIME * 1000;
     this.viewmodel.reload(RELOAD_TIME);
-    this.audio.playReload();
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => this.audio.reloadClick(i), i * (RELOAD_TIME / 6) * 1000);
+    }
     this.ui.setGunState(t("reloading"));
   }
 
@@ -331,9 +443,19 @@ export class Gallery {
     }
     const hit = this.arena.castEnvironment(raycaster);
     if (hit !== null) {
-      this.arena.spawnImpact(hit.point, hit.kind);
-      this.audio.woodHit();
+      this.arena.shotImpact(hit.point, hit.kind);
     }
+  }
+
+  impactKind(obj) {
+    let node = obj;
+    while (node !== null && node !== undefined) {
+      if (node.userData && node.userData.impact) {
+        return node.userData.impact;
+      }
+      node = node.parent;
+    }
+    return "wood";
   }
 
   fireCoach(raycaster) {
@@ -356,26 +478,43 @@ export class Gallery {
         hostageDist = hits[0].distance;
       }
     }
-    if (hostageDist < banditDist) {
+    const occlude = this.envSolids !== null;
+    let envDist = Infinity;
+    let envPoint = null;
+    let envKind = "wood";
+    if (occlude) {
+      const ehits = raycaster.intersectObject(this.envSolids, true);
+      if (ehits.length > 0) {
+        envDist = ehits[0].distance;
+        envPoint = ehits[0].point;
+        envKind = this.impactKind(ehits[0].object);
+      }
+    } else {
+      const hit = this.arena.castEnvironment(raycaster);
+      if (hit !== null) {
+        envPoint = hit.point;
+        envKind = hit.kind;
+      }
+    }
+    if (hostageDist < banditDist && (!occlude || hostageDist < envDist)) {
       this.audio.thud();
       this.ui.hitFlash();
       this.loseReason = "hostage";
       this.finish(t("defeat"), t("mgBankHostage"), false);
       return;
     }
-    if (banditHit !== null) {
+    if (banditHit !== null && (!occlude || banditDist < envDist)) {
       banditHit.state = "dying";
       banditHit.timer = 0;
-      banditHit.cowboy.playDeath(this.arena.scene, undefined, true);
+      const deathRest = this.mode === "bank" ? 0.24 : 0.2;
+      banditHit.cowboy.playDeath(this.arena.scene, deathRest, !banditHit.fallForward);
       this.audio.thud();
       this.score += 1;
       this.ui.setScore(this.score, 0);
       return;
     }
-    const hit = this.arena.castEnvironment(raycaster);
-    if (hit !== null) {
-      this.arena.spawnImpact(hit.point, hit.kind);
-      this.audio.woodHit();
+    if (envPoint !== null) {
+      this.arena.shotImpact(envPoint, envKind);
     }
   }
 
@@ -385,7 +524,7 @@ export class Gallery {
     const y = 3.2 + this.rng() * 6;
     const z = 20 + this.rng() * 16;
     const speed = (5.5 + this.rng() * 5) * (fromLeft ? 1 : -1);
-    rig.group.position.set(fromLeft ? -22 : 22, y, z);
+    rig.group.position.set(fromLeft ? -45 : 45, y, z);
     rig.group.rotation.y = fromLeft ? Math.PI / 2 : -Math.PI / 2;
     this.arena.scene.add(rig.group);
     this.birds.push({ rig: rig, speed: speed, baseY: y, phase: this.rng() * 6, dead: false, fall: null });
@@ -436,7 +575,7 @@ export class Gallery {
       const flap = Math.sin(this.time * 11 + bird.phase) * 0.6;
       bird.rig.wingL.rotation.z = flap;
       bird.rig.wingR.rotation.z = -flap;
-      if (Math.abs(bird.rig.group.position.x) > 24) {
+      if (Math.abs(bird.rig.group.position.x) > 48) {
         this.arena.scene.remove(bird.rig.group);
         this.birds.splice(i, 1);
       }
@@ -462,6 +601,195 @@ export class Gallery {
     return (2.1 - this.wave * 0.3) + this.rng() * 0.9;
   }
 
+  spawnCoverBandit() {
+    const idle = this.bandits.filter(function (b) {
+      return b.state === "hidden";
+    });
+    const pool = this.coverPool();
+    const taken = this.bandits.map(function (b) {
+      return b.state === "hidden" ? -1 : b.cover;
+    });
+    const free = [];
+    for (let ci = 0; ci < pool.length; ci++) {
+      if (taken.indexOf(ci) === -1) {
+        free.push(ci);
+      }
+    }
+    if (idle.length === 0 || free.length === 0) {
+      this.spawnGap = 0.4;
+      return;
+    }
+    const bandit = idle[Math.floor(this.rng() * idle.length)];
+    const ci = free[Math.floor(this.rng() * free.length)];
+    const cover = pool[ci];
+    bandit.cover = ci;
+    bandit.cowboy.reset();
+    bandit.fallForward = false;
+    let bz = cover[1] + 0.6;
+    if (this.mode === "bank") {
+      bz = cover[1] + 0.3;
+    }
+    const rigPos = this.arena.playerRig.position;
+    bandit.cowboy.group.position.set(cover[0], bandit.hideY, bz);
+    bandit.cowboy.group.rotation.y = Math.atan2(rigPos.x - cover[0], rigPos.z - bz);
+    bandit.cowboy.group.visible = true;
+    bandit.state = "rising";
+    bandit.timer = 0;
+    this.toSpawn -= 1;
+    this.spawnGap = 0.6 + this.rng() * 0.5;
+  }
+
+  spawnTownBandit() {
+    const active = this.bandits.filter(function (b) {
+      return b.state !== "hidden" && b.state !== "dying";
+    }).length;
+    const idle = this.bandits.filter(function (b) {
+      return b.state === "hidden";
+    });
+    const taken = this.bandits.map(function (b) {
+      return (b.state === "hidden" || b.state === "dying") ? -1 : b.cover;
+    });
+    const free = [];
+    for (let ci = 0; ci < TOWN_ALLEYS.length; ci++) {
+      if (taken.indexOf("town_" + ci) === -1) {
+        free.push(ci);
+      }
+    }
+    if (active >= 2 || idle.length === 0 || free.length === 0) {
+      this.spawnGap = 0.4;
+      return;
+    }
+    const bandit = idle[Math.floor(this.rng() * idle.length)];
+    const ci = free[Math.floor(this.rng() * free.length)];
+    const alley = TOWN_ALLEYS[ci];
+    bandit.cover = "town_" + ci;
+    bandit.mouthX = alley.x;
+    bandit.startX = alley.x + alley.side * TOWN_ENTER;
+    bandit.cowboy.reset();
+    bandit.fallForward = false;
+    const rigPos = this.arena.playerRig.position;
+    bandit.cowboy.group.position.set(bandit.startX, 0, alley.z);
+    bandit.cowboy.group.rotation.y = Math.atan2(rigPos.x - alley.x, rigPos.z - alley.z);
+    bandit.cowboy.group.visible = true;
+    bandit.state = "entering";
+    bandit.timer = 0;
+    this.toSpawn -= 1;
+    this.spawnGap = 0.6 + this.rng() * 0.5;
+  }
+
+  spawnBankDoorBandit() {
+    const active = this.bandits.filter(function (b) {
+      return b.state !== "hidden" && b.state !== "dying";
+    }).length;
+    const idle = this.bandits.filter(function (b) {
+      return b.state === "hidden";
+    });
+    const taken = this.bandits.map(function (b) {
+      return (b.state === "hidden" || b.state === "dying") ? -1 : b.cover;
+    });
+    const free = [];
+    for (let ci = 0; ci < BANK_DOORS.length; ci++) {
+      if (taken.indexOf("door_" + ci) === -1) {
+        free.push(ci);
+      }
+    }
+    if (active >= 2 || idle.length === 0 || free.length === 0) {
+      this.spawnGap = 0.4;
+      return;
+    }
+    const bandit = idle[Math.floor(this.rng() * idle.length)];
+    const ci = free[Math.floor(this.rng() * free.length)];
+    const door = BANK_DOORS[ci];
+    bandit.cover = "door_" + ci;
+    bandit.leanZ = door.leanZ;
+    bandit.cowboy.reset();
+    bandit.fallForward = false;
+    bandit.cowboy.setLeftHanded(door.leftHanded === true);
+    const rigPos = this.arena.playerRig.position;
+    bandit.cowboy.group.position.set(door.x, 0, door.z);
+    bandit.cowboy.group.rotation.set(0, Math.atan2(rigPos.x - door.x, rigPos.z - door.z), 0);
+    bandit.cowboy.setLean(0);
+    bandit.cowboy.group.visible = true;
+    bandit.state = "leaning";
+    bandit.timer = 0;
+    this.toSpawn -= 1;
+    this.spawnGap = 0.6 + this.rng() * 0.5;
+  }
+
+  spawnHeistOpeners() {
+    const rigPos = this.arena.playerRig.position;
+    let placed = 0;
+    for (const bandit of this.bandits) {
+      if (placed >= BANK_OPENERS.length) {
+        break;
+      }
+      if (bandit.state !== "hidden") {
+        continue;
+      }
+      const spot = BANK_OPENERS[placed];
+      bandit.cover = "open_" + placed;
+      bandit.cowboy.reset();
+      bandit.cowboy.setLeftHanded(spot.leftHanded === true);
+      bandit.fallForward = true;
+      bandit.cowboy.group.position.set(spot.x, 0, spot.z);
+      bandit.cowboy.group.rotation.set(0, Math.atan2(rigPos.x - spot.x, rigPos.z - spot.z), 0);
+      bandit.cowboy.group.visible = true;
+      bandit.cowboy.playDraw();
+      bandit.state = "waiting";
+      bandit.timer = 0;
+      placed += 1;
+    }
+  }
+
+  activateHeistOpeners() {
+    for (const bandit of this.bandits) {
+      if (bandit.state === "waiting") {
+        bandit.state = "aiming";
+        bandit.timer = 0;
+        bandit.fireAt = this.banditFireDelay();
+        this.toSpawn -= 1;
+      }
+    }
+  }
+
+  spawnBankWindowBandit() {
+    const active = this.bandits.filter(function (b) {
+      return b.state !== "hidden" && b.state !== "dying";
+    }).length;
+    const idle = this.bandits.filter(function (b) {
+      return b.state === "hidden";
+    });
+    const taken = this.bandits.map(function (b) {
+      return (b.state === "hidden" || b.state === "dying") ? -1 : b.cover;
+    });
+    const free = [];
+    for (let ci = 0; ci < BANK_WINDOWS.length; ci++) {
+      if (taken.indexOf("win_" + ci) === -1) {
+        free.push(ci);
+      }
+    }
+    if (active >= 2 || idle.length === 0 || free.length === 0) {
+      this.spawnGap = 0.4;
+      return;
+    }
+    const bandit = idle[Math.floor(this.rng() * idle.length)];
+    const ci = free[Math.floor(this.rng() * free.length)];
+    const win = BANK_WINDOWS[ci];
+    bandit.cover = "win_" + ci;
+    bandit.cowboy.reset();
+    bandit.cowboy.setLeftHanded(win.leftHanded === true);
+    bandit.fallForward = false;
+    bandit.hideY = win.hideY;
+    const rigPos = this.arena.playerRig.position;
+    bandit.cowboy.group.position.set(win.x, bandit.hideY, win.z);
+    bandit.cowboy.group.rotation.y = Math.atan2(rigPos.x - win.x, rigPos.z - win.z);
+    bandit.cowboy.group.visible = true;
+    bandit.state = "rising";
+    bandit.timer = 0;
+    this.toSpawn -= 1;
+    this.spawnGap = 0.6 + this.rng() * 0.5;
+  }
+
   updateCoach(dt) {
     if (this.finished) {
       return;
@@ -471,12 +799,19 @@ export class Gallery {
       if (this.pendingWave <= 0) {
         this.pendingWave = null;
         this.wave += 1;
+        this.dodges = 2;
+        this.ui.setDodges(this.dodges);
         if (this.wave > WAVES.length) {
           this.finish(t("victory"), this.winDetail(), true);
           return;
         }
-        this.toSpawn = WAVES[this.wave - 1];
-        this.spawnGap = 0.4;
+        this.toSpawn = (this.mode === "bank" ? BANK_WAVES : WAVES)[this.wave - 1];
+        if (this.mode === "bank" && this.wave === 1) {
+          this.activateHeistOpeners();
+          this.spawnGap = 2.6;
+        } else {
+          this.spawnGap = 0.4;
+        }
         this.ui.setBig(t("mgWaveLabel", { n: this.wave }), "gold", 1800);
         this.audio.duelBell();
       }
@@ -484,48 +819,41 @@ export class Gallery {
     if (this.toSpawn > 0) {
       this.spawnGap -= dt;
       if (this.spawnGap <= 0) {
-        const idle = this.bandits.filter(function (b) {
-          return b.state === "hidden";
-        });
-        const pool = this.coverPool();
-        const taken = this.bandits.map(function (b) {
-          return b.state === "hidden" ? -1 : b.cover;
-        });
-        const free = [];
-        for (let ci = 0; ci < pool.length; ci++) {
-          if (taken.indexOf(ci) === -1) {
-            free.push(ci);
+        if (this.mode === "town") {
+          this.spawnTownBandit();
+        } else if (this.mode === "bank") {
+          if (this.rng() < 0.5) {
+            this.spawnBankDoorBandit();
+          } else {
+            this.spawnBankWindowBandit();
           }
-        }
-        if (idle.length > 0 && free.length > 0) {
-          const bandit = idle[Math.floor(this.rng() * idle.length)];
-          const ci = free[Math.floor(this.rng() * free.length)];
-          const cover = pool[ci];
-          bandit.cover = ci;
-          bandit.cowboy.reset();
-          let bz = cover[1] + 0.6;
-          if (this.mode === "bank") {
-            bz = cover[1] + 0.3;
-          } else if (this.mode === "town") {
-            bz = cover[1] - 0.5;
-          }
-          const rigPos = this.arena.playerRig.position;
-          bandit.cowboy.group.position.set(cover[0], bandit.hideY, bz);
-          bandit.cowboy.group.rotation.y = Math.atan2(rigPos.x - cover[0], rigPos.z - bz);
-          bandit.cowboy.group.visible = true;
-          bandit.state = "rising";
-          bandit.timer = 0;
-          this.toSpawn -= 1;
-          this.spawnGap = 1.2 + this.rng() * 1.4;
         } else {
-          this.spawnGap = 0.4;
+          this.spawnCoverBandit();
         }
       }
     }
     let allDone = this.toSpawn === 0 && this.pendingWave === null;
     for (const bandit of this.bandits) {
       bandit.timer += dt;
-      if (bandit.state === "rising") {
+      if (bandit.state === "entering") {
+        const p = Math.min(1, bandit.timer / ENTER_TIME);
+        bandit.cowboy.group.position.x = bandit.startX + (bandit.mouthX - bandit.startX) * p;
+        if (p >= 1) {
+          bandit.state = "aiming";
+          bandit.timer = 0;
+          bandit.fireAt = this.banditFireDelay();
+          bandit.cowboy.playDraw();
+        }
+      } else if (bandit.state === "leaning") {
+        const p = Math.min(1, bandit.timer / ENTER_TIME);
+        bandit.cowboy.setLean(bandit.leanZ * p);
+        if (p >= 1) {
+          bandit.state = "aiming";
+          bandit.timer = 0;
+          bandit.fireAt = this.banditFireDelay();
+          bandit.cowboy.playDraw();
+        }
+      } else if (bandit.state === "rising") {
         bandit.cowboy.group.position.y = Math.min(0, bandit.hideY + bandit.timer * 3.4);
         if (bandit.cowboy.group.position.y >= 0) {
           bandit.state = "aiming";
@@ -535,28 +863,41 @@ export class Gallery {
         }
       } else if (bandit.state === "aiming") {
         if (bandit.timer >= bandit.fireAt) {
-          bandit.state = "ducking";
+          bandit.state = "cooldown";
           bandit.timer = 0;
           bandit.cowboy.playShoot();
           this.audio.distantShot();
-          this.coachHp -= 1;
-          this.ui.setHearts(Math.max(0, this.coachHp));
-          this.shake = 1;
-          this.ui.setScore(this.score, 0);
-          this.ui.hitFlash();
-          if (this.coachHp <= 0) {
-            this.finish(t("defeat"), this.loseDetail(), false);
-            return;
+          bandit.cowboy.playReload();
+          if (this.rng() < BANDIT_HIT_CHANCE) {
+            if (performance.now() >= this.dodgeUntil) {
+              this.coachHp -= 1;
+              this.ui.setHearts(Math.max(0, this.coachHp));
+              this.shake = 1.4;
+              this.audio.thud();
+              this.ui.hitFlash();
+            }
+            if (this.coachHp <= 0) {
+              if (!this.playerDead) {
+                this.playerDead = true;
+                this.deathAnimT = 0;
+                this.startKillcam(performance.now());
+                const self = this;
+                setTimeout(function () {
+                  if (!self.disposed) self.finish(t("defeat"), self.loseDetail(), false);
+                }, 2500);
+              }
+              return;
+            }
+          } else {
+            this.shake = 0.5;
           }
         }
-      } else if (bandit.state === "ducking") {
-        if (bandit.timer > 0.7) {
-          bandit.cowboy.group.position.y -= dt * 3;
-          if (bandit.cowboy.group.position.y <= bandit.hideY) {
-            bandit.state = "hidden";
-            bandit.cowboy.group.visible = false;
-            bandit.cowboy.reset();
-          }
+      } else if (bandit.state === "cooldown") {
+        if (bandit.timer >= BANDIT_COOLDOWN) {
+          bandit.state = "aiming";
+          bandit.timer = 0;
+          bandit.fireAt = this.banditFireDelay();
+          bandit.cowboy.playDraw();
         }
       } else if (bandit.state === "dying") {
         if (bandit.timer > 1.2) {
@@ -575,7 +916,7 @@ export class Gallery {
         this.finish(t("victory"), this.winDetail(), true);
         return;
       }
-      this.pendingWave = 2.2;
+      this.pendingWave = 1.2;
     }
     this.ui.setRoundLabel(t("mgWaveLabel", { n: Math.max(1, this.wave) }));
   }
@@ -598,14 +939,42 @@ export class Gallery {
     for (const hostage of this.hostages) {
       hostage.update(dt);
     }
+    let amp = SWAY_BASE;
+    let reloadTarget = 0;
+    if (this.viewmodel && this.viewmodel.state && this.viewmodel.state.mode === "reloading") {
+      reloadTarget = 0.35;
+    }
+    this.reloadSway += (reloadTarget - this.reloadSway) * Math.min(1, dt * 6);
+    amp += this.reloadSway;
+    const swayTime = now / 1000;
+    this.swayX = Math.sin(swayTime * 0.85) * amp;
+    this.swayY = Math.sin(swayTime * 1.35 + 1.1) * amp * 0.7;
+    if (!this.finished && !this.playerDead) {
+      this.ui.moveCrosshair(this.swayX, this.swayY);
+    }
     if (this.shake > 0) {
       this.shake = Math.max(0, this.shake - dt * 5);
     }
     const camera = this.arena.camera;
+    const rig = this.arena.playerRig;
+    if (this.playerDead) {
+      this.deathAnimT = Math.min(1, (this.deathAnimT || 0) + dt * 1.4);
+      const e = this.deathAnimT * this.deathAnimT;
+      rig.position.y = 1.6 - e * 1.1;
+      camera.rotation.z = e * 0.6;
+    } else {
+      rig.position.y = 1.6;
+      camera.rotation.z = Math.sin(swayTime * 0.5) * 0.015;
+    }
+    if (!this.playerDead && this.mode !== "birds") {
+      const targetX = this.baseX + this.stepX;
+      const lean = (targetX - rig.position.x) * 0.14;
+      rig.position.x += (targetX - rig.position.x) * Math.min(1, dt * 9);
+      camera.rotation.z += lean;
+    }
     camera.rotation.order = "YXZ";
-    camera.rotation.y = this.aimYaw + (Math.random() - 0.5) * 0.015 * this.shake;
-    camera.rotation.x = this.aimPitch + (Math.random() - 0.5) * 0.015 * this.shake;
-    camera.rotation.z = 0;
+    camera.rotation.y = this.aimYaw + (Math.random() - 0.5) * 0.02 * this.shake;
+    camera.rotation.x = this.aimPitch + (Math.random() - 0.5) * 0.02 * this.shake;
   }
 
   finish(title, detail, won) {
@@ -614,7 +983,7 @@ export class Gallery {
     }
     this.finished = true;
     this.won = won === true || (won === undefined && this.mode === "birds");
-    if (this.onReward !== null) {
+    if (this.onReward !== null && this.won) {
       this.onReward(this.mode, this.score);
     }
     const self = this;
@@ -648,6 +1017,7 @@ export class Gallery {
   }
 
   dispose() {
+    this.endKillcam();
     this.disposed = true;
     for (const entry of this.listeners) {
       entry[0].removeEventListener(entry[1], entry[2]);

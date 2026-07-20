@@ -1,5 +1,6 @@
 let sdk = null;
 let onCg = false;
+let realCg = false;
 let lastMidgameAt = 0;
 
 const MIDGAME_COOLDOWN = 90000;
@@ -15,7 +16,8 @@ export async function initSdk() {
   }
   try {
     await sdk.init();
-    onCg = sdk.environment === "crazygames" || local;
+    realCg = sdk.environment === "crazygames";
+    onCg = realCg || local;
   } catch (err) {
     sdk = null;
     onCg = local;
@@ -24,6 +26,10 @@ export async function initSdk() {
 
 export function isCrazyGames() {
   return onCg;
+}
+
+export function isRealCrazyGames() {
+  return realCg;
 }
 
 function call(fn) {
@@ -180,6 +186,45 @@ export function isInstantMultiplayer() {
   }
   try {
     return sdk.game.isInstantMultiplayer === true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export async function showCgAuthPrompt() {
+  if (!onCg || !sdk.user.isUserAccountAvailable) {
+    return;
+  }
+  try {
+    await sdk.user.showAuthPrompt();
+  } catch (err) {}
+}
+
+export function submitCgScore(score) {
+  if (!onCg) {
+    return;
+  }
+  try {
+    if (sdk.data && typeof sdk.data.submitScore === "function") {
+      sdk.data.submitScore(score);
+    } else if (sdk.user && typeof sdk.user.submitScore === "function") {
+      sdk.user.submitScore(score);
+    } else if (typeof sdk.submitScore === "function") {
+      sdk.submitScore(score);
+    }
+  } catch (err) {}
+}
+
+export async function isCgAuthenticated() {
+  if (!onCg || !sdk.user.isUserAccountAvailable) {
+    return false;
+  }
+  if (!isRealCrazyGames()) {
+    return false;
+  }
+  try {
+    const token = await sdk.user.getUserToken();
+    return token !== null && token !== "";
   } catch (err) {
     return false;
   }

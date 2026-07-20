@@ -7,6 +7,7 @@ export const PERSONAS = [
     id: "nervous",
     icon: "🤠",
     name: "Billy the Kid",
+    bounty: 800,
     descKey: "persona.nervous.desc",
     reaction: [275, 375],
     aim: [290, 430],
@@ -20,6 +21,7 @@ export const PERSONAS = [
     id: "rapido",
     icon: "🌵",
     name: "John Wesley Hardin",
+    bounty: 1200,
     descKey: "persona.rapido.desc",
     reaction: [245, 315],
     aim: [260, 370],
@@ -33,13 +35,14 @@ export const PERSONAS = [
     id: "patient",
     icon: "🥃",
     name: "Tom Horn",
+    bounty: 1600,
     descKey: "persona.patient.desc",
     reaction: [355, 455],
     aim: [300, 420],
     accHead: 0.34,
     accBody: 0.5,
     misfireChance: 0,
-    dodgeChance: 0.26,
+    dodgeChance: 0.52,
     patience: 0.5
   }
 ];
@@ -48,27 +51,29 @@ export const STORY_PERSONAS = {
   grace: {
     id: "grace",
     icon: "🕯️",
-    name: "RévéPasteur Silas",
+    name: "Pasteur Silas",
+    bounty: 2200,
     descKey: "persona.grace.desc",
     reaction: [385, 475],
     aim: [330, 430],
     accHead: 0.42,
     accBody: 0.44,
     misfireChance: 0,
-    dodgeChance: 0.12,
+    dodgeChance: 0.35,
     patience: 0.65
   },
   undertaker: {
     id: "undertaker",
     icon: "⚰️",
     name: "Jesse James",
+    bounty: 5000,
     descKey: "persona.undertaker.desc",
     reaction: [255, 330],
     aim: [250, 340],
     accHead: 0.4,
     accBody: 0.45,
     misfireChance: 0,
-    dodgeChance: 0.3,
+    dodgeChance: 0.6,
     patience: 0.35
   }
 };
@@ -77,13 +82,14 @@ export const TRAINING_PERSONA = {
   id: "training",
   icon: "🎯",
   name: "Old Jed",
+  bounty: 100,
   descKey: "persona.training.desc",
   reaction: [420, 580],
   aim: [390, 560],
   accHead: 0.12,
   accBody: 0.42,
   misfireChance: 0.12,
-  dodgeChance: 0.2,
+  dodgeChance: 0.4,
   patience: 0.3
 };
 

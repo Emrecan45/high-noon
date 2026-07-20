@@ -1,15 +1,20 @@
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   pseudo text not null,
-  elo integer not null default 100,
+  prime integer not null default 100,
   coins integer not null default 0,
+  xp integer not null default 0,
   wins integer not null default 0,
   losses integer not null default 0,
   ranked_wins integer not null default 0,
   ranked_losses integer not null default 0,
   skin text not null default 'drifter',
+  weapon text not null default 'iron',
+  accessories text[] not null default '{mustache}',
   cg_username text,
-  last_ad_at timestamptz,
+  friend_code text,
+  season_key integer not null default 0,
+  free_draws integer not null default 0,
   shots_fired integer not null default 0,
   shots_hit integer not null default 0,
   headshots integer not null default 0,
@@ -18,96 +23,83 @@ create table if not exists public.profiles (
   last_opp uuid,
   last_opp_at timestamptz,
   same_opp_count integer not null default 0,
-  accessories text[] not null default '{}',
-  weapon text not null default 'iron',
-  free_draws integer not null default 0,
+  last_result_at timestamptz,
+  last_ad_at timestamptz,
+  ad_streak integer not null default 0,
+  ad_day date,
+  ad_case_day date,
+  ad_case_count integer not null default 0,
+  mg_day date,
+  mg_count integer not null default 0,
+  story_mask integer not null default 0,
+  story_claimed boolean not null default false,
+  banned boolean not null default false,
+  ban_reason text,
   created_at timestamptz not null default now(),
+  last_seen timestamptz,
   constraint pseudo_format check (pseudo ~ '^[A-Za-z0-9_ .-]{3,16}$')
 );
 
-alter table public.profiles
-  add column if not exists shots_fired integer not null default 0,
-  add column if not exists shots_hit integer not null default 0,
-  add column if not exists headshots integer not null default 0,
-  add column if not exists win_streak integer not null default 0,
-  add column if not exists best_streak integer not null default 0,
-  add column if not exists last_opp uuid,
-  add column if not exists last_opp_at timestamptz,
-  add column if not exists same_opp_count integer not null default 0,
-  add column if not exists accessories text[] not null default '{}',
-  add column if not exists weapon text not null default 'iron',
-  add column if not exists free_draws integer not null default 0;
+alter table public.profiles add column if not exists banned boolean not null default false;
+alter table public.profiles add column if not exists ban_reason text;
+alter table public.profiles add column if not exists last_seen timestamptz;
+
+create or replace function public.touch_seen()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update profiles set last_seen = now() where id = auth.uid();
+end;
+$$;
+grant execute on function public.touch_seen() to authenticated;
 
 create unique index if not exists profiles_pseudo_unique on public.profiles (lower(pseudo));
-create index if not exists profiles_elo_idx on public.profiles (elo desc);
+create unique index if not exists profiles_friend_code_unique on public.profiles (friend_code);
+create index if not exists profiles_prime_idx on public.profiles (prime desc);
 
 create table if not exists public.skins (
   id text primary key,
   price integer not null,
-  weight integer not null default 3
+  weight integer not null default 3,
+  rarity text not null default 'common',
+  event_only boolean not null default false
 );
-
-alter table public.skins add column if not exists weight integer not null default 3;
-
-insert into public.skins (id, price, weight) values
-  ('drifter', 0, 0),
-  ('sheriff', 150, 3),
-  ('bandit', 200, 3),
-  ('poncho', 250, 3),
-  ('cavalry', 350, 3),
-  ('undertaker', 500, 3),
-  ('ghost', 650, 3),
-  ('golden', 900, 3)
-on conflict (id) do nothing;
-
-update public.skins set weight = 0 where id = 'drifter';
 
 create table if not exists public.profile_skins (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   skin_id text not null references public.skins(id),
+  seen boolean not null default false,
   primary key (profile_id, skin_id)
 );
 
 create table if not exists public.accessories (
   id text primary key,
   slot text not null,
-  weight integer not null
+  weight integer not null,
+  rarity text not null default 'common'
 );
-
-insert into public.accessories (id, slot, weight) values
-  ('mustache', 'face', 14),
-  ('beard', 'face', 10),
-  ('cigar', 'mouth', 14),
-  ('eyepatch', 'eyes', 10),
-  ('star', 'chest', 6),
-  ('poncho', 'back', 8),
-  ('feather', 'hat', 10)
-on conflict (id) do nothing;
 
 create table if not exists public.profile_accessories (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   accessory_id text not null references public.accessories(id),
+  seen boolean not null default false,
   primary key (profile_id, accessory_id)
 );
 
 create table if not exists public.weapons (
   id text primary key,
   price integer not null,
-  weight integer not null
+  weight integer not null,
+  rarity text not null default 'common'
 );
-
-insert into public.weapons (id, price, weight) values
-  ('iron', 0, 0),
-  ('silver', 200, 3),
-  ('ivory', 300, 3),
-  ('ranger', 400, 3),
-  ('rose', 550, 3),
-  ('golden', 850, 3)
-on conflict (id) do nothing;
 
 create table if not exists public.profile_weapons (
   profile_id uuid not null references public.profiles(id) on delete cascade,
   weapon_id text not null references public.weapons(id),
+  seen boolean not null default false,
   primary key (profile_id, weapon_id)
 );
 
@@ -136,6 +128,226 @@ begin
 end
 $$;
 
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'profiles'
+     ) then
+    alter publication supabase_realtime add table public.profiles;
+  end if;
+end
+$$;
+
+create table if not exists public.challenge_progress (
+  profile_id uuid references public.profiles(id) on delete cascade,
+  period text not null,
+  period_key text not null,
+  counters jsonb not null default '{}'::jsonb,
+  claimed jsonb not null default '[]'::jsonb,
+  primary key (profile_id, period)
+);
+
+create table if not exists public.season_history (
+  profile_id uuid references public.profiles(id) on delete cascade,
+  season integer not null,
+  prime integer not null,
+  rank integer,
+  seen boolean not null default true,
+  primary key (profile_id, season)
+);
+
+create table if not exists public.season_badges (
+  profile_id uuid references public.profiles(id) on delete cascade,
+  season integer not null,
+  rank integer not null,
+  seen boolean not null default false,
+  primary key (profile_id, season)
+);
+
+create table if not exists public.pass_claims (
+  profile_id uuid references public.profiles(id) on delete cascade,
+  season integer not null,
+  level integer not null,
+  primary key (profile_id, season, level)
+);
+
+create table if not exists public.ad_unlocks (
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  kind text not null,
+  ref text not null,
+  watched integer not null default 0,
+  primary key (profile_id, kind, ref)
+);
+
+create table if not exists public.events (
+  id text primary key,
+  title text not null,
+  stat text not null check (stat in ('played', 'won', 'ranked_won', 'shots', 'hits', 'heads')),
+  goal integer not null check (goal > 0),
+  reward_kind text not null check (reward_kind in ('coins', 'skin', 'weapon', 'accessory')),
+  reward_ref text,
+  reward_amount integer not null default 0,
+  icon text not null default '⭐',
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz not null
+);
+
+create table if not exists public.event_progress (
+  profile_id uuid not null references public.profiles(id) on delete cascade,
+  event_id text not null references public.events(id) on delete cascade,
+  counter integer not null default 0,
+  claimed boolean not null default false,
+  primary key (profile_id, event_id)
+);
+
+create table if not exists public.app_meta (
+  key text primary key,
+  value text not null
+);
+
+insert into public.skins (id, price, weight) values
+  ('drifter', 0, 0),
+  ('sheriff', 150, 3),
+  ('bandit', 200, 3),
+  ('cavalry', 350, 3),
+  ('undertaker', 500, 3),
+  ('ghost', 650, 3),
+  ('golden', 900, 3),
+  ('marshal', 300, 3),
+  ('preacher', 450, 2),
+  ('duchess', 500, 2),
+  ('kid', 200, 3),
+  ('mariachi', 550, 2),
+  ('sombra', 600, 1),
+  ('prospector', 650, 1),
+  ('nightowl', 700, 1),
+  ('eldorado', 950, 1)
+on conflict (id) do nothing;
+
+insert into public.skins (id, price, weight, rarity, event_only) values
+  ('trapper', 0, 0, 'mythic', true),
+  ('skeleton', 0, 0, 'mythic', true),
+  ('bounty', 0, 0, 'mythic', true),
+  ('gambler', 0, 0, 'mythic', true),
+  ('calamity', 0, 0, 'mythic', true),
+  ('phantom', 0, 0, 'mythic', true)
+on conflict (id) do nothing;
+
+delete from public.profile_skins where skin_id in ('poncho', 'outlaw', 'rangercoat', 'vaquero', 'miner', 'tracker', 'bluecoat', 'riverboat');
+delete from public.skins where id in ('poncho', 'outlaw', 'rangercoat', 'vaquero', 'miner', 'tracker', 'bluecoat', 'riverboat');
+update public.skins set price = 650, weight = 1, event_only = false where id = 'prospector';
+update public.skins set price = 0, weight = 0, event_only = true where id in ('bounty', 'gambler');
+update public.skins set price = 0, weight = 0, event_only = true where id = 'nightowl';
+update public.skins set price = 700, weight = 1, event_only = false where id = 'calamity';
+
+update public.skins set rarity = case
+  when event_only then 'mythic'
+  when price >= 600 then 'legendary'
+  when price >= 450 then 'epic'
+  when price >= 250 then 'rare'
+  else 'common'
+end;
+
+update public.skins set rarity = 'rare' where id = 'undertaker';
+update public.skins set rarity = 'epic' where id = 'trapper';
+
+insert into public.weapons (id, price, weight) values
+  ('iron', 0, 0),
+  ('silver', 200, 3),
+  ('ivory', 300, 3),
+  ('ranger', 400, 3),
+  ('rose', 550, 3),
+  ('golden', 850, 3),
+  ('navy', 250, 3),
+  ('peacemaker', 350, 3),
+  ('serpent', 450, 2),
+  ('coyote', 300, 3),
+  ('midnight', 550, 2),
+  ('bone', 500, 2),
+  ('scarlet', 650, 1),
+  ('deputy', 400, 2)
+on conflict (id) do nothing;
+
+update public.weapons set rarity = case
+  when price >= 600 then 'legendary'
+  when price >= 450 then 'epic'
+  when price >= 250 then 'rare'
+  else 'common'
+end;
+
+insert into public.accessories (id, slot, weight) values
+  ('mustache', 'face', 14),
+  ('beard', 'face', 6),
+  ('sideburns', 'face', 10),
+  ('goatee', 'face', 10),
+  ('chinstrap', 'face', 12),
+  ('cigar', 'mouth', 10),
+  ('goldtooth', 'mouth', 6),
+  ('pipe', 'mouth', 10),
+  ('toothpick', 'mouth', 13),
+  ('cigarette', 'mouth', 13),
+  ('eyepatch', 'eyes', 10),
+  ('monocle', 'eyes', 10),
+  ('shades', 'eyes', 10),
+  ('spectacles', 'eyes', 13),
+  ('blindfold', 'eyes', 6),
+  ('star', 'chest', 10),
+  ('bandolier', 'chest', 10),
+  ('skullbadge', 'chest', 6),
+  ('deputybadge', 'chest', 13),
+  ('medallion', 'chest', 6),
+  ('feather', 'hat', 13),
+  ('hatband', 'hat', 10),
+  ('cardband', 'hat', 10),
+  ('sheriffpin', 'hat', 6),
+  ('bulletband', 'hat', 13),
+  ('shorthair', 'hair', 12),
+  ('ponytail', 'hair', 10),
+  ('longhair', 'hair', 10),
+  ('braids', 'hair', 6),
+  ('bald', 'hair', 12),
+  ('paper-burned', 'posterpaper', 0),
+  ('paper-torn', 'posterpaper', 0),
+  ('paper-stained', 'posterpaper', 0),
+  ('stamp-outlaw', 'posterstamp', 0),
+  ('stamp-reward', 'posterstamp', 0),
+  ('stamp-nomercy', 'posterstamp', 0),
+  ('ink-black', 'posterink', 0),
+  ('ink-blood', 'posterink', 0),
+  ('ink-blue', 'posterink', 0),
+  ('ink-green', 'posterink', 0),
+  ('ink-purple', 'posterink', 0),
+  ('ink-gold', 'posterink', 0),
+  ('pose-draw', 'posterpose', 0),
+  ('pose-holster', 'posterpose', 0),
+  ('nick-fantasma', 'posternick', 0),
+  ('nick-tornado', 'posternick', 0),
+  ('nick-vibora', 'posternick', 0)
+on conflict (id) do nothing;
+
+delete from public.profile_accessories where accessory_id in (
+  'poncho', 'scarf', 'cape', 'duster', 'serape', 'bedroll', 'satchel',
+  'warpaint', 'handlebar', 'matchstick', 'rose', 'goggles', 'warstripe',
+  'bolotie', 'pocketwatch', 'conchos', 'snakeband'
+);
+delete from public.accessories where id in (
+  'poncho', 'scarf', 'cape', 'duster', 'serape', 'bedroll', 'satchel',
+  'warpaint', 'handlebar', 'matchstick', 'rose', 'goggles', 'warstripe',
+  'bolotie', 'pocketwatch', 'conchos', 'snakeband'
+);
+
+update public.accessories set rarity = case
+  when slot = 'badge' then 'mythic'
+  when id in ('stamp-nomercy', 'ink-blood', 'ink-gold', 'nick-fantasma', 'nick-tornado', 'nick-vibora') then 'legendary'
+  when id in ('braids', 'beard', 'goldtooth', 'blindfold', 'skullbadge', 'medallion', 'sheriffpin', 'paper-burned', 'stamp-outlaw', 'stamp-reward', 'pose-draw', 'monocle', 'ink-purple') then 'epic'
+  when id in ('ponytail', 'longhair', 'goatee', 'sideburns', 'pipe', 'cigar', 'eyepatch', 'shades', 'star', 'bandolier', 'hatband', 'cardband', 'paper-torn', 'paper-stained', 'ink-black', 'ink-blue', 'ink-green', 'pose-holster') then 'rare'
+  else 'common'
+end;
+
 alter table public.profiles enable row level security;
 alter table public.skins enable row level security;
 alter table public.profile_skins enable row level security;
@@ -144,6 +356,14 @@ alter table public.profile_accessories enable row level security;
 alter table public.weapons enable row level security;
 alter table public.profile_weapons enable row level security;
 alter table public.friendships enable row level security;
+alter table public.challenge_progress enable row level security;
+alter table public.season_history enable row level security;
+alter table public.season_badges enable row level security;
+alter table public.pass_claims enable row level security;
+alter table public.ad_unlocks enable row level security;
+alter table public.events enable row level security;
+alter table public.event_progress enable row level security;
+alter table public.app_meta enable row level security;
 
 grant select on public.profiles to anon, authenticated;
 grant select on public.skins to anon, authenticated;
@@ -153,6 +373,13 @@ grant select on public.profile_accessories to authenticated;
 grant select on public.weapons to anon, authenticated;
 grant select on public.profile_weapons to authenticated;
 grant select on public.friendships to authenticated;
+grant select on public.challenge_progress to authenticated;
+grant select on public.season_history to anon, authenticated;
+grant select on public.season_badges to authenticated;
+grant select on public.pass_claims to authenticated;
+grant select on public.ad_unlocks to authenticated;
+grant select on public.events to anon, authenticated;
+grant select on public.event_progress to authenticated;
 
 drop policy if exists "profiles readable by all" on public.profiles;
 create policy "profiles readable by all" on public.profiles
@@ -186,6 +413,149 @@ drop policy if exists "own friendships readable" on public.friendships;
 create policy "own friendships readable" on public.friendships
   for select using (auth.uid() = requester or auth.uid() = addressee);
 
+drop policy if exists challenge_self_read on public.challenge_progress;
+create policy challenge_self_read on public.challenge_progress
+  for select using (auth.uid() = profile_id);
+
+drop policy if exists season_history_read on public.season_history;
+create policy season_history_read on public.season_history
+  for select using (true);
+
+drop policy if exists season_badges_read on public.season_badges;
+create policy season_badges_read on public.season_badges
+  for select using (auth.uid() = profile_id);
+
+drop policy if exists pass_claims_read on public.pass_claims;
+create policy pass_claims_read on public.pass_claims
+  for select using (auth.uid() = profile_id);
+
+drop policy if exists ad_unlocks_select_own on public.ad_unlocks;
+create policy ad_unlocks_select_own on public.ad_unlocks
+  for select using (auth.uid() = profile_id);
+
+drop policy if exists events_read on public.events;
+create policy events_read on public.events
+  for select using (true);
+
+drop policy if exists event_progress_self_read on public.event_progress;
+create policy event_progress_self_read on public.event_progress
+  for select using (auth.uid() = profile_id);
+
+create or replace function public.current_season()
+returns integer
+language sql
+stable
+as $$
+  select (floor((extract(epoch from now()) / 86400 - 20630) / 30) + 1)::integer;
+$$;
+
+create or replace function public.ensure_season(p_uid uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  cur integer;
+  old_key integer;
+  old_prime integer;
+  old_rank integer;
+  title_id text;
+begin
+  cur := current_season();
+  select season_key, prime into old_key, old_prime from profiles where id = p_uid;
+  if old_key is null or old_key = cur then
+    return;
+  end if;
+  if old_key > 0 then
+    select 1
+      + (select count(*) from profiles where season_key = old_key and id <> p_uid and prime > old_prime)
+      + (select count(*) from season_history where season = old_key and profile_id <> p_uid and prime > old_prime)
+    into old_rank;
+    insert into season_history (profile_id, season, prime, rank, seen)
+    values (p_uid, old_key, old_prime, old_rank, false)
+    on conflict (profile_id, season) do update set prime = excluded.prime, rank = excluded.rank, seen = excluded.seen;
+    if old_rank <= 10 and old_prime > 100 then
+      title_id := 'title-s' || old_key || '-r' || old_rank;
+      insert into accessories (id, slot, weight, rarity) values (title_id, 'posternick', 0, 'mythic')
+      on conflict (id) do nothing;
+      insert into profile_accessories (profile_id, accessory_id) values (p_uid, title_id)
+      on conflict do nothing;
+      insert into season_badges (profile_id, season, rank) values (p_uid, old_key, old_rank)
+      on conflict (profile_id, season) do nothing;
+    end if;
+  end if;
+  update profiles set season_key = cur, prime = 100, xp = 0 where id = p_uid;
+end;
+$$;
+
+create or replace function public.grant_xp(p_uid uuid, p_amount integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform ensure_season(p_uid);
+  update profiles set xp = xp + greatest(0, p_amount) where id = p_uid;
+end;
+$$;
+
+create or replace function public.item_rarity(p_kind text, p_ref text)
+returns text
+language sql
+stable
+as $$
+  select case
+    when p_kind = 'skin' then (select rarity from public.skins where id = p_ref)
+    when p_kind = 'weapon' then (select rarity from public.weapons where id = p_ref)
+    else (select rarity from public.accessories where id = p_ref)
+  end;
+$$;
+
+create or replace function public.item_refund(p_kind text, p_ref text)
+returns integer
+language sql
+stable
+as $$
+  select case public.item_rarity(p_kind, p_ref)
+    when 'mythic' then 200
+    when 'legendary' then 100
+    when 'epic' then 60
+    when 'rare' then 30
+    else 15
+  end;
+$$;
+
+create or replace function public.ensure_friend_code(p_uid uuid)
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  code text;
+  tries integer := 0;
+begin
+  select friend_code into code from profiles where id = p_uid;
+  if code is not null then
+    return code;
+  end if;
+  loop
+    tries := tries + 1;
+    code := upper(substr(md5(gen_random_uuid()::text), 1, 4) || '-' || substr(md5(gen_random_uuid()::text), 1, 4));
+    begin
+      update profiles set friend_code = code where id = p_uid;
+      return code;
+    exception when unique_violation then
+      if tries > 8 then
+        raise;
+      end if;
+    end;
+  end loop;
+end;
+$$;
+
 create or replace function public.create_profile(p_pseudo text, p_cg text default null)
 returns json
 language plpgsql
@@ -205,8 +575,15 @@ begin
   returning * into row_profile;
   insert into profile_skins (profile_id, skin_id) values (uid, 'drifter');
   insert into profile_weapons (profile_id, weapon_id) values (uid, 'iron');
+  insert into profile_accessories (profile_id, accessory_id) values (uid, 'mustache');
+  update profiles set accessories = '{mustache}' where id = uid;
   perform ensure_season(uid);
   perform ensure_friend_code(uid);
+  if p_cg is not null and exists (select 1 from profiles where cg_username = p_cg and banned and id <> uid) then
+    update profiles set banned = true,
+      ban_reason = coalesce((select ban_reason from profiles where cg_username = p_cg and banned and id <> uid limit 1), 'Compte banni')
+    where id = uid;
+  end if;
   select * into row_profile from profiles where id = uid;
   return row_to_json(row_profile);
 end;
@@ -280,15 +657,19 @@ as $$
 declare
   uid uuid;
   skin_price integer;
+  is_event boolean;
   new_coins integer;
 begin
   uid := auth.uid();
   if uid is null then
     raise exception 'not authenticated';
   end if;
-  select price into skin_price from skins where id = p_skin;
+  select price, event_only into skin_price, is_event from skins where id = p_skin;
   if skin_price is null then
     raise exception 'unknown skin';
+  end if;
+  if is_event then
+    raise exception 'event only';
   end if;
   if exists (select 1 from profile_skins where profile_id = uid and skin_id = p_skin) then
     raise exception 'already owned';
@@ -304,7 +685,135 @@ begin
 end;
 $$;
 
-create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_elo integer, p_opp_id uuid)
+create or replace function public.set_accessories(p_list text[])
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  item text;
+  seen_slots text[] := '{}';
+  item_slot text;
+begin
+  uid := auth.uid();
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  if array_length(p_list, 1) > 14 then
+    raise exception 'too many accessories';
+  end if;
+  foreach item in array p_list loop
+    if not exists (select 1 from profile_accessories where profile_id = uid and accessory_id = item) then
+      raise exception 'accessory not owned';
+    end if;
+    select slot into item_slot from accessories where id = item;
+    if item_slot = any(seen_slots) then
+      raise exception 'slot conflict';
+    end if;
+    seen_slots := array_append(seen_slots, item_slot);
+  end loop;
+  update profiles set accessories = p_list where id = uid;
+end;
+$$;
+
+create or replace function public.bump_event(p_stat text, p_amount integer)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  ev record;
+begin
+  uid := auth.uid();
+  if uid is null or p_amount <= 0 then
+    return;
+  end if;
+  for ev in
+    select id from events where stat = p_stat and starts_at <= now() and ends_at > now()
+  loop
+    insert into event_progress (profile_id, event_id, counter)
+    values (uid, ev.id, p_amount)
+    on conflict (profile_id, event_id) do update set counter = event_progress.counter + p_amount;
+  end loop;
+end;
+$$;
+
+create or replace function public.event_state()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+  declare
+    uid uuid;
+    ev record;
+    cev record;
+    cnt integer;
+    clm boolean;
+  begin
+    uid := auth.uid();
+    if uid is null then
+      return null;
+    end if;
+
+    for cev in select e.* from events e
+      join event_progress ep on ep.event_id = e.id
+      where ep.profile_id = uid and ep.claimed = false and ep.counter >= e.goal
+        and (e.ends_at <= now() or e.id <> (select id from events where starts_at <= now() order by starts_at desc limit 1))
+    loop
+      update event_progress set claimed = true where profile_id = uid and event_id = cev.id;
+      if cev.reward_kind = 'coins' then
+        update profiles set coins = coins + cev.reward_amount where id = uid;
+      elsif cev.reward_kind = 'skin' then
+        if not exists (select 1 from profile_skins where profile_id = uid and skin_id = cev.reward_ref) then
+          insert into profile_skins (profile_id, skin_id) values (uid, cev.reward_ref);
+        else
+          update profiles set coins = coins + public.item_refund('skin', cev.reward_ref) where id = uid;
+        end if;
+      elsif cev.reward_kind = 'weapon' then
+        if not exists (select 1 from profile_weapons where profile_id = uid and weapon_id = cev.reward_ref) then
+          insert into profile_weapons (profile_id, weapon_id) values (uid, cev.reward_ref);
+        else
+          update profiles set coins = coins + public.item_refund('weapon', cev.reward_ref) where id = uid;
+        end if;
+      elsif cev.reward_kind = 'accessory' then
+        if not exists (select 1 from profile_accessories where profile_id = uid and accessory_id = cev.reward_ref) then
+          insert into profile_accessories (profile_id, accessory_id) values (uid, cev.reward_ref);
+        else
+          update profiles set coins = coins + public.item_refund('accessory', cev.reward_ref) where id = uid;
+        end if;
+      end if;
+    end loop;
+
+    select * into ev from events
+    where starts_at <= now() and ends_at > now() - interval '1 day'
+  order by starts_at desc
+  limit 1;
+  if ev.id is null then
+    return null;
+  end if;
+  select counter, claimed into cnt, clm from event_progress where profile_id = uid and event_id = ev.id;
+  return json_build_object(
+    'id', ev.id,
+    'title', ev.title,
+    'stat', ev.stat,
+    'goal', ev.goal,
+    'reward_kind', ev.reward_kind,
+    'reward_ref', ev.reward_ref,
+    'reward_amount', ev.reward_amount,
+    'icon', ev.icon,
+    'ends_at', to_char(ev.ends_at at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+    'counter', coalesce(cnt, 0),
+    'claimed', coalesce(clm, false)
+  );
+end;
+$$;
+
+create or replace function public.event_claim(p_event text)
 returns json
 language plpgsql
 security definer
@@ -312,36 +821,120 @@ set search_path = public
 as $$
 declare
   uid uuid;
-  my_elo integer;
-  opp_bounty integer;
-  delta integer;
-  gained integer;
-  new_elo integer;
+  ev record;
+  cnt integer;
+  clm boolean;
+  dup boolean := false;
+  refund integer := 0;
   new_coins integer;
-  prev_opp uuid;
-  prev_at timestamptz;
-  same_count integer;
-  track boolean;
 begin
   uid := auth.uid();
   if uid is null then
     raise exception 'not authenticated';
   end if;
+  select * into ev from events where id = p_event;
+  if ev.id is null then
+    raise exception 'unknown event';
+  end if;
+  if now() < ev.starts_at or now() > ev.ends_at + interval '7 days' then
+    raise exception 'event closed';
+  end if;
+  select counter, claimed into cnt, clm from event_progress where profile_id = uid and event_id = p_event;
+  if coalesce(cnt, 0) < ev.goal then
+    raise exception 'not complete';
+  end if;
+  if coalesce(clm, false) then
+    raise exception 'already claimed';
+  end if;
+  update event_progress set claimed = true where profile_id = uid and event_id = p_event;
+  if ev.reward_kind = 'coins' then
+    update profiles set coins = coins + ev.reward_amount where id = uid;
+  elsif ev.reward_kind = 'skin' then
+    if exists (select 1 from profile_skins where profile_id = uid and skin_id = ev.reward_ref) then
+      dup := true;
+      refund := item_refund('skin', ev.reward_ref);
+      update profiles set coins = coins + refund where id = uid;
+    else
+      insert into profile_skins (profile_id, skin_id) values (uid, ev.reward_ref);
+    end if;
+  elsif ev.reward_kind = 'weapon' then
+    if exists (select 1 from profile_weapons where profile_id = uid and weapon_id = ev.reward_ref) then
+      dup := true;
+      refund := item_refund('weapon', ev.reward_ref);
+      update profiles set coins = coins + refund where id = uid;
+    else
+      insert into profile_weapons (profile_id, weapon_id) values (uid, ev.reward_ref);
+    end if;
+  elsif ev.reward_kind = 'accessory' then
+    if exists (select 1 from profile_accessories where profile_id = uid and accessory_id = ev.reward_ref) then
+      dup := true;
+      refund := item_refund('accessory', ev.reward_ref);
+      update profiles set coins = coins + refund where id = uid;
+    else
+      insert into profile_accessories (profile_id, accessory_id) values (uid, ev.reward_ref);
+    end if;
+  end if;
+  select coins into new_coins from profiles where id = uid;
+  return json_build_object(
+    'reward_kind', ev.reward_kind,
+    'reward_ref', ev.reward_ref,
+    'reward_amount', ev.reward_amount,
+    'duplicate', dup,
+    'refund', refund,
+    'coins', new_coins
+  );
+end;
+$$;
+
+create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_prime integer, p_opp_id uuid)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  my_prime integer;
+  opp_bounty integer;
+  real_bounty integer;
+  delta integer;
+  gained integer;
+  new_prime integer;
+  new_coins integer;
+  prev_opp uuid;
+  prev_at timestamptz;
+  same_count integer;
+  track boolean;
+  last_res timestamptz;
+  throttled boolean;
+begin
+  uid := auth.uid();
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  if (select banned from profiles where id = uid) then
+    raise exception 'banned';
+  end if;
   perform ensure_season(uid);
-  select elo, last_opp, last_opp_at, same_opp_count
-  into my_elo, prev_opp, prev_at, same_count
+  select prime, last_opp, last_opp_at, same_opp_count, last_result_at
+  into my_prime, prev_opp, prev_at, same_count, last_res
   from profiles where id = uid;
-  if my_elo is null then
+  if my_prime is null then
     raise exception 'no profile';
   end if;
+  throttled := last_res is not null and last_res > now() - interval '30 seconds';
   delta := 0;
   if p_ranked then
-    opp_bounty := greatest(100, least(100000, p_opp_elo));
+    real_bounty := null;
+    if p_opp_id is not null and p_opp_id <> uid then
+      select prime into real_bounty from profiles where id = p_opp_id;
+    end if;
+    opp_bounty := greatest(100, least(100000, coalesce(real_bounty, 100)));
     if p_won then
       delta := 20 + round(opp_bounty * 0.15);
       gained := 10;
     else
-      delta := -round(my_elo * 0.10);
+      delta := -round(my_prime * 0.10);
       gained := 2;
     end if;
   else
@@ -362,8 +955,12 @@ begin
       gained := 2;
     end if;
   end if;
+  if throttled then
+    delta := least(delta, 0);
+    gained := least(gained, 2);
+  end if;
   update profiles set
-    elo = greatest(100, elo + delta),
+    prime = greatest(100, prime + delta),
     coins = coins + gained,
     wins = wins + (case when p_won then 1 else 0 end),
     losses = losses + (case when p_won then 0 else 1 end),
@@ -371,36 +968,38 @@ begin
     ranked_losses = ranked_losses + (case when not p_won and p_ranked then 1 else 0 end),
     last_opp = case when track then p_opp_id else last_opp end,
     last_opp_at = case when track then now() else last_opp_at end,
-    same_opp_count = case when track then same_count else same_opp_count end
+    same_opp_count = case when track then same_count else same_opp_count end,
+    last_result_at = now()
   where id = uid
-  returning elo, coins into new_elo, new_coins;
-  perform public.bump_challenge('played', 1);
-  if p_won then
-    perform public.bump_challenge('won', 1);
-  end if;
-  if p_won and p_ranked then
-    perform public.bump_challenge('ranked_won', 1);
+  returning prime, coins into new_prime, new_coins;
+  if p_ranked then
+    perform public.bump_challenge('played', 1);
+    perform public.bump_event('played', 1);
+    if p_won then
+      perform public.bump_challenge('won', 1);
+      perform public.bump_event('won', 1);
+      perform public.bump_challenge('ranked_won', 1);
+      perform public.bump_event('ranked_won', 1);
+    end if;
   end if;
   perform grant_xp(uid, case
+    when throttled then 5
     when p_ranked and p_won then 45
     when p_ranked then 18
     when p_won then 22
     else 9
   end);
-  if gained > 0 then
-    update profiles set last_gain = gained, last_gain_doubled = false where id = uid;
-  end if;
-  return json_build_object('elo', new_elo, 'coins', new_coins, 'elo_delta', new_elo - my_elo, 'coins_delta', gained, 'xp', (select xp from public.profiles where id = uid));
+  return json_build_object('prime', new_prime, 'coins', new_coins, 'prime_delta', new_prime - my_prime, 'coins_delta', gained, 'xp', (select xp from public.profiles where id = uid));
 end;
 $$;
 
-create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_elo integer)
+create or replace function public.report_result(p_won boolean, p_ranked boolean, p_opp_prime integer)
 returns json
 language sql
 security definer
 set search_path = public
 as $$
-  select public.report_result(p_won, p_ranked, p_opp_elo, null::uuid);
+  select public.report_result(p_won, p_ranked, p_opp_prime, null::uuid);
 $$;
 
 create or replace function public.record_stats(p_shots integer, p_hits integer, p_heads integer, p_won boolean)
@@ -426,23 +1025,11 @@ begin
   perform public.bump_challenge('shots', greatest(0, least(200, p_shots)));
   perform public.bump_challenge('hits', greatest(0, least(200, p_hits)));
   perform public.bump_challenge('heads', greatest(0, least(200, p_heads)));
+  perform public.bump_event('shots', greatest(0, least(200, p_shots)));
+  perform public.bump_event('hits', greatest(0, least(200, p_hits)));
+  perform public.bump_event('heads', greatest(0, least(200, p_heads)));
 end;
 $$;
-
-create table if not exists public.challenge_progress (
-  profile_id uuid references public.profiles(id) on delete cascade,
-  period text not null,
-  period_key text not null,
-  counters jsonb not null default '{}'::jsonb,
-  claimed jsonb not null default '[]'::jsonb,
-  primary key (profile_id, period)
-);
-
-alter table public.challenge_progress enable row level security;
-
-drop policy if exists challenge_self_read on public.challenge_progress;
-create policy challenge_self_read on public.challenge_progress
-  for select using (auth.uid() = profile_id);
 
 create or replace function public.hn_period_key(p_period text)
 returns text
@@ -644,6 +1231,7 @@ declare
   cursor_weight integer := 0;
   row record;
   duplicate boolean := false;
+  refund integer := 0;
   free_left integer;
 begin
   uid := auth.uid();
@@ -668,7 +1256,7 @@ begin
     union all
     select weight from weapons where weight > 0
     union all
-    select weight from accessories
+    select weight from accessories where weight > 0
   ) pool;
   pick := floor(random() * total) + 1;
   for row in
@@ -676,7 +1264,7 @@ begin
     union all
     select 'weapon' as kind, id, weight from weapons where weight > 0
     union all
-    select 'accessory' as kind, id, weight from accessories
+    select 'accessory' as kind, id, weight from accessories where weight > 0
   loop
     cursor_weight := cursor_weight + row.weight;
     if pick <= cursor_weight then
@@ -705,42 +1293,42 @@ begin
     end if;
   end if;
   if duplicate then
-    update profiles set coins = coins + 30 where id = uid returning coins into new_coins;
+    refund := item_refund(item_kind, item_ref);
+    update profiles set coins = coins + refund where id = uid returning coins into new_coins;
   end if;
-  return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'coins', new_coins, 'free_draws', (select free_draws from profiles where id = uid));
+  return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'refund', refund, 'coins', new_coins, 'free_draws', (select free_draws from profiles where id = uid));
 end;
 $$;
 
-create or replace function public.set_accessories(p_list text[])
-returns void
+create or replace function public.send_friend_request(p_code text)
+returns json
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   uid uuid;
-  item text;
-  seen_slots text[] := '{}';
-  item_slot text;
+  target uuid;
 begin
   uid := auth.uid();
   if uid is null then
     raise exception 'not authenticated';
   end if;
-  if array_length(p_list, 1) > 8 then
-    raise exception 'too many accessories';
+  select id into target from profiles where friend_code = upper(trim(p_code));
+  if target is null then
+    raise exception 'not found';
   end if;
-  foreach item in array p_list loop
-    if not exists (select 1 from profile_accessories where profile_id = uid and accessory_id = item) then
-      raise exception 'accessory not owned';
-    end if;
-    select slot into item_slot from accessories where id = item;
-    if item_slot = any(seen_slots) then
-      raise exception 'slot conflict';
-    end if;
-    seen_slots := array_append(seen_slots, item_slot);
-  end loop;
-  update profiles set accessories = p_list where id = uid;
+  if target = uid then
+    raise exception 'self';
+  end if;
+  if exists (
+    select 1 from friendships
+    where (requester = uid and addressee = target) or (requester = target and addressee = uid)
+  ) then
+    raise exception 'already exists';
+  end if;
+  insert into friendships (requester, addressee) values (uid, target);
+  return json_build_object('ok', true, 'target', target);
 end;
 $$;
 
@@ -796,496 +1384,29 @@ begin
       'incoming', f.addressee = uid,
       'id', p.id,
       'pseudo', p.pseudo,
-      'elo', p.elo,
+      'prime', p.prime,
       'skin', p.skin,
       'accessories', p.accessories,
       'weapon', p.weapon,
       'cg_username', p.cg_username,
       'wins', p.wins,
-      'losses', p.losses
+      'losses', p.losses,
+      'xp', p.xp,
+      'shots_fired', p.shots_fired,
+      'shots_hit', p.shots_hit,
+      'headshots', p.headshots,
+      'win_streak', p.win_streak,
+      'best_streak', p.best_streak,
+      'friend_code', p.friend_code
     ) as entry
     from friendships f
     join profiles p on p.id = case when f.requester = uid then f.addressee else f.requester end
-    where f.requester = uid or f.addressee = uid
+    where (f.requester = uid or f.addressee = uid) and coalesce(p.banned, false) = false
     order by f.created_at desc
   ) rows;
   return result;
 end;
 $$;
-
-create or replace function public.reward_ad()
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid;
-  last_at timestamptz;
-  new_coins integer;
-begin
-  uid := auth.uid();
-  if uid is null then
-    raise exception 'not authenticated';
-  end if;
-  select last_ad_at into last_at from profiles where id = uid;
-  if last_at is not null and now() - last_at < interval '45 seconds' then
-    raise exception 'too soon';
-  end if;
-  update profiles set coins = coins + 20, last_ad_at = now()
-  where id = uid
-  returning coins into new_coins;
-  return json_build_object('coins', new_coins, 'coins_delta', 20);
-end;
-$$;
-
-grant execute on function public.create_profile(text, text) to authenticated;
-grant execute on function public.set_pseudo(text) to authenticated;
-grant execute on function public.set_cg_username(text) to authenticated;
-grant execute on function public.equip_skin(text) to authenticated;
-grant execute on function public.equip_weapon(text) to authenticated;
-grant execute on function public.buy_skin(text) to authenticated;
-grant execute on function public.report_result(boolean, boolean, integer) to authenticated;
-grant execute on function public.report_result(boolean, boolean, integer, uuid) to authenticated;
-grant execute on function public.record_stats(integer, integer, integer, boolean) to authenticated;
-grant execute on function public.challenge_state() to authenticated;
-grant execute on function public.claim_challenge(text, integer) to authenticated;
-grant select on public.challenge_progress to authenticated;
-grant execute on function public.spin_wheel() to authenticated;
-grant execute on function public.set_accessories(text[]) to authenticated;
-grant execute on function public.respond_friend_request(uuid, boolean) to authenticated;
-grant execute on function public.remove_friend(uuid) to authenticated;
-grant execute on function public.list_friends() to authenticated;
-grant execute on function public.reward_ad() to authenticated;
-
-alter table public.profiles add column if not exists season_key integer not null default 0;
-alter table public.profiles add column if not exists friend_code text;
-alter table public.profiles add column if not exists xp integer not null default 0;
-
-create unique index if not exists profiles_friend_code_unique on public.profiles (friend_code);
-
-create table if not exists public.season_history (
-  profile_id uuid references public.profiles(id) on delete cascade,
-  season integer not null,
-  elo integer not null,
-  rank integer,
-  seen boolean not null default true,
-  primary key (profile_id, season)
-);
-
-alter table public.season_history add column if not exists rank integer;
-alter table public.season_history add column if not exists seen boolean not null default true;
-
-alter table public.season_history enable row level security;
-drop policy if exists season_history_read on public.season_history;
-create policy season_history_read on public.season_history for select using (true);
-grant select on public.season_history to anon, authenticated;
-
-create table if not exists public.pass_claims (
-  profile_id uuid references public.profiles(id) on delete cascade,
-  season integer not null,
-  level integer not null,
-  primary key (profile_id, season, level)
-);
-
-alter table public.pass_claims enable row level security;
-drop policy if exists pass_claims_read on public.pass_claims;
-create policy pass_claims_read on public.pass_claims for select using (auth.uid() = profile_id);
-grant select on public.pass_claims to authenticated;
-
-create or replace function public.current_season()
-returns integer
-language sql
-stable
-as $$
-  select (floor((extract(epoch from now()) / 86400 - 20630) / 30) + 1)::integer;
-$$;
-
-create table if not exists public.season_badges (
-  profile_id uuid references public.profiles(id) on delete cascade,
-  season integer not null,
-  rank integer not null,
-  seen boolean not null default false,
-  primary key (profile_id, season)
-);
-
-alter table public.season_badges enable row level security;
-drop policy if exists season_badges_read on public.season_badges;
-create policy season_badges_read on public.season_badges for select using (auth.uid() = profile_id);
-grant select on public.season_badges to authenticated;
-
-create or replace function public.ensure_season(p_uid uuid)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  cur integer;
-  old_key integer;
-  old_elo integer;
-  old_rank integer;
-  badge_id text;
-begin
-  cur := current_season();
-  select season_key, elo into old_key, old_elo from profiles where id = p_uid;
-  if old_key is null or old_key = cur then
-    return;
-  end if;
-  if old_key > 0 then
-    select 1
-      + (select count(*) from profiles where season_key = old_key and id <> p_uid and elo > old_elo)
-      + (select count(*) from season_history where season = old_key and profile_id <> p_uid and elo > old_elo)
-    into old_rank;
-    insert into season_history (profile_id, season, elo, rank, seen)
-    values (p_uid, old_key, old_elo, old_rank, false)
-    on conflict (profile_id, season) do update set elo = excluded.elo, rank = excluded.rank, seen = excluded.seen;
-    if old_rank <= 10 and old_elo > 100 then
-      badge_id := 'sbadge-s' || old_key || '-r' || old_rank;
-      insert into accessories (id, slot, weight) values (badge_id, 'badge', 0)
-      on conflict (id) do nothing;
-      insert into profile_accessories (profile_id, accessory_id) values (p_uid, badge_id)
-      on conflict do nothing;
-      insert into season_badges (profile_id, season, rank) values (p_uid, old_key, old_rank)
-      on conflict (profile_id, season) do nothing;
-    end if;
-  end if;
-  update profiles set season_key = cur, elo = 100, xp = 0 where id = p_uid;
-end;
-$$;
-
-create or replace function public.grant_xp(p_uid uuid, p_amount integer)
-returns void
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  perform ensure_season(p_uid);
-  update profiles set xp = xp + greatest(0, p_amount) where id = p_uid;
-end;
-$$;
-
-create or replace function public.ensure_friend_code(p_uid uuid)
-returns text
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  code text;
-  tries integer := 0;
-begin
-  select friend_code into code from profiles where id = p_uid;
-  if code is not null then
-    return code;
-  end if;
-  loop
-    tries := tries + 1;
-    code := upper(substr(md5(gen_random_uuid()::text), 1, 4) || '-' || substr(md5(gen_random_uuid()::text), 1, 4));
-    begin
-      update profiles set friend_code = code where id = p_uid;
-      return code;
-    exception when unique_violation then
-      if tries > 8 then
-        raise;
-      end if;
-    end;
-  end loop;
-end;
-$$;
-
-create or replace function public.season_info()
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid;
-  cur integer;
-  top_prev uuid;
-  hist json;
-  code text;
-  b_season integer;
-  b_rank integer;
-  badge json := null;
-  p_season integer;
-  p_elo integer;
-  p_rank integer;
-  prev json := null;
-begin
-  uid := auth.uid();
-  if uid is null then
-    return null;
-  end if;
-  perform ensure_season(uid);
-  cur := current_season();
-  select profile_id into top_prev from season_history where season = cur - 1 order by elo desc limit 1;
-  select coalesce(json_agg(json_build_object('season', season, 'elo', elo) order by season desc), '[]'::json)
-  into hist from season_history where profile_id = uid;
-  code := ensure_friend_code(uid);
-  select season, rank into b_season, b_rank from season_badges
-  where profile_id = uid and seen = false order by season desc limit 1;
-  if b_season is not null then
-    update season_badges set seen = true where profile_id = uid and season = b_season;
-    badge := json_build_object('season', b_season, 'rank', b_rank);
-  end if;
-  select season, elo, rank into p_season, p_elo, p_rank from season_history
-  where profile_id = uid and seen = false order by season desc limit 1;
-  if p_season is not null then
-    update season_history set seen = true where profile_id = uid and seen = false;
-    prev := json_build_object('season', p_season, 'elo', p_elo, 'rank', p_rank);
-  end if;
-  return json_build_object('season', cur, 'prev_top', top_prev, 'code', code, 'history', hist, 'badge', badge, 'prev', prev,
-    'elo', (select elo from profiles where id = uid), 'xp', (select xp from profiles where id = uid));
-end;
-$$;
-
-create or replace function public.leaderboard_top()
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  result json;
-begin
-  select coalesce(json_agg(entry), '[]'::json) into result from (
-    select json_build_object('pseudo', pseudo, 'elo', elo, 'skin', skin, 'ranked_wins', ranked_wins, 'ranked_losses', ranked_losses) as entry
-    from profiles
-    where season_key = current_season() and (ranked_wins > 0 or ranked_losses > 0)
-    order by elo desc
-    limit 20
-  ) rows;
-  return result;
-end;
-$$;
-
-create or replace function public.pass_reward(p_season integer, p_level integer)
-returns json
-language plpgsql
-stable
-set search_path = public
-as $$
-declare
-  h integer;
-  kind text;
-  ref text;
-begin
-  h := abs(hashtext(p_season::text || ':' || p_level::text));
-  if p_level % 5 = 0 then
-    return json_build_object('kind', 'draw');
-  end if;
-  return json_build_object('kind', 'coins', 'amount', least(25, 6 + (h % 5) * 4 + (p_level / 6)));
-end;
-$$;
-
-create or replace function public.pass_state()
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid;
-  cur integer;
-  my_xp integer;
-  claimed json;
-  rewards jsonb := '[]'::jsonb;
-  i integer;
-begin
-  uid := auth.uid();
-  if uid is null then
-    return null;
-  end if;
-  perform ensure_season(uid);
-  cur := current_season();
-  select xp into my_xp from profiles where id = uid;
-  select coalesce(json_agg(level), '[]'::json) into claimed from pass_claims where profile_id = uid and season = cur;
-  for i in 1..30 loop
-    rewards := rewards || jsonb_build_array(pass_reward(cur, i)::jsonb);
-  end loop;
-  return json_build_object('season', cur, 'xp', my_xp, 'claimed', claimed, 'rewards', rewards);
-end;
-$$;
-
-create or replace function public.claim_pass_level(p_level integer)
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid;
-  cur integer;
-  my_xp integer;
-  reward json;
-  new_coins integer;
-  dup boolean := false;
-begin
-  uid := auth.uid();
-  if uid is null then
-    raise exception 'not authenticated';
-  end if;
-  if p_level < 1 or p_level > 30 then
-    raise exception 'bad level';
-  end if;
-  perform ensure_season(uid);
-  cur := current_season();
-  select xp into my_xp from profiles where id = uid;
-  if my_xp < p_level * 200 then
-    raise exception 'not reached';
-  end if;
-  if exists (select 1 from pass_claims where profile_id = uid and season = cur and level = p_level) then
-    raise exception 'already claimed';
-  end if;
-  insert into pass_claims (profile_id, season, level) values (uid, cur, p_level);
-  reward := pass_reward(cur, p_level);
-  if reward ->> 'kind' = 'coins' then
-    update profiles set coins = coins + (reward ->> 'amount')::integer where id = uid returning coins into new_coins;
-  elsif reward ->> 'kind' = 'draw' then
-    update profiles set free_draws = free_draws + 1 where id = uid returning coins into new_coins;
-  end if;
-  if new_coins is null then
-    select coins into new_coins from profiles where id = uid;
-  end if;
-  return json_build_object('kind', reward ->> 'kind', 'amount', reward ->> 'amount', 'coins', new_coins, 'free_draws', (select free_draws from profiles where id = uid));
-end;
-$$;
-
-drop function if exists public.send_friend_request(text);
-
-create function public.send_friend_request(p_code text)
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid;
-  target uuid;
-begin
-  uid := auth.uid();
-  if uid is null then
-    raise exception 'not authenticated';
-  end if;
-  select id into target from profiles where friend_code = upper(trim(p_code));
-  if target is null then
-    raise exception 'not found';
-  end if;
-  if target = uid then
-    raise exception 'self';
-  end if;
-  if exists (
-    select 1 from friendships
-    where (requester = uid and addressee = target) or (requester = target and addressee = uid)
-  ) then
-    raise exception 'already exists';
-  end if;
-  insert into friendships (requester, addressee) values (uid, target);
-  return json_build_object('ok', true, 'target', target);
-end;
-$$;
-
-insert into public.skins (id, price, weight) values
-  ('marshal', 300, 3),
-  ('outlaw', 250, 3),
-  ('rangercoat', 350, 3),
-  ('gambler', 400, 2),
-  ('vaquero', 300, 3),
-  ('preacher', 450, 2),
-  ('miner', 200, 3),
-  ('tracker', 250, 3),
-  ('duchess', 500, 2),
-  ('kid', 200, 3),
-  ('mariachi', 550, 2),
-  ('sombra', 600, 1),
-  ('bounty', 650, 1),
-  ('bluecoat', 350, 3),
-  ('nightowl', 700, 1),
-  ('eldorado', 950, 1)
-on conflict (id) do nothing;
-
-insert into public.weapons (id, price, weight) values
-  ('navy', 250, 3),
-  ('peacemaker', 350, 3),
-  ('serpent', 450, 2),
-  ('coyote', 300, 3),
-  ('midnight', 550, 2),
-  ('bone', 500, 2),
-  ('scarlet', 650, 1),
-  ('deputy', 400, 2)
-on conflict (id) do nothing;
-
-insert into public.accessories (id, slot, weight) values
-  ('monocle', 'eyes', 8),
-  ('scarf', 'back', 10),
-  ('bandolier', 'chest', 8),
-  ('goldtooth', 'mouth', 6),
-  ('pipe', 'mouth', 8),
-  ('skullbadge', 'chest', 5),
-  ('hatband', 'hat', 7),
-  ('sideburns', 'face', 12),
-  ('warpaint', 'face', 6)
-on conflict (id) do nothing;
-
-insert into public.accessories (id, slot, weight) values
-  ('goatee', 'face', 12),
-  ('handlebar', 'face', 9),
-  ('chinstrap', 'face', 11),
-  ('toothpick', 'mouth', 13),
-  ('cigarette', 'mouth', 11),
-  ('matchstick', 'mouth', 11),
-  ('rose', 'mouth', 7),
-  ('shades', 'eyes', 9),
-  ('spectacles', 'eyes', 9),
-  ('goggles', 'eyes', 6),
-  ('warstripe', 'eyes', 10),
-  ('blindfold', 'eyes', 8),
-  ('deputybadge', 'chest', 8),
-  ('bolotie', 'chest', 9),
-  ('pocketwatch', 'chest', 5),
-  ('medallion', 'chest', 6),
-  ('cape', 'back', 5),
-  ('duster', 'back', 8),
-  ('serape', 'back', 9),
-  ('bedroll', 'back', 10),
-  ('satchel', 'back', 10),
-  ('cardband', 'hat', 9),
-  ('conchos', 'hat', 8),
-  ('sheriffpin', 'hat', 7),
-  ('bulletband', 'hat', 9),
-  ('snakeband', 'hat', 6)
-on conflict (id) do nothing;
-
-grant execute on function public.current_season() to anon, authenticated;
-grant execute on function public.season_info() to authenticated;
-grant execute on function public.leaderboard_top() to anon, authenticated;
-grant execute on function public.pass_state() to authenticated;
-grant execute on function public.claim_pass_level(integer) to authenticated;
-grant execute on function public.send_friend_request(text) to authenticated;
-
-alter table public.profiles add column if not exists ad_streak integer not null default 0;
-alter table public.profiles add column if not exists ad_day date;
-alter table public.profiles add column if not exists ad_case_day date;
-alter table public.profiles add column if not exists ad_case_count integer not null default 0;
-alter table public.profiles add column if not exists ad_xp_day date;
-alter table public.profiles add column if not exists last_gain integer not null default 0;
-alter table public.profiles add column if not exists last_gain_doubled boolean not null default true;
-
-create table if not exists public.ad_unlocks (
-  profile_id uuid not null references public.profiles(id) on delete cascade,
-  kind text not null,
-  ref text not null,
-  watched integer not null default 0,
-  primary key (profile_id, kind, ref)
-);
-
-alter table public.ad_unlocks enable row level security;
-
-drop policy if exists "ad_unlocks_select_own" on public.ad_unlocks;
-create policy "ad_unlocks_select_own" on public.ad_unlocks for select using (auth.uid() = profile_id);
 
 create or replace function public.ad_item_needed(p_kind text, p_ref text)
 returns integer
@@ -1293,10 +1414,10 @@ language sql
 immutable
 as $$
   select case
-    when p_kind = 'accessory' and p_ref = 'goldtooth' then 3
+    when p_kind = 'accessory' and p_ref = 'cigarette' then 3
     when p_kind = 'weapon' and p_ref = 'peacemaker' then 5
-    when p_kind = 'skin' and p_ref = 'mariachi' then 6
-    when p_kind = 'skin' and p_ref = 'eldorado' then 10
+    when p_kind = 'accessory' and p_ref = 'paper-torn' then 6
+    when p_kind = 'skin' and p_ref = 'trapper' then 10
     else null
   end;
 $$;
@@ -1370,6 +1491,7 @@ declare
   cursor_weight integer := 0;
   row record;
   duplicate boolean := false;
+  refund integer := 0;
 begin
   uid := auth.uid();
   if uid is null then
@@ -1388,7 +1510,7 @@ begin
     union all
     select weight from weapons where weight > 0
     union all
-    select weight from accessories
+    select weight from accessories where weight > 0
   ) pool;
   pick := floor(random() * total) + 1;
   for row in
@@ -1396,7 +1518,7 @@ begin
     union all
     select 'weapon' as kind, id, weight from weapons where weight > 0
     union all
-    select 'accessory' as kind, id, weight from accessories
+    select 'accessory' as kind, id, weight from accessories where weight > 0
   loop
     cursor_weight := cursor_weight + row.weight;
     if pick <= cursor_weight then
@@ -1425,40 +1547,12 @@ begin
     end if;
   end if;
   if duplicate then
-    update profiles set coins = coins + 30 where id = uid returning coins into new_coins;
+    refund := item_refund(item_kind, item_ref);
+    update profiles set coins = coins + refund where id = uid returning coins into new_coins;
   end if;
-  return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'coins', new_coins, 'left', 0);
+  return json_build_object('kind', item_kind, 'ref', item_ref, 'duplicate', duplicate, 'refund', refund, 'coins', new_coins, 'left', 0);
 end;
 $$;
-
-create or replace function public.ad_double()
-returns json
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  uid uuid;
-  gain integer;
-  doubled boolean;
-  new_coins integer;
-begin
-  uid := auth.uid();
-  if uid is null then
-    raise exception 'not authenticated';
-  end if;
-  select last_gain, last_gain_doubled into gain, doubled from profiles where id = uid;
-  if doubled or gain is null or gain <= 0 then
-    raise exception 'nothing to double';
-  end if;
-  update profiles set coins = coins + gain, last_gain_doubled = true
-  where id = uid
-  returning coins into new_coins;
-  return json_build_object('coins', new_coins, 'gained', gain);
-end;
-$$;
-
-drop function if exists public.ad_pass_xp();
 
 create or replace function public.ad_watch_item(p_kind text, p_ref text)
 returns json
@@ -1518,7 +1612,7 @@ begin
   if uid is null then
     return null;
   end if;
-  select ad_streak, ad_day, ad_case_day, ad_case_count, last_gain, last_gain_doubled
+  select ad_streak, ad_day, ad_case_day, ad_case_count, last_ad_at
   into p from profiles where id = uid;
   next_gain := 50;
   if p.ad_case_day is distinct from current_date then
@@ -1528,10 +1622,10 @@ begin
   end if;
   for it in
     select * from (values
-      ('accessory', 'goldtooth'),
+      ('accessory', 'cigarette'),
       ('weapon', 'peacemaker'),
-      ('skin', 'mariachi'),
-      ('skin', 'eldorado')
+      ('accessory', 'paper-torn'),
+      ('skin', 'trapper')
     ) as v(kind, ref)
   loop
     items := items || jsonb_build_object(
@@ -1547,22 +1641,168 @@ begin
     'next_gain', next_gain,
     'case_left', case_left,
     'daily_done', (p.ad_day = current_date),
-    'can_double', (not p.last_gain_doubled and p.last_gain > 0),
-    'last_gain', p.last_gain,
+    'daily_reset_at', case when p.ad_day = current_date and p.last_ad_at is not null then to_char(p.last_ad_at + interval '24 hours', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') else null end,
+    'case_reset_at', case when p.ad_case_day = current_date and case_left <= 0 and p.last_ad_at is not null then to_char(p.last_ad_at + interval '24 hours', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') else null end,
     'items', items
   );
 end;
 $$;
 
-grant execute on function public.reward_ad() to authenticated;
-grant execute on function public.ad_case() to authenticated;
-grant execute on function public.ad_double() to authenticated;
-grant execute on function public.ad_watch_item(text, text) to authenticated;
-grant execute on function public.ad_state() to authenticated;
-grant select on public.ad_unlocks to authenticated;
+create or replace function public.season_info()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  cur integer;
+  top_prev uuid;
+  hist json;
+  code text;
+  b_season integer;
+  b_rank integer;
+  badge json := null;
+  p_season integer;
+  p_prime integer;
+  p_rank integer;
+  prev json := null;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return null;
+  end if;
+  perform ensure_season(uid);
+  cur := current_season();
+  select profile_id into top_prev from season_history where season = cur - 1 order by prime desc limit 1;
+  select coalesce(json_agg(json_build_object('season', season, 'prime', prime) order by season desc), '[]'::json)
+  into hist from season_history where profile_id = uid;
+  code := ensure_friend_code(uid);
+  select season, rank into b_season, b_rank from season_badges
+  where profile_id = uid and seen = false order by season desc limit 1;
+  if b_season is not null then
+    update season_badges set seen = true where profile_id = uid and season = b_season;
+    badge := json_build_object('season', b_season, 'rank', b_rank);
+  end if;
+  select season, prime, rank into p_season, p_prime, p_rank from season_history
+  where profile_id = uid and seen = false order by season desc limit 1;
+  if p_season is not null then
+    update season_history set seen = true where profile_id = uid and seen = false;
+    prev := json_build_object('season', p_season, 'prime', p_prime, 'rank', p_rank);
+  end if;
+  return json_build_object('season', cur, 'prev_top', top_prev, 'code', code, 'history', hist, 'badge', badge, 'prev', prev,
+    'prime', (select prime from profiles where id = uid), 'xp', (select xp from profiles where id = uid));
+end;
+$$;
 
-alter table public.profiles add column if not exists mg_day date;
-alter table public.profiles add column if not exists mg_count integer not null default 0;
+create or replace function public.leaderboard_top()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  result json;
+begin
+  select coalesce(json_agg(entry), '[]'::json) into result from (
+    select json_build_object('pseudo', pseudo, 'prime', prime, 'skin', skin, 'accessories', accessories, 'ranked_wins', ranked_wins, 'ranked_losses', ranked_losses) as entry
+    from profiles
+    where season_key = current_season() and (ranked_wins > 0 or ranked_losses > 0) and not banned
+    order by prime desc
+    limit 20
+  ) rows;
+  return result;
+end;
+$$;
+
+create or replace function public.pass_reward(p_season integer, p_level integer)
+returns json
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  h integer;
+begin
+  h := abs(hashtext(p_season::text || ':' || p_level::text));
+  if p_level % 5 = 0 then
+    return json_build_object('kind', 'draw');
+  end if;
+  return json_build_object('kind', 'coins', 'amount', least(25, 6 + (h % 5) * 4 + (p_level / 6)));
+end;
+$$;
+
+create or replace function public.pass_state()
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  cur integer;
+  my_xp integer;
+  claimed json;
+  rewards jsonb := '[]'::jsonb;
+  i integer;
+begin
+  uid := auth.uid();
+  if uid is null then
+    return null;
+  end if;
+  perform ensure_season(uid);
+  cur := current_season();
+  select xp into my_xp from profiles where id = uid;
+  select coalesce(json_agg(level), '[]'::json) into claimed from pass_claims where profile_id = uid and season = cur;
+  for i in 1..30 loop
+    rewards := rewards || jsonb_build_array(pass_reward(cur, i)::jsonb);
+  end loop;
+  return json_build_object('season', cur, 'xp', my_xp, 'claimed', claimed, 'rewards', rewards);
+end;
+$$;
+
+create or replace function public.claim_pass_level(p_level integer)
+returns json
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid;
+  cur integer;
+  my_xp integer;
+  reward json;
+  new_coins integer;
+begin
+  uid := auth.uid();
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+  if p_level < 1 or p_level > 30 then
+    raise exception 'bad level';
+  end if;
+  perform ensure_season(uid);
+  cur := current_season();
+  select xp into my_xp from profiles where id = uid;
+  if my_xp < p_level * 200 then
+    raise exception 'not reached';
+  end if;
+  if exists (select 1 from pass_claims where profile_id = uid and season = cur and level = p_level) then
+    raise exception 'already claimed';
+  end if;
+  insert into pass_claims (profile_id, season, level) values (uid, cur, p_level);
+  reward := pass_reward(cur, p_level);
+  if reward ->> 'kind' = 'coins' then
+    update profiles set coins = coins + (reward ->> 'amount')::integer where id = uid returning coins into new_coins;
+  elsif reward ->> 'kind' = 'draw' then
+    update profiles set free_draws = free_draws + 1 where id = uid returning coins into new_coins;
+  end if;
+  if new_coins is null then
+    select coins into new_coins from profiles where id = uid;
+  end if;
+  return json_build_object('kind', reward ->> 'kind', 'amount', reward ->> 'amount', 'coins', new_coins, 'free_draws', (select free_draws from profiles where id = uid));
+end;
+$$;
 
 create or replace function public.minigame_xp(p_kind text, p_score integer)
 returns json
@@ -1593,19 +1833,11 @@ begin
     update profiles set mg_day = day, mg_count = cnt where id = uid;
     return json_build_object('xp_gained', 0, 'xp', (select xp from profiles where id = uid));
   end if;
-  gained := least(40, greatest(0, least(p_score, 60)) * 2);
+  gained := 0;
   update profiles set mg_day = day, mg_count = cnt + 1 where id = uid;
-  perform grant_xp(uid, gained);
   return json_build_object('xp_gained', gained, 'xp', (select xp from profiles where id = uid));
 end;
 $$;
-
-grant execute on function public.minigame_xp(text, integer) to authenticated;
-
-alter table public.profiles alter column elo set default 100;
-
-alter table public.profiles add column if not exists story_mask integer not null default 0;
-alter table public.profiles add column if not exists story_claimed boolean not null default false;
 
 create or replace function public.story_xp(p_chapter integer)
 returns json
@@ -1638,18 +1870,10 @@ begin
   update profiles set story_mask = mask | bit where id = uid;
   perform grant_xp(uid, 60);
   r_coins := 0;
-  if p_chapter = 0 then
-    r_kind := 'accessory'; r_ref := 'cigar';
-  elsif p_chapter = 1 then
-    r_kind := 'accessory'; r_ref := 'star';
-  elsif p_chapter = 2 then
-    r_kind := 'accessory'; r_ref := 'poncho';
+  if p_chapter = 1 then
+    r_kind := 'accessory'; r_ref := 'deputybadge';
   elsif p_chapter = 3 then
-    r_kind := 'accessory'; r_ref := 'goldtooth';
-  elsif p_chapter = 4 then
-    r_kind := 'weapon'; r_ref := 'silver';
-  elsif p_chapter = 5 then
-    r_kind := 'accessory'; r_ref := 'skullbadge';
+    r_kind := 'weapon'; r_ref := 'ranger';
   end if;
   if r_kind = 'accessory' then
     if exists (select 1 from profile_accessories where profile_id = uid and accessory_id = r_ref) then
@@ -1712,22 +1936,48 @@ begin
 end;
 $$;
 
+grant execute on function public.create_profile(text, text) to authenticated;
+grant execute on function public.set_pseudo(text) to authenticated;
+grant execute on function public.set_cg_username(text) to authenticated;
+grant execute on function public.equip_skin(text) to authenticated;
+grant execute on function public.equip_weapon(text) to authenticated;
+grant execute on function public.buy_skin(text) to authenticated;
+grant execute on function public.set_accessories(text[]) to authenticated;
+grant execute on function public.report_result(boolean, boolean, integer) to authenticated;
+grant execute on function public.report_result(boolean, boolean, integer, uuid) to authenticated;
+grant execute on function public.record_stats(integer, integer, integer, boolean) to authenticated;
+grant execute on function public.challenge_state() to authenticated;
+grant execute on function public.claim_challenge(text, integer) to authenticated;
+grant execute on function public.spin_wheel() to authenticated;
+grant execute on function public.send_friend_request(text) to authenticated;
+grant execute on function public.respond_friend_request(uuid, boolean) to authenticated;
+grant execute on function public.remove_friend(uuid) to authenticated;
+grant execute on function public.list_friends() to authenticated;
+grant execute on function public.reward_ad() to authenticated;
+grant execute on function public.ad_case() to authenticated;
+grant execute on function public.ad_watch_item(text, text) to authenticated;
+grant execute on function public.ad_state() to authenticated;
+grant execute on function public.current_season() to anon, authenticated;
+grant execute on function public.season_info() to authenticated;
+grant execute on function public.leaderboard_top() to anon, authenticated;
+grant execute on function public.pass_state() to authenticated;
+grant execute on function public.claim_pass_level(integer) to authenticated;
+grant execute on function public.minigame_xp(text, integer) to authenticated;
 grant execute on function public.story_xp(integer) to authenticated;
 grant execute on function public.story_reward() to authenticated;
-
-create table if not exists public.app_meta (
-  key text primary key,
-  value text not null
-);
-
-alter table public.app_meta enable row level security;
+grant execute on function public.event_state() to authenticated;
+grant execute on function public.event_claim(text) to authenticated;
 
 do $$
 begin
-  if not exists (select 1 from public.app_meta where key = 'bounty_migration') then
-    update public.profiles set elo = greatest(100, elo - 900);
-    update public.season_history set elo = greatest(100, elo - 900);
-    insert into public.app_meta (key, value) values ('bounty_migration', 'done');
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'events'
+     ) then
+    alter publication supabase_realtime add table public.events;
   end if;
 end
 $$;

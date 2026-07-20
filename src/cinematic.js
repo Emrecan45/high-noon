@@ -66,8 +66,15 @@ export class Cinematic {
       const spec = this.actorsSpec[name];
       const body = createCowboy();
       body.setSkin(spec.colors);
+      body.setOutfit(spec.outfit || null);
       body.setAccessories(spec.acc || []);
       body.setWeapon(weaponById(spec.weapon || "iron").colors);
+      if (spec.unarmed) {
+        body.setUnarmed(true);
+      }
+      if (spec.leftHanded) {
+        body.setLeftHanded(true);
+      }
       body.group.visible = false;
       this.arena.scene.add(body.group);
       this.bodies[name] = body;
@@ -103,27 +110,13 @@ export class Cinematic {
     this.addListener(el("btn-cine-quit"), "click", function () {
       self.quit();
     });
-    for (const step of this.steps) {
-      if (step.cut !== undefined) {
-        this.camPos.copy(this.resolve(step.cut.pos));
-        this.camLook.copy(this.resolve(step.cut.look));
-        if (step.cut.fov !== undefined) {
-          this.fov = step.cut.fov;
-        }
-        break;
-      }
-      if (step.cam !== undefined) {
-        this.camPos.copy(this.resolve(step.cam.pos));
-        this.camLook.copy(this.resolve(step.cam.look));
-        if (step.cam.fov !== undefined) {
-          this.fov = step.cam.fov;
-        }
-        break;
-      }
-    }
-    const fade = el("fade-overlay");
-    fade.style.transition = "none";
-    fade.style.opacity = "1";
+    const worldPos = new THREE.Vector3();
+    const worldDir = new THREE.Vector3();
+    this.arena.camera.getWorldPosition(worldPos);
+    this.arena.camera.getWorldDirection(worldDir);
+    this.camPos.copy(worldPos);
+    this.camLook.copy(worldPos).add(worldDir);
+    this.fov = this.arena.camera.fov;
     this.applyCamera();
     this.nextStep();
   }
@@ -143,7 +136,10 @@ export class Cinematic {
   }
 
   seatY(mode) {
-    return mode === "floor" ? -0.72 : -0.34;
+    if (mode === "floor") return -0.72;
+    if (mode === "seiza") return -0.46;
+    if (mode === "hostage") return -0.37;
+    return -0.34;
   }
 
   faceActor(name, target) {
@@ -206,10 +202,18 @@ export class Cinematic {
       for (const p of [].concat(step.place)) {
         const body = this.body(p.actor);
         const v = this.resolve(p.at);
+        if (v) {
           body.group.position.set(v.x, p.y !== undefined ? p.y : 0, v.z);
-          this.walks = this.walks.filter(function(task) { return task.actor !== p.actor; });
+          this.walks = this.walks.filter(function(task) { 
+            if (task.actor === p.actor) {
+              body.setWalk(false);
+              return false;
+            }
+            return true;
+          });
           if (p.ry !== undefined) {
-          body.group.rotation.y = p.ry;
+            body.group.rotation.y = p.ry;
+          }
         }
         if (p.seated) {
           body.setSeated(p.seated);
@@ -236,6 +240,9 @@ export class Cinematic {
         if (p.dig !== undefined) {
           body.setDig(p.dig);
         }
+        if (p.holsterHand !== undefined) {
+          body.setHolsterHand(p.holsterHand);
+        }
         if (p.draw === true) {
           body.playDraw();
         }
@@ -243,7 +250,12 @@ export class Cinematic {
           body.playHolster();
         }
         if (p.dead === true) {
-          body.playDeath(this.arena.scene, p.rest);
+          body.playDeath(this.arena.scene, p.rest, p.fallDir !== undefined ? p.fallDir : p.faceDown);
+          if (p.settled === true) {
+            for (let i = 0; i < 50; i++) {
+              body.update(0.06);
+            }
+          }
         }
         if (p.flinch === true) {
           body.playFlinch();
@@ -286,7 +298,11 @@ export class Cinematic {
       }
     }
     if (step.fade !== undefined) {
-      this.setFade(step.fade === "out" ? "1" : "0", Math.max(0.15, step.dur || 0.4));
+      if (step.fade === "out") {
+        this.setFade("1", step.dur || 0.4);
+      } else {
+        this.setFade("0", Math.max(0.15, step.dur || 0.4));
+      }
     }
     if (step.sfx !== undefined) {
       for (const name of [].concat(step.sfx)) {
@@ -318,15 +334,21 @@ export class Cinematic {
     box.classList.remove("hidden");
     const nameEl = el('cine-say-name');
     let nameStr;
-    if (say.name !== undefined && say.name !== "") {
+    if (say.silent) {
+      nameStr = "";
+    } else if (say.name !== undefined && say.name !== "") {
       nameStr = say.name;
     } else if (say.actor && this.actorsSpec[say.actor] && this.actorsSpec[say.actor].name) {
       nameStr = this.actorsSpec[say.actor].name;
     } else {
       nameStr = "?";
     }
-    nameEl.style.display = "block";
-    nameEl.textContent = nameStr;
+    if (nameStr === "") {
+      nameEl.style.display = "none";
+    } else {
+      nameEl.style.display = "block";
+      nameEl.textContent = nameStr;
+    }
     el("cine-say-text").textContent = "";
     el("cine-say-more").classList.add("hidden");
     if (this.talker !== null && this.bodies[this.talker]) {
@@ -419,6 +441,7 @@ export class Cinematic {
     }
     this.listeners = [];
     for (const name of Object.keys(this.bodies)) {
+      this.bodies[name].reset();
       this.arena.scene.remove(this.bodies[name].group);
     }
     this.bodies = {};
@@ -441,27 +464,50 @@ export class Cinematic {
     for (const name of Object.keys(this.bodies)) {
       this.bodies[name].update(dt);
     }
-    for (let i = this.walks.length - 1; i >= 0; i--) {
-      const task = this.walks[i];
-      const pos = task.body.group.position;
-      const dx = task.to.x - pos.x;
-      const dz = task.to.z - pos.z;
+    const remaining = [];
+    let anyWalked = false;
+    for (const w of this.walks) {
+      const body = this.bodies[w.actor];
+      if (!body) continue;
+      const dx = w.to.x - body.group.position.x;
+      const dz = w.to.z - body.group.position.z;
       const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist < 0.06) {
-        task.body.setWalk(false);
-        if (task.endRy !== undefined) {
-          task.body.group.rotation.y = task.endRy;
+      const amt = w.speed * dt;
+      if (dist <= amt) {
+        body.group.position.set(w.to.x, body.group.position.y, w.to.z);
+        body.setWalk(false);
+        if (w.endFace !== undefined) {
+          this.faceActor(w.actor, w.endFace);
+        } else if (w.endRy !== undefined) {
+          body.group.rotation.y = w.endRy;
         }
-        if (task.endFace !== undefined) {
-          this.faceActor(task.actor, task.endFace);
-        }
-        this.walks.splice(i, 1);
-        continue;
+      } else {
+        anyWalked = true;
+        body.group.position.x += (dx / dist) * amt;
+        body.group.position.z += (dz / dist) * amt;
+        body.group.rotation.y = Math.atan2(dx, dz);
+        remaining.push(w);
       }
-      const move = Math.min(dist, task.speed * dt);
-      pos.x += (dx / dist) * move;
-      pos.z += (dz / dist) * move;
-      task.body.group.rotation.y = Math.atan2(dx, dz);
+    }
+    this.walks = remaining;
+    
+    if (anyWalked) {
+      this.walkTimer = (this.walkTimer || 0) + dt;
+      if (this.walkTimer > 0.49) {
+        this.walkTimer = 0;
+        let onWood = false;
+        for (const w of this.walks) {
+          const body = this.bodies[w.actor];
+          if (body && this.arena.terrainAt(body.group.position.x, body.group.position.z) === "wood") {
+            onWood = true;
+          }
+        }
+        if (onWood) {
+          this.audio.stepWood();
+        } else {
+          this.audio.stepSoft();
+        }
+      }
     }
     if (this.camTween !== null) {
       this.stepClock = Math.min(1, this.stepClock + dt / this.camTween.dur);
