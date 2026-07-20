@@ -1,16 +1,19 @@
 import { getClient, netAvailable } from "./net.js";
-import { cgDataGet, cgDataSet, getCgUser, getCgFriends, isCrazyGames } from "./sdk.js";
+import { cgDataGet, cgDataSet, cgDataRemove, getCgUser, getCgFriends, isCrazyGames } from "./sdk.js";
 
 let profile = null;
 let owned = new Set();
 let ownedAcc = new Set();
 let ownedWeapons = new Set();
+let unseenSkins = new Set();
+let unseenAcc = new Set();
+let unseenWeapons = new Set();
 let ensurePromise = null;
 
 export function localPseudo() {
   let stored = localStorage.getItem("hn-pseudo");
   if (stored === null || stored === "") {
-    stored = "Player" + String(Math.floor(Math.random() * 9000) + 1000);
+    stored = "User" + String(Math.floor(Math.random() * 90000) + 10000);
     localStorage.setItem("hn-pseudo", stored);
   }
   return stored;
@@ -76,6 +79,9 @@ export async function initAccount() {
     return null;
   }
   await fetchProfile();
+  if (profile !== null) {
+    supabase.rpc("touch_seen").catch(function () {});
+  }
   await syncCgLink();
   return profile;
 }
@@ -96,6 +102,43 @@ export function ownedWeaponsSet() {
   return ownedWeapons;
 }
 
+export function isItemUnseen(kind, id) {
+  if (kind === "skin") return unseenSkins.has(id);
+  if (kind === "accessory") return unseenAcc.has(id);
+  if (kind === "weapon") return unseenWeapons.has(id);
+  return false;
+}
+
+export function hasUnseenItems() {
+  return unseenSkins.size > 0 || unseenAcc.size > 0 || unseenWeapons.size > 0;
+}
+
+function grantItem(kind, id) {
+  if (kind === "skin") {
+    owned.add(id);
+    unseenSkins.add(id);
+  } else if (kind === "weapon") {
+    ownedWeapons.add(id);
+    unseenWeapons.add(id);
+  } else {
+    ownedAcc.add(id);
+    unseenAcc.add(id);
+  }
+}
+
+export async function markItemSeen(kind, id) {
+  if (!isItemUnseen(kind, id)) return;
+  const supabase = getClient();
+  if (kind === "skin") {
+    unseenSkins.delete(id);
+  } else if (kind === "accessory") {
+    unseenAcc.delete(id);
+  } else if (kind === "weapon") {
+    unseenWeapons.delete(id);
+  }
+  await supabase.rpc("mark_item_seen", { p_kind: kind, p_id: id });
+}
+
 async function fetchProfile() {
   const supabase = getClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -108,25 +151,31 @@ async function fetchProfile() {
     return;
   }
   profile = rows[0];
-  const { data: skinRows } = await supabase.from("profile_skins").select("skin_id").eq("profile_id", uid);
-  owned = new Set();
+  const { data: skinRows } = await supabase.from("profile_skins").select("skin_id, seen").eq("profile_id", uid);
+  owned = new Set(["drifter"]);
+  unseenSkins = new Set();
   if (skinRows !== null) {
     for (const row of skinRows) {
       owned.add(row.skin_id);
+      if (!row.seen && row.skin_id !== "drifter") unseenSkins.add(row.skin_id);
     }
   }
-  const { data: accRows } = await supabase.from("profile_accessories").select("accessory_id").eq("profile_id", uid);
-  ownedAcc = new Set();
+  const { data: accRows } = await supabase.from("profile_accessories").select("accessory_id, seen").eq("profile_id", uid);
+  ownedAcc = new Set(["mustache"]);
+  unseenAcc = new Set();
   if (accRows !== null) {
     for (const row of accRows) {
       ownedAcc.add(row.accessory_id);
+      if (!row.seen && row.accessory_id !== "mustache") unseenAcc.add(row.accessory_id);
     }
   }
-  const { data: weaponRows } = await supabase.from("profile_weapons").select("weapon_id").eq("profile_id", uid);
-  ownedWeapons = new Set();
+  const { data: weaponRows } = await supabase.from("profile_weapons").select("weapon_id, seen").eq("profile_id", uid);
+  ownedWeapons = new Set(["iron"]);
+  unseenWeapons = new Set();
   if (weaponRows !== null) {
     for (const row of weaponRows) {
       ownedWeapons.add(row.weapon_id);
+      if (!row.seen && row.weapon_id !== "iron") unseenWeapons.add(row.weapon_id);
     }
   }
 }
@@ -147,6 +196,13 @@ async function syncCgLink() {
 }
 
 function mapProfileError(error) {
+  const details = error.details || "";
+  if (error.message.indexOf("profiles_pkey") !== -1 || details.indexOf("Key (id)=") !== -1) {
+    return "exists";
+  }
+  if (error.code === "23503" || error.message.indexOf("violates foreign key") !== -1) {
+    return "stale";
+  }
   if (error.message.indexOf("duplicate key") !== -1 || error.code === "23505") {
     return "taken";
   }
@@ -177,9 +233,23 @@ export async function createProfile(pseudo) {
   }
   profile = data;
   owned = new Set(["drifter"]);
-  ownedAcc = new Set();
+  ownedAcc = new Set(["mustache"]);
   ownedWeapons = new Set(["iron"]);
   return { ok: true };
+}
+
+async function resetSession() {
+  const supabase = getClient();
+  try {
+    await supabase.auth.signOut();
+  } catch (err) {}
+  cgDataRemove("hn-session");
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error !== null) {
+    return false;
+  }
+  backupSession(data.session);
+  return true;
 }
 
 async function createWithRetries() {
@@ -197,6 +267,20 @@ async function createWithRetries() {
     if (result.ok) {
       localStorage.setItem("hn-pseudo", profile.pseudo);
       return profile;
+    }
+    if (result.reason === "exists") {
+      await fetchProfile();
+      if (profile !== null) {
+        localStorage.setItem("hn-pseudo", profile.pseudo);
+      }
+      return profile;
+    }
+    if (result.reason === "stale") {
+      const revived = await resetSession();
+      if (!revived) {
+        return null;
+      }
+      continue;
     }
     if (result.reason === "network") {
       return null;
@@ -240,11 +324,14 @@ export async function buySkin(skinId) {
     return false;
   }
   profile.coins = data.coins;
-  owned.add(skinId);
+  grantItem("skin", skinId);
   return true;
 }
 
 export async function equipSkin(skinId) {
+  profile.skin = skinId;
+  return true;
+  
   const supabase = getClient();
   const { error } = await supabase.rpc("equip_skin", { p_skin: skinId });
   if (error !== null) {
@@ -254,7 +341,7 @@ export async function equipSkin(skinId) {
   return true;
 }
 
-export async function reportResult(won, ranked, oppElo, oppId) {
+export async function reportResult(won, ranked, oppPrime, oppId) {
   if (profile === null) {
     return null;
   }
@@ -262,13 +349,13 @@ export async function reportResult(won, ranked, oppElo, oppId) {
   const { data, error } = await supabase.rpc("report_result", {
     p_won: won,
     p_ranked: ranked,
-    p_opp_elo: oppElo,
+    p_opp_prime: oppPrime,
     p_opp_id: oppId
   });
   if (error !== null) {
     return null;
   }
-  profile.elo = data.elo;
+  profile.prime = data.prime;
   profile.coins = data.coins;
   if (Number.isFinite(Number(data.xp))) {
     profile.xp = Number(data.xp);
@@ -295,25 +382,9 @@ export async function adCase() {
     profile.coins = Number(data.coins);
   }
   if (!data.duplicate) {
-    if (data.kind === "skin") {
-      owned.add(data.ref);
-    } else if (data.kind === "weapon") {
-      ownedWeapons.add(data.ref);
-    } else {
-      ownedAcc.add(data.ref);
-    }
+    grantItem(data.kind, data.ref);
   }
   return { ok: true, kind: data.kind, ref: data.ref, duplicate: data.duplicate, left: data.left };
-}
-
-export async function adDouble() {
-  const supabase = getClient();
-  const { data, error } = await supabase.rpc("ad_double");
-  if (error !== null) {
-    return null;
-  }
-  profile.coins = data.coins;
-  return data;
 }
 
 export async function adWatchItem(kind, ref) {
@@ -323,13 +394,41 @@ export async function adWatchItem(kind, ref) {
     return null;
   }
   if (data.unlocked) {
-    if (kind === "skin") {
-      owned.add(ref);
-    } else if (kind === "weapon") {
-      ownedWeapons.add(ref);
-    } else {
-      ownedAcc.add(ref);
-    }
+    grantItem(kind, ref);
+  }
+  return data;
+}
+
+export async function eventState() {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("event_state");
+  if (error !== null) {
+    return null;
+  }
+  return data;
+}
+
+export async function bumpPlaytime(seconds) {
+  if (profile === null) {
+    return;
+  }
+  const supabase = getClient();
+  try {
+    await supabase.rpc("bump_playtime", { p_seconds: seconds });
+  } catch (err) {}
+}
+
+export async function eventClaim(eventId) {
+  const supabase = getClient();
+  const { data, error } = await supabase.rpc("event_claim", { p_event: eventId });
+  if (error !== null) {
+    return null;
+  }
+  if (profile !== null && Number.isFinite(Number(data.coins))) {
+    profile.coins = Number(data.coins);
+  }
+  if (!data.duplicate && data.reward_kind !== "coins") {
+    grantItem(data.reward_kind, data.reward_ref);
   }
   return data;
 }
@@ -345,6 +444,15 @@ export async function storyXp(chapter) {
   }
   if (Number.isFinite(Number(data.xp))) {
     profile.xp = Number(data.xp);
+  }
+  if (Number.isFinite(Number(data.coins))) {
+    profile.coins = Number(data.coins);
+  }
+  if (data.reward_kind === "accessory" && !data.duplicate) {
+    grantItem("accessory", data.reward_ref);
+  }
+  if (data.reward_kind === "weapon" && !data.duplicate) {
+    grantItem("weapon", data.reward_ref);
   }
   return data;
 }
@@ -362,19 +470,7 @@ export async function storyReward() {
     profile.coins = Number(data.coins);
   }
   if (!data.duplicate) {
-    owned.add("undertaker");
-  }
-  return data;
-}
-
-export async function minigameXp(kind, score) {
-  const supabase = getClient();
-  const { data, error } = await supabase.rpc("minigame_xp", { p_kind: kind, p_score: score });
-  if (error !== null) {
-    return null;
-  }
-  if (profile !== null && Number.isFinite(Number(data.xp))) {
-    profile.xp = Number(data.xp);
+    grantItem("skin", "undertaker");
   }
   return data;
 }
@@ -389,19 +485,19 @@ export async function spinWheel() {
     return { ok: false, reason: "network" };
   }
   profile.coins = data.coins;
+  if (profile !== null && Number.isFinite(Number(data.free_draws))) {
+    profile.free_draws = Number(data.free_draws);
+  }
   if (!data.duplicate) {
-    if (data.kind === "skin") {
-      owned.add(data.ref);
-    } else if (data.kind === "weapon") {
-      ownedWeapons.add(data.ref);
-    } else {
-      ownedAcc.add(data.ref);
-    }
+    grantItem(data.kind, data.ref);
   }
   return { ok: true, kind: data.kind, ref: data.ref, duplicate: data.duplicate };
 }
 
 export async function equipAccessories(list) {
+  profile.accessories = list;
+  return true;
+  
   const supabase = getClient();
   const { error } = await supabase.rpc("set_accessories", { p_list: list });
   if (error !== null) {
@@ -412,6 +508,9 @@ export async function equipAccessories(list) {
 }
 
 export async function equipWeapon(weaponId) {
+  profile.weapon = weaponId;
+  return true;
+  
   const supabase = getClient();
   const { error } = await supabase.rpc("equip_weapon", { p_weapon: weaponId });
   if (error !== null) {
@@ -437,7 +536,7 @@ export async function cgFriendsResolved() {
     const supabase = getClient();
     const { data } = await supabase
       .from("profiles")
-      .select("id, cg_username, pseudo, elo, skin")
+      .select("id, cg_username, pseudo, prime, skin")
       .in("cg_username", usernames);
     if (data !== null) {
       for (const row of data) {
@@ -457,7 +556,7 @@ export async function cgFriendsResolved() {
       avatar: f.profilePictureUrl,
       profileId: match ? match.id : null,
       pseudo: match ? match.pseudo : f.username,
-      elo: match ? match.elo : null,
+      prime: match ? match.prime : null,
       skin: match ? match.skin : "drifter"
     });
   }
@@ -480,22 +579,28 @@ export async function sendFriendRequest(code) {
     if (error.message.indexOf("not found") !== -1) {
       return { ok: false, reason: "notfound" };
     }
-    if (error.message.indexOf("already exists") !== -1 || error.message.indexOf("self") !== -1) {
+    if (error.message.indexOf("self") !== -1) {
+      return { ok: false, reason: "self" };
+    }
+    if (error.message.indexOf("already exists") !== -1) {
       return { ok: false, reason: "already" };
     }
     return { ok: false, reason: "network" };
   }
+  friendsListCache = null;
   return { ok: true, target: data !== null && data.target ? data.target : null };
 }
 
 export async function respondFriendRequest(fid, accept) {
   const supabase = getClient();
   await supabase.rpc("respond_friend_request", { p_id: fid, p_accept: accept });
+  friendsListCache = null;
 }
 
 export async function removeFriend(fid) {
   const supabase = getClient();
   await supabase.rpc("remove_friend", { p_id: fid });
+  friendsListCache = null;
 }
 
 export async function recordStats(stats, won) {
@@ -578,8 +683,8 @@ export async function seasonInfo() {
   }
   if (data !== null && profile !== null) {
     profile.friend_code = data.code;
-    if (Number.isFinite(Number(data.elo))) {
-      profile.elo = Number(data.elo);
+    if (Number.isFinite(Number(data.prime))) {
+      profile.prime = Number(data.prime);
     }
     if (Number.isFinite(Number(data.xp))) {
       profile.xp = Number(data.xp);
@@ -606,14 +711,22 @@ export async function claimPassLevel(level) {
   if (profile !== null && Number.isFinite(Number(data.coins))) {
     profile.coins = Number(data.coins);
   }
-  if (!data.duplicate && data.ref) {
-    if (data.kind === "skin") {
-      owned.add(data.ref);
-    } else if (data.kind === "weapon") {
-      ownedWeapons.add(data.ref);
-    } else if (data.kind === "accessory") {
-      ownedAcc.add(data.ref);
-    }
+  if (profile !== null && Number.isFinite(Number(data.free_draws))) {
+    profile.free_draws = Number(data.free_draws);
   }
   return data;
+}
+
+export function freeDraws() {
+  return profile !== null && Number.isFinite(Number(profile.free_draws)) ? Number(profile.free_draws) : 0;
+}
+
+export function playerLevel(xp) {
+  if (!Number.isFinite(xp) || xp < 0) return 1;
+  return 1 + Math.floor(xp / 200);
+}
+
+export function playerLevelProgress(xp) {
+  if (!Number.isFinite(xp) || xp < 0) return { current: 0, next: 200 };
+  return { current: xp % 200, next: 200 };
 }

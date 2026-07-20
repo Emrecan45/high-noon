@@ -1,6 +1,6 @@
 <div align="center">
 
-![High Noon](docs/logo.png)
+![High Noon](src/assets/logo.png)
 
 **High Noon** est un jeu de duel western 1v1 en 3D à la première personne, développé en **JavaScript** avec **Three.js**.
 
@@ -10,7 +10,7 @@ La clé du succès : dégainer, viser et tirer plus vite que votre adversaire.
 ![Version](https://img.shields.io/badge/version-v1.3-blue)
 ![Three.js](https://img.shields.io/badge/three.js-r170-049EF4)
 ![Supabase](https://img.shields.io/badge/supabase-realtime-3ECF8E)
-![Licence](https://img.shields.io/badge/licence-MIT-lightgrey)
+![Licence](https://img.shields.io/badge/licence-All%20Rights%20Reserved-red)
 
 </div>
 
@@ -66,10 +66,11 @@ Le perdant d'une manche choisit un avantage temporaire parmi 3 tirés au sort :
 Le jeu fonctionne sur une infrastructure temps réel (**Supabase Realtime**) garantissant l'équité des duels.
 
 - **Duel Classé :** Matchmaking en ligne.
-- **Mode Histoire :** 6 chapitres scénarisés contre la bande du Croque-Mort. Cinématiques, dialogues, duels et mini-jeux narratifs (escorte, braquage de banque).
+- **Mode Histoire :** 6 chapitres scénarisés contre la bande du Croque-Mort. Cinématiques, dialogues, duels et mini-jeux narratifs (défense de la ville, braquage de banque).
 - **Camp d'entraînement :** Duels d'échauffement contre 3 IA pendant la recherche d'adversaire.
-- **Amis :** Invitation directe par ID de joueur pour des duels privés.
-- **Mini-jeux :** Tir aux corbeaux (45s de survie) et Défense de diligence.
+- **Amis :** Ajout par ID de joueur et invitation directe en duel. Sur CrazyGames, les amis de la plateforme sont fusionnés à la liste en jeu.
+- **Salon privé :** Création d'un salon partageable par lien pour affronter directement un ami, avec proposition d'ajout en ami à la fin du duel.
+- **Entraînement :** Tir aux corbeaux (45s de survie), Défense de diligence et Duel amical contre Old Jed.
 
 ## 🏆 Classement et Saisons
 
@@ -81,6 +82,7 @@ Le jeu fonctionne sur une infrastructure temps réel (**Supabase Realtime**) gar
 ## 🤠 Profil et Boutique
 
 - **Garde-robe :** Personnalisation complète (Chapeaux, chemises, armes, accessoires).
+- **Affiche de prime :** Personnalise ton avis de recherche (papier, tampon, encre, pose, titre).
 - **Boutique :** Caisse du destin permettant de débloquer de l'équipement avec un système de rareté (Commun à Légendaire).
 
 ## 🌐 Jouer dans le navigateur
@@ -110,6 +112,9 @@ npm run dev
 | Tirer | Clic Gauche | Bouton 🔥 |
 | Esquiver à gauche | `Q` ou `A` | Bouton ◀ |
 | Esquiver à droite | `D` ou `E` | Bouton ▶ |
+| Pause | `P` ou `Échap` | - |
+
+> **Paramètres :** Le bouton ⚙ en haut à droite du menu regroupe la langue, les volumes (musique et effets) et la **sensibilité de la souris** (×0.2 à ×3), sauvegardée entre les parties.
 
 ## 📁 Structure du projet
 
@@ -129,8 +134,9 @@ high-noon/
     ├── account.js        # Gestion des profils et progression (Prime, XP)
     ├── ai.js             # Comportement des adversaires IA
     ├── ui.js             # Gestion de l'interface et du DOM
+    ├── settings.js       # Réglages joueur (sensibilité souris)
     ├── style.css         # Styles (Design System et Responsive)
-    └── assets/           # Ressources audio (musiques, sfx)
+    └── assets/           # Ressources (audio, logo, icônes)
 ```
 
 ## 🎨 Crédits
@@ -139,4 +145,4 @@ La liste détaillée des auteurs pour les ressources audio est disponible dans l
 
 ## 📄 Licence
 
-Ce projet est distribué sous licence **MIT**. Voir le fichier [`LICENSE`](LICENSE).
+Ce projet est distribué sous une licence **Tous droits réservés**. Il est strictement interdit de copier, publier ou exploiter commercialement ce code. Voir le fichier [`LICENSE`](LICENSE) pour plus de détails.

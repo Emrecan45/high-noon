@@ -78,6 +78,7 @@ export class AudioEngine {
     this.musicGain = null;
     this.sfxVolume = storedVolume("hn-sfx-vol", 0.9);
     this.musicVolume = storedVolume("hn-music-vol", 0.6);
+    this.muted = false;
     this.buffers = new Map();
     this.samplesRequested = false;
     this.shotSrc = null;
@@ -96,6 +97,7 @@ export class AudioEngine {
       this.musicGain = this.ctx.createGain();
       this.musicGain.gain.value = this.musicVolume * 0.5;
       this.musicGain.connect(this.master);
+      this.applyGains();
       this.loadSamples();
     }
     if (this.ctx.state === "suspended") {
@@ -156,20 +158,30 @@ export class AudioEngine {
     this.master.frequency.setTargetAtTime(target, this.ctx.currentTime, 0.07);
   }
 
+  applyGains() {
+    if (this.sfxGain !== null) {
+      this.sfxGain.gain.value = this.muted ? 0 : this.sfxVolume;
+    }
+    if (this.musicGain !== null) {
+      this.musicGain.gain.value = this.muted ? 0 : this.musicVolume * 0.5;
+    }
+  }
+
+  setMuted(value) {
+    this.muted = value === true;
+    this.applyGains();
+  }
+
   setSfxVolume(value) {
     this.sfxVolume = value;
     localStorage.setItem("hn-sfx-vol", String(value));
-    if (this.sfxGain !== null) {
-      this.sfxGain.gain.value = value;
-    }
+    this.applyGains();
   }
 
   setMusicVolume(value) {
     this.musicVolume = value;
     localStorage.setItem("hn-music-vol", String(value));
-    if (this.musicGain !== null) {
-      this.musicGain.gain.value = value * 0.5;
-    }
+    this.applyGains();
   }
 
   now() {
@@ -231,14 +243,79 @@ export class AudioEngine {
     src.start(this.now());
   }
 
+  metalClick(when, gain, freq) {
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer(0.06);
+    const bp = this.ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = freq;
+    bp.Q.value = 7;
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 900;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(gain, when + 0.0015);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.04);
+    src.connect(hp);
+    hp.connect(bp);
+    bp.connect(g);
+    g.connect(this.sfxGain);
+    src.start(when);
+    src.stop(when + 0.07);
+    const osc = this.ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(freq * 1.6, when);
+    osc.frequency.exponentialRampToValueAtTime(freq, when + 0.03);
+    const og = this.ctx.createGain();
+    og.gain.setValueAtTime(0.0001, when);
+    og.gain.exponentialRampToValueAtTime(gain * 0.3, when + 0.0015);
+    og.gain.exponentialRampToValueAtTime(0.0001, when + 0.028);
+    osc.connect(og);
+    og.connect(this.sfxGain);
+    osc.start(when);
+    osc.stop(when + 0.05);
+  }
+
   reloadClick(step) {
+  }
+
+  friendPing() {
     this.ensure();
-    this.playSample("gunCock", { gain: 0.7, rate: 1 + step * 0.08 });
+    const self = this;
+    this.playSample("bellSmall", { gain: 0.5, rate: 1.5 });
+    setTimeout(function () {
+      self.playSample("bellSmall", { gain: 0.42, rate: 2.02 });
+    }, 110);
   }
 
   ricochet() {
     this.ensure();
     this.playSample("ricochetPing", { gain: 0.7, rate: 0.9 + Math.random() * 0.25 });
+  }
+
+  levelShot() {
+    this.ensure();
+    const self = this;
+    this.playSample("gunshot", { gain: 1, rate: 0.68 });
+    setTimeout(function () {
+      self.playSample("impactWood", { gain: 0.7, rate: 0.66 });
+    }, 45);
+    setTimeout(function () {
+      self.playSample("ricochetPing", { gain: 0.5, rate: 1.35 });
+    }, 110);
+  }
+
+  levelLand() {
+    this.ensure();
+    const self = this;
+    this.playSample("doorSlam", { gain: 0.4, rate: 0.6 });
+    setTimeout(function () {
+      self.playSample("bellSmall", { gain: 0.35, rate: 1.22 });
+    }, 140);
+    setTimeout(function () {
+      self.playSample("bellSmall", { gain: 0.3, rate: 1.63 });
+    }, 320);
   }
 
   whoosh() {
@@ -271,6 +348,38 @@ export class AudioEngine {
     this.playSample("impactGlass", { gain: 0.6, rate: 0.95 + Math.random() * 0.1 });
   }
 
+  sandHit() {
+    this.ensure();
+    const t = this.now();
+    const src = this.ctx.createBufferSource();
+    src.buffer = this.noiseBuffer(0.2);
+    src.playbackRate.value = 0.9 + Math.random() * 0.2;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(2200, t);
+    filter.frequency.exponentialRampToValueAtTime(500, t + 0.14);
+    filter.Q.value = 0.7;
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.95, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.19);
+    src.connect(filter);
+    filter.connect(g);
+    g.connect(this.sfxGain);
+    src.start(t);
+    src.stop(t + 0.22);
+    const thud = this.ctx.createOscillator();
+    thud.type = "sine";
+    thud.frequency.setValueAtTime(170, t);
+    thud.frequency.exponentialRampToValueAtTime(55, t + 0.13);
+    const tg = this.ctx.createGain();
+    tg.gain.setValueAtTime(0.55, t);
+    tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+    thud.connect(tg);
+    tg.connect(this.sfxGain);
+    thud.start(t);
+    thud.stop(t + 0.17);
+  }
+
   poof() {
     this.ensure();
     this.playSample("cloth1", { gain: 1.1, rate: 1.3 + Math.random() * 0.2 });
@@ -278,7 +387,9 @@ export class AudioEngine {
 
   reveal() {
     this.ensure();
-    this.playSample("gunCock", { gain: 0.65, rate: 0.9 });
+    const t = this.now();
+    this.metalClick(t, 0.5, 2200);
+    this.metalClick(t + 0.06, 0.4, 2900);
   }
 
   wind() {
@@ -311,19 +422,19 @@ export class AudioEngine {
   step() {
     this.ensure();
     const idx = Math.floor(Math.random() * 5);
-    this.playSample("stepDirt" + idx, { gain: 1.4, rate: 0.95 + Math.random() * 0.1 });
+    this.playSample("stepDirt" + idx, { gain: 0.5, rate: 0.95 + Math.random() * 0.1 });
   }
 
   stepSoft() {
     this.ensure();
     const idx = Math.floor(Math.random() * 5);
-    this.playSample("stepDirt" + idx, { gain: 0.75, rate: 0.82 + Math.random() * 0.08 });
+    this.playSample("stepDirt" + idx, { gain: 0.25, rate: 0.82 + Math.random() * 0.08 });
   }
 
   stepWood() {
     this.ensure();
     const idx = Math.floor(Math.random() * 5);
-    this.playSample("stepWood" + idx, { gain: 1.2, rate: 0.95 + Math.random() * 0.1 });
+    this.playSample("stepWood" + idx, { gain: 0.4, rate: 0.95 + Math.random() * 0.1 });
   }
 
   footsteps() {
@@ -376,5 +487,21 @@ export class AudioEngine {
   defeat() {
     this.ensure();
     this.playSample("bellChurch", { gain: 0.7, rate: 0.45 });
+  }
+
+  textBlip() {
+    this.ensure();
+    const t = this.now();
+    const o = this.ctx.createOscillator();
+    o.type = "square";
+    o.frequency.setValueAtTime(360 + Math.random() * 60, t);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.045, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+    o.connect(g);
+    g.connect(this.sfxGain);
+    o.start(t);
+    o.stop(t + 0.06);
   }
 }

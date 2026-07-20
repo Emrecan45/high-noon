@@ -1,4 +1,5 @@
 import { t } from "./i18n.js";
+import { renderWantedPosterEl } from "./wanted.js";
 
 function el(id) {
   return document.getElementById(id);
@@ -22,6 +23,7 @@ export function createUi() {
   ];
 
   let bigTimer = null;
+  let subTimer = null;
 
   function showScreen(id) {
     for (const name of screens) {
@@ -31,6 +33,10 @@ export function createUi() {
       } else {
         node.classList.add("hidden");
       }
+    }
+    const friendsBar = el("friends-bar");
+    if (friendsBar) {
+      friendsBar.classList.remove("open");
     }
   }
 
@@ -68,13 +74,25 @@ export function createUi() {
     }
   }
 
-  function setSub(text) {
+  function setSub(text, autohideMs) {
     const node = el("submsg");
+    if (subTimer !== null) {
+      clearTimeout(subTimer);
+      subTimer = null;
+    }
     if (text === "") {
       node.classList.add("hidden");
     } else {
       node.textContent = text;
       node.classList.remove("hidden");
+      node.classList.remove("pop");
+      void node.offsetWidth;
+      node.classList.add("pop");
+      if (autohideMs) {
+        subTimer = setTimeout(function () {
+          node.classList.add("hidden");
+        }, autohideMs);
+      }
     }
   }
 
@@ -101,7 +119,7 @@ export function createUi() {
   }
 
   function setDodges(count) {
-    if (count === 0) {
+    if (count < 0) {
       el("dodges").innerHTML = "";
       return;
     }
@@ -150,7 +168,7 @@ export function createUi() {
     node.classList.add("active");
     setTimeout(function () {
       node.classList.remove("active");
-    }, 120);
+    }, 280);
   }
 
   function touchControls(visible) {
@@ -223,7 +241,11 @@ export function createUi() {
   }
 
   function matchEnd(title, detail, onRematch, onMenu) {
-    el("btn-double-ad").classList.add("hidden");
+    const fbtn = el("btn-matchend-friend");
+    if (fbtn !== null) {
+      fbtn.classList.add("hidden");
+      fbtn.onclick = null;
+    }
     el("matchend-title").textContent = title;
     const node = el("matchend-detail");
     node.innerHTML = "";
@@ -273,16 +295,20 @@ export function createUi() {
   }
 
   function duelIntro(info, ms, onDone) {
-    el("di-you-name").textContent = info.you.name;
-    el("di-you-name").classList.toggle("di-long", info.you.name.length > 12);
-    el("di-you-title").textContent = info.you.title;
-    el("di-you-fig").src = info.you.portrait;
-    el("di-opp-name").textContent = info.opp.name;
-    el("di-opp-name").classList.toggle("di-long", info.opp.name.length > 12);
-    el("di-opp-title").textContent = info.opp.title;
-    el("di-opp-fig").src = info.opp.portrait;
     const node = el("screen-duelintro");
     node.classList.remove("hidden");
+    renderWantedPosterEl(el("di-you-poster"), {
+      pseudo: info.you.name,
+      title: info.you.title,
+      acc: info.you.acc,
+      figSrc: info.you.portrait
+    });
+    renderWantedPosterEl(el("di-opp-poster"), {
+      pseudo: info.opp.name,
+      title: info.opp.title,
+      acc: info.opp.acc,
+      figSrc: info.opp.portrait
+    });
     node.classList.remove("show");
     void node.offsetWidth;
     node.classList.add("show");

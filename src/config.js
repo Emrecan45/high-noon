@@ -1,2 +1,4 @@
-export const SUPABASE_URL = "https://bgnnvwnbtiienyfwsmzw.supabase.co";
-export const SUPABASE_ANON_KEY = "sb_publishable_YycORQSICfv6oVCdd-g5Ag_SEKq5XMT";
+export const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+export const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const COMMUNITY_URL = "";

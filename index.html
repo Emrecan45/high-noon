@@ -14,7 +14,7 @@
 </head>
 <body>
   <div id="boot-loading">
-    <div class="boot-logo">HIGH NOON</div>
+    <img src="./src/assets/logo.png" alt="HIGH NOON" class="boot-logo">
     <div class="boot-bar"><div id="boot-bar-fill"></div></div>
     <div id="boot-pct">0%</div>
   </div>
@@ -49,17 +49,41 @@
 
   <div id="screen-title" class="screen">
     <div id="topbar">
-      <span class="vol">🎵<input id="vol-music" type="range" min="0" max="100" /></span>
-      <span class="vol">🔊<input id="vol-sfx" type="range" min="0" max="100" /></span>
-      <select id="lang-select" aria-label="Language">
-        <option value="en">English</option>
-        <option value="fr">Français</option>
-        <option value="es">Español</option>
-        <option value="de">Deutsch</option>
-        <option value="pt">Português</option>
-        <option value="ru">Русский</option>
-        <option value="tr">Türkçe</option>
-      </select>
+      <button id="btn-community" class="topbar-btn" aria-label="Discord">
+        <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.3698a19.7913 19.7913 0 0 0-4.8851-1.5152.0741.0741 0 0 0-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 0 0-.0785-.037 19.7363 19.7363 0 0 0-4.8852 1.515.0699.0699 0 0 0-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 0 0 .0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 0 0 .0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 0 0-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 0 1-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 0 1 .0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 0 1 .0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 0 1-.0066.1276 12.2986 12.2986 0 0 1-1.873.8914.0766.0766 0 0 0-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 0 0 .0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 0 0 .0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 0 0-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg>
+        <span>Discord</span>
+      </button>
+      <button id="btn-settings" class="topbar-btn" aria-label="Settings">⚙ <span data-i18n="settingsTitle"></span></button>
+    </div>
+    <div id="settings-panel" class="screen overlay hidden">
+      <div id="settings-card">
+        <button id="settings-close" aria-label="Close">✕</button>
+        <h3 data-i18n="settingsTitle"></h3>
+        <div class="set-row">
+          <span class="set-label" data-i18n="settingsLang"></span>
+          <select id="lang-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="fr">Français</option>
+            <option value="es">Español</option>
+            <option value="de">Deutsch</option>
+            <option value="pt">Português</option>
+            <option value="ru">Русский</option>
+            <option value="tr">Türkçe</option>
+          </select>
+        </div>
+        <div class="set-row set-slider">
+          <span class="set-label">🎵 <span data-i18n="settingsMusic"></span> <b id="music-value"></b></span>
+          <input id="vol-music" type="range" min="0" max="100" />
+        </div>
+        <div class="set-row set-slider">
+          <span class="set-label">🔊 <span data-i18n="settingsSfx"></span> <b id="sfx-value"></b></span>
+          <input id="vol-sfx" type="range" min="0" max="100" />
+        </div>
+        <div class="set-row set-slider">
+          <span class="set-label">🖱️ <span data-i18n="settingsSens"></span> <b id="sens-value"></b></span>
+          <input id="sens-range" type="range" min="0" max="100" />
+        </div>
+      </div>
     </div>
     <div id="profile-chip" class="hidden">
       <img id="chip-head" alt="" />
@@ -77,6 +101,22 @@
       </div>
     </div>
     <div id="right-rail">
+    <div id="event-banner" class="hidden">
+      <h3 id="ev-title"></h3>
+      <div class="ch-item" id="ev-item">
+        <div class="ch-info">
+          <div class="ch-label" id="ev-desc"></div>
+          <div class="ch-bar"><div class="ch-fill" id="ev-fill"></div></div>
+          <div class="ch-prog" id="ev-count"></div>
+        </div>
+        <div class="ch-reward" id="ev-reward-row">
+          <img id="ev-reward-icon" alt="" />
+          <span id="ev-reward-name"></span>
+        </div>
+        <div id="ev-time"></div>
+        <button id="btn-ev-claim" class="btn btn-small ch-claim hidden"></button>
+      </div>
+    </div>
     <div id="challenges-bar" class="hidden">
       <h3 data-i18n="challengesTitle"></h3>
       <div class="ch-tabs">
@@ -86,19 +126,20 @@
       <div id="ch-list" class="ch-list"></div>
       <p id="ch-msg" class="ch-msg hidden"></p>
     </div>
-    <button id="btn-home-ad" class="hidden">
+    <button id="btn-home-reward" class="hidden">
       <span class="had-title" data-i18n="adDaily"></span>
-      <span class="had-amount" id="home-ad-amount"></span>
-      <span class="ad-go" id="home-ad-go"></span>
+      <span class="had-amount" id="home-reward-amount"></span>
+      <span class="reward-go" id="home-reward-go"></span>
     </button>
     </div>
     <button id="challenges-toggle" class="hidden" aria-label="Challenges">🎯</button>
     <div id="hub-title">
-      <h1 class="logo">HIGH NOON</h1>
+      <img src="./src/assets/logo.png" alt="HIGH NOON" class="logo">
       <p class="tagline" data-i18n="tagline"></p>
     </div>
     <div class="menu" id="hub-menu">
       <button id="btn-ranked" class="btn" data-i18n="btnRanked"></button>
+      <button id="btn-salon" class="btn" data-i18n="btnFriend"></button>
       <button id="btn-story" class="btn" data-i18n="btnStory"></button>
       <button id="btn-shop" class="btn" data-i18n="btnShop"></button>
       <button id="btn-board" class="btn" data-i18n="btnBoard"></button>
@@ -109,7 +150,12 @@
         <button id="btn-help" class="btn btn-small" data-i18n="btnHelp"></button>
         <button id="btn-patch" class="btn btn-small" data-i18n="btnPatch"></button>
       </div>
-      <p id="players-online" class="players-online hidden"></p>
+      </div>
+    <div style="position: absolute; bottom: 20px; left: max(var(--edge), calc(env(safe-area-inset-left))); z-index: 20;">
+      <button id="btn-cg-login" class="btn btn-cg-login hidden" style="margin: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
+        <img src="https://www.google.com/s2/favicons?domain=crazygames.com&sz=64" alt="CG" style="width: 52px; height: 52px; vertical-align: middle; margin-left: 24px; margin-right: 12px; border-radius: 10px;">
+        <span data-i18n="cgLogin" style="vertical-align: middle;">Se Connecter</span>
+      </button>
     </div>
     <div class="home-footer">
       <p class="footer-note"><span data-i18n="footer"></span> <a href="https://emrecan45.github.io" target="_blank">Emrecan45</a></p>
@@ -125,9 +171,16 @@
     </div>
   </div>
 
-  <div id="coins-badge" class="hidden">
-    <span id="coins-value">0</span>
-    <span class="coin-ico">🪙</span>
+  <div id="hud-badges" class="hidden">
+    <div id="level-badge" class="hud-badge">
+      <span class="lvl-ico">Niv.</span>
+      <span class="badge-num" id="level-value">1</span>
+      <span class="lvl-xp" id="level-xp">0/200</span>
+    </div>
+    <div id="coins-badge" class="hud-badge">
+      <span id="coins-value">0</span>
+      <span class="coin-ico">🪙</span>
+    </div>
   </div>
 
   <div id="screen-help" class="screen station hidden">
@@ -144,31 +197,33 @@
         <button id="btn-copy-id" class="btn btn-small" data-i18n="copyId"></button>
       </div>
     </div>
-    <div class="di-poster" id="profile-poster" style="width: 250px; margin-bottom: 12px; margin-top: 10px;">
-      <div class="di-wanted">WANTED</div>
-      <img class="di-fig" id="profile-poster-fig" alt="" />
-      <div class="di-name" id="profile-poster-name"></div>
-      <div class="di-title" id="profile-poster-title"></div>
-      <div class="di-doa">DEAD OR ALIVE</div>
-    </div>
+    <div class="di-poster" id="profile-poster" style="width: 250px; margin-bottom: 12px; margin-top: 10px;"></div>
+    <button id="btn-poster-edit" class="btn btn-small" data-i18n="posterEdit"></button>
     <div id="stats-block" class="stats-grid"></div>
     <div id="career-title" data-i18n="careerTitle"></div>
     <div id="career-block" class="stats-grid"></div>
     <div id="profile-view"></div>
     <button id="btn-customize" class="btn btn-small" data-i18n="customize"></button>
     <button id="btn-profile-back" class="btn btn-small" data-i18n="back"></button>
+    <div id="poster-editor" class="hidden">
+      <h2 data-i18n="invPoster"></h2>
+      <div class="ch-tabs" id="poster-tabs"></div>
+      <div id="poster-items"></div>
+      <button id="btn-poster-back" class="btn btn-small" data-i18n="back"></button>
+    </div>
   </div>
 
   <div id="screen-inventory" class="screen docked hidden">
     <h2 data-i18n="invTitle"></h2>
-    <div class="ch-tabs">
-      <button id="inv-tab-skins" class="ch-tab active" data-i18n="invSkins"></button>
-      <button id="inv-tab-weapons" class="ch-tab" data-i18n="invWeapons"></button>
-      <button id="inv-tab-acc" class="ch-tab" data-i18n="invAcc"></button>
-    </div>
-    <div id="inv-view"></div>
-    <div class="inv-scroll">
-      <div id="inv-skins" class="inv-grid"></div>
+      <div class="ch-tabs">
+        <button id="inv-tab-skins" class="ch-tab active" data-i18n="invSkins"></button>
+        <button id="inv-tab-weapons" class="ch-tab" data-i18n="invWeapons"></button>
+        <button id="inv-tab-acc" class="ch-tab" data-i18n="invAcc"></button>
+      </div>
+      <div id="inv-view"></div>
+      <input type="range" id="inv-rotation" min="-180" max="180" value="0">
+      <div class="inv-scroll">
+        <div id="inv-skins" class="inv-grid"></div>
       <div id="inv-weapons" class="inv-grid hidden"></div>
       <div id="inv-acc" class="hidden"></div>
     </div>
@@ -181,14 +236,13 @@
       <div id="case-marker"></div>
       <div id="case-strip"></div>
     </div>
-    <p id="wheel-result" class="hidden"></p>
     <div id="shop-actions">
       <button id="btn-spin" class="btn" data-i18n="wheelSpin"></button>
-      <button id="btn-ad-case" class="btn hidden"></button>
+      <button id="btn-crate-watch" class="btn hidden"></button>
     </div>
-    <div id="ad-shop" class="hidden">
-      <p id="ad-shop-title" data-i18n="adUnlockTitle"></p>
-      <div id="ad-items"></div>
+    <div id="reward-crate" class="hidden">
+      <p id="reward-crate-title" data-i18n="adUnlockTitle"></p>
+      <div id="reward-items"></div>
     </div>
     <button id="btn-shop-back" class="btn btn-small" data-i18n="back"></button>
   </div>
@@ -212,6 +266,15 @@
       <h3 id="legal-title"></h3>
       <div id="legal-body"></div>
       <button id="legal-close" class="btn btn-small" data-i18n="back"></button>
+    </div>
+  </div>
+
+  <div id="levelup" class="hidden">
+    <div id="lvl-caption" data-i18n="statsLevel"></div>
+    <div class="lvl-stage">
+      <div class="lvl-num" id="lvl-old"><span id="lvl-old-num"></span></div>
+      <div class="lvl-num" id="lvl-new"></div>
+      <div class="lvl-dust" id="lvl-dust"></div>
     </div>
   </div>
 
@@ -261,26 +324,14 @@
     <div class="di-sun"></div>
     <div class="di-stage">
       <div class="di-side di-you">
-        <div class="di-poster">
-          <div class="di-wanted">WANTED</div>
-          <img class="di-fig" id="di-you-fig" alt="" />
-          <div class="di-name" id="di-you-name"></div>
-          <div class="di-title" id="di-you-title"></div>
-          <div class="di-doa">DEAD OR ALIVE</div>
-        </div>
+        <div class="di-poster" id="di-you-poster"></div>
       </div>
       <div class="di-center">
         <div class="di-vs">VS</div>
         <div class="di-tag" data-i18n="duelTag"></div>
       </div>
       <div class="di-side di-opp">
-        <div class="di-poster">
-          <div class="di-wanted">WANTED</div>
-          <img class="di-fig" id="di-opp-fig" alt="" />
-          <div class="di-name" id="di-opp-name"></div>
-          <div class="di-title" id="di-opp-title"></div>
-          <div class="di-doa">DEAD OR ALIVE</div>
-        </div>
+        <div class="di-poster" id="di-opp-poster"></div>
       </div>
     </div>
   </div>
@@ -306,7 +357,7 @@
       <p id="matchend-detail"></p>
       <div id="matchend-recap" class="stats-grid hidden"></div>
       <div class="mend-buttons">
-        <button id="btn-double-ad" class="btn btn-small hidden"></button>
+        <button id="btn-matchend-friend" class="btn btn-small hidden"></button>
         <button id="btn-menu" class="btn btn-small" data-i18n="menu"></button>
       </div>
     </div>
@@ -339,6 +390,7 @@
 
   <div id="lock-prompt" class="screen overlay opaque hidden">
     <h2 data-i18n="lockTitle"></h2>
+    <p id="lock-error" style="color: #e8b64c; font-size: 14px; margin-top: 10px;"></p>
     <button id="btn-lock-quit" class="btn btn-small" data-i18n="btnQuit"></button>
   </div>
 
@@ -359,15 +411,69 @@
   </div>
 
   <div id="screen-story" class="screen station hidden">
-    <h2 data-i18n="storyTitle"></h2>
-    <p id="story-sub" class="story-sub" data-i18n="storySub"></p>
-    <div id="story-list"></div>
+    <h2 id="story-h2" data-i18n="btnStory"></h2>
+    <p id="story-sub" class="story-sub hidden" data-i18n="storySub"></p>
+    <div id="shelf">
+      <div class="shelf-book" id="shelf-ep1">
+        <span class="jr-cover-title" data-i18n="storyTitle"></span>
+      </div>
+      <div class="shelf-book soon">
+        <span class="jr-cover-title" data-i18n="jrSoon"></span>
+      </div>
+      <div class="shelf-book soon">
+        <span class="jr-cover-title" data-i18n="jrSoon"></span>
+      </div>
+    </div>
+    <div id="journal" class="hidden">
+      <div class="jr-book closed snap" id="jr-book">
+        <div class="jr-half jr-half-right">
+          <div class="jr-paper jr-paper-right">
+            <div class="jr-inner" id="jr-inner-right"></div>
+          </div>
+        </div>
+        <div class="jr-half jr-flap" id="jr-flap">
+          <div class="jr-face jr-face-inside">
+            <div class="jr-paper jr-paper-left">
+              <div class="jr-inner" id="jr-inner-left"></div>
+            </div>
+          </div>
+          <div class="jr-face jr-face-cover">
+            <span class="jr-cover-title" data-i18n="storyTitle"></span>
+          </div>
+        </div>
+        <div class="jr-leaf hidden" id="jr-leaf">
+          <div class="jr-leaf-face jr-leaf-front" id="jr-leaf-front"></div>
+          <div class="jr-leaf-face jr-leaf-back" id="jr-leaf-back"></div>
+        </div>
+        <div class="jr-spine"></div>
+        <button id="jr-prev" class="jr-nav jr-nav-l">❮</button>
+        <button id="jr-next" class="jr-nav jr-nav-r">❯</button>
+      </div>
+      <div class="jr-dots" id="jr-dots"></div>
+      <div class="jr-level" id="jr-level"></div>
+    </div>
     <button id="btn-story-back" class="btn btn-small" data-i18n="back"></button>
   </div>
 
   </div>
 
   <div id="fade-overlay"></div>
+
+  <div id="ban-overlay" class="hidden">
+    <div class="ban-box">
+      <div class="ban-icon">🚫</div>
+      <h2 id="ban-title"></h2>
+      <p id="ban-reason"></p>
+    </div>
+  </div>
+
+  <div id="rotate-gate">
+    <svg class="rot-ico" viewBox="0 0 44 72" aria-hidden="true">
+      <rect x="2" y="2" width="40" height="68" rx="7" fill="none" stroke="currentColor" stroke-width="4"/>
+      <line x1="17" y1="62" x2="27" y2="62" stroke="currentColor" stroke-width="4" stroke-linecap="round"/>
+    </svg>
+    <p data-i18n="rotateDevice"></p>
+  </div>
 
   <script type="module" src="./src/main.js"></script>
 </body>

@@ -1,5 +1,6 @@
 let sdk = null;
 let onCg = false;
+let realCg = false;
 let lastMidgameAt = 0;
 
 const MIDGAME_COOLDOWN = 90000;
@@ -15,7 +16,8 @@ export async function initSdk() {
   }
   try {
     await sdk.init();
-    onCg = sdk.environment === "crazygames" || local;
+    realCg = sdk.environment === "crazygames";
+    onCg = realCg || local;
   } catch (err) {
     sdk = null;
     onCg = local;
@@ -24,6 +26,10 @@ export async function initSdk() {
 
 export function isCrazyGames() {
   return onCg;
+}
+
+export function isRealCrazyGames() {
+  return realCg;
 }
 
 function call(fn) {
@@ -113,7 +119,7 @@ export function requestRewardedAd(hooks) {
     if (!started) {
       fail();
     }
-  }, 8000);
+  }, 20000);
   try {
     sdk.ad.requestAd("rewarded", {
       adStarted: function () {
@@ -174,12 +180,144 @@ export function hideInviteButton() {
   });
 }
 
+export function updateCgRoom(roomId, isJoinable) {
+  call(function (s) {
+    s.game.updateRoom({ roomId: roomId, isJoinable: isJoinable });
+  });
+}
+
+export function leftCgRoom() {
+  call(function (s) {
+    s.game.leftRoom();
+  });
+}
+
+export function onCgRoomJoin(handler) {
+  if (sdk === null) {
+    return;
+  }
+  try {
+    sdk.game.addJoinRoomListener(handler);
+  } catch (err) {}
+}
+
+export function cgLocale() {
+  if (sdk === null) {
+    return null;
+  }
+  try {
+    const info = sdk.user.systemInfo;
+    if (info !== null && info !== undefined && typeof info.locale === "string") {
+      return info.locale;
+    }
+  } catch (err) {}
+  return null;
+}
+
 export function isInstantMultiplayer() {
   if (sdk === null) {
     return false;
   }
   try {
     return sdk.game.isInstantMultiplayer === true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export async function showCgAuthPrompt() {
+  if (!onCg || !sdk.user.isUserAccountAvailable) {
+    return;
+  }
+  try {
+    await sdk.user.showAuthPrompt();
+  } catch (err) {}
+}
+
+export function submitCgScore(score) {
+  if (!onCg) {
+    return;
+  }
+  const value = Math.round(Number(score));
+  if (!Number.isFinite(value)) {
+    return;
+  }
+  try {
+    sdk.user.submitScore({ score: value });
+  } catch (err) {}
+}
+
+export async function showCgAccountLink() {
+  if (!onCg || sdk === null || !sdk.user.isUserAccountAvailable) {
+    return false;
+  }
+  try {
+    await sdk.user.showAccountLinkPrompt();
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+let accountLinkAsked = false;
+
+export async function maybeAccountLink() {
+  if (accountLinkAsked || !realCg) {
+    return;
+  }
+  const authed = await isCgAuthenticated();
+  if (authed) {
+    return;
+  }
+  accountLinkAsked = true;
+  await showCgAccountLink();
+}
+
+export function onCgAuthChange(handler) {
+  if (sdk === null) {
+    return;
+  }
+  try {
+    sdk.user.addAuthListener(handler);
+  } catch (err) {}
+}
+
+export function cgAudioMuted() {
+  if (sdk === null) {
+    return false;
+  }
+  try {
+    return sdk.game.settings.muteAudio === true;
+  } catch (err) {
+    return false;
+  }
+}
+
+export function onCgSettingsChange(handler) {
+  if (sdk === null) {
+    return;
+  }
+  try {
+    sdk.game.addSettingsChangeListener(handler);
+  } catch (err) {}
+}
+
+export function reportProgress(percent) {
+  call(function (s) {
+    s.game.reportGameCompletedPercentage(Math.max(0, Math.min(100, Math.round(percent))));
+  });
+}
+
+export async function isCgAuthenticated() {
+  if (!onCg || !sdk.user.isUserAccountAvailable) {
+    return false;
+  }
+  if (!isRealCrazyGames()) {
+    return false;
+  }
+  try {
+    const token = await sdk.user.getUserToken();
+    return token !== null && token !== "";
   } catch (err) {
     return false;
   }
