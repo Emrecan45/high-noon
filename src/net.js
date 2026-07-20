@@ -252,7 +252,7 @@ let onlineStates = new Map();
 let onlineHandler = function () {};
 let personalChannel = null;
 
-export function goOnline(profileId, onSync, onFriendUpdate) {
+export function goOnline(profileId, onSync, onFriendUpdate, onBan) {
   if (onlineChannel !== null) {
     return;
   }
@@ -288,6 +288,30 @@ export function goOnline(profileId, onSync, onFriendUpdate) {
       })
       .subscribe();
   }
+
+  if (onBan) {
+    supabase.channel("hn-ban-" + profileId)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${profileId}` }, function (payload) {
+        if (payload.new) {
+          onBan(payload.new.banned === true, payload.new.ban_reason || "");
+        }
+      })
+      .subscribe();
+  }
+}
+
+let eventsChannel = null;
+
+export function listenEvents(handler) {
+  if (eventsChannel !== null) {
+    return;
+  }
+  const supabase = getClient();
+  eventsChannel = supabase.channel("hn-events")
+    .on("postgres_changes", { event: "*", schema: "public", table: "events" }, function () {
+      handler();
+    })
+    .subscribe();
 }
 
 export function isOnline(profileId) {
@@ -306,10 +330,6 @@ export function setOnlineState(state) {
     return;
   }
   onlineChannel.track({ at: Date.now(), state: state });
-}
-
-export function onlineCount() {
-  return onlineIds.size;
 }
 
 export function listenChallenges(profileId, handler, replyHandler, friendsHandler) {
@@ -351,7 +371,7 @@ export function notifyFriendsChange(profileId) {
   sendToUser(profileId, "friends", { at: Date.now() });
 }
 
-export function createPrivateRoom(code, callbacks, myProfileId) {
+export function createPrivateRoom(code, callbacks, myProfileId, expectPartner) {
   const supabase = getClient();
   const myId = crypto.randomUUID();
   const room = supabase.channel("hn-priv-" + code, {
@@ -369,6 +389,33 @@ export function createPrivateRoom(code, callbacks, myProfileId) {
   let pendingEvents = [];
   let leftHandler = function () {};
   let seedAsker = null;
+  let emptyTimer = null;
+  let sawPartner = false;
+
+  function stopEmptyTimer() {
+    if (emptyTimer !== null) {
+      clearTimeout(emptyTimer);
+      emptyTimer = null;
+    }
+  }
+
+  function armEmptyTimer() {
+    if (expectPartner !== true || started || cancelled || emptyTimer !== null) {
+      return;
+    }
+    emptyTimer = setTimeout(function () {
+      emptyTimer = null;
+      if (started || cancelled) {
+        return;
+      }
+      cancelled = true;
+      stopSeedAsker();
+      supabase.removeChannel(room);
+      if (callbacks.onEmpty) {
+        callbacks.onEmpty(sawPartner);
+      }
+    }, 2500);
+  }
 
   function stopSeedAsker() {
     if (seedAsker !== null) {
@@ -395,6 +442,7 @@ export function createPrivateRoom(code, callbacks, myProfileId) {
     }
     started = true;
     stopSeedAsker();
+    stopEmptyTimer();
     callbacks.onMatched({
       seed: seed,
       isHost: isHost,
@@ -460,6 +508,12 @@ export function createPrivateRoom(code, callbacks, myProfileId) {
       }
       return;
     }
+    if (ids.length >= 2) {
+      sawPartner = true;
+      stopEmptyTimer();
+    } else {
+      armEmptyTimer();
+    }
     if (ids.length < 2 || ids.indexOf(myId) === -1) {
       return;
     }
@@ -510,6 +564,7 @@ export function createPrivateRoom(code, callbacks, myProfileId) {
   function cancel() {
     cancelled = true;
     stopSeedAsker();
+    stopEmptyTimer();
     if (!started) {
       supabase.removeChannel(room);
     }

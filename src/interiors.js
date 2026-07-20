@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { createCowboy } from "./cowboy.js";
+import { createCowboy, makeStarMesh } from "./cowboy.js";
 
 function mat(color, roughness) {
   return new THREE.MeshStandardMaterial({ color: color, roughness: roughness || 0.9 });
@@ -125,6 +125,7 @@ function makeCross(woodMat, h) {
 export function createInteriors(scene) {
   const sets = {};
   const ambients = [];
+  const saloonDoorAnim = [];
   const wood = mat(0x5c3a1d, 1);
   const woodDark = mat(0x3a2412, 1);
   const woodLight = mat(0x8a6238, 0.95);
@@ -143,18 +144,26 @@ export function createInteriors(scene) {
       body.setTalk(true);
     }
     setGroup.add(body.group);
-    ambients.push({ body: body, set: setGroup });
+    ambients.push({ body: body, set: setGroup, id: skinId });
     return body;
   }
 
-  function makeRoom(group, w, d, h, wallMat, floorMat, doorW) {
+  function setAmbientVisible(id, visible) {
+    for (const amb of ambients) {
+      if (amb.id === id) {
+        amb.body.group.visible = visible;
+      }
+    }
+  }
+
+  function makeRoom(group, w, d, h, wallMat, floorMat, doorW, windows) {
     const floor = box(w + 0.4, 0.14, d + 0.4, floorMat);
-    floor.position.y = -0.07;
+    floor.position.y = -0.04;
     group.add(floor);
     const stripMat = mat(0x4a3018, 1);
     for (let x = -w / 2 + 0.9; x < w / 2; x += 0.9) {
       const strip = box(0.03, 0.005, d, stripMat);
-      strip.position.set(x, 0.005, 0);
+      strip.position.set(x, 0.035, 0);
       group.add(strip);
     }
     const back = box(w + 0.4, h, 0.2, wallMat);
@@ -167,9 +176,50 @@ export function createInteriors(scene) {
     }
     const frontW = (w - doorW) / 2;
     for (const sx of [-1, 1]) {
-      const front = box(frontW, h, 0.2, wallMat);
-      front.position.set(sx * (doorW / 2 + frontW / 2), h / 2, d / 2 + 0.1);
-      group.add(front);
+      const frontCenter = sx * (doorW / 2 + frontW / 2);
+      let hasWin = false;
+      if (windows !== undefined) {
+        for (const wx of windows) {
+          if (Math.sign(wx) === sx) {
+            const winW = 1.2;
+            const winH = 1.4;
+            const winY = 1.0;
+            const leftX = sx === -1 ? -w / 2 : doorW / 2;
+            const rightX = sx === -1 ? -doorW / 2 : w / 2;
+            const wxLeft = wx - winW / 2;
+            const wxRight = wx + winW / 2;
+            
+            const w1 = Math.abs(wxLeft - leftX);
+            if (w1 > 0.01) {
+              const s1 = box(w1, h, 0.2, wallMat);
+              s1.position.set(leftX + w1 / 2, h / 2, d / 2 + 0.1);
+              group.add(s1);
+            }
+            const w2 = Math.abs(rightX - wxRight);
+            if (w2 > 0.01) {
+              const s2 = box(w2, h, 0.2, wallMat);
+              s2.position.set(wxRight + w2 / 2, h / 2, d / 2 + 0.1);
+              group.add(s2);
+            }
+            const b1 = box(winW, winY, 0.2, wallMat);
+            b1.position.set(wx, winY / 2, d / 2 + 0.1);
+            group.add(b1);
+            const tH = h - (winY + winH);
+            if (tH > 0.01) {
+              const t1 = box(winW, tH, 0.2, wallMat);
+              t1.position.set(wx, h - tH / 2, d / 2 + 0.1);
+              group.add(t1);
+            }
+            hasWin = true;
+            break;
+          }
+        }
+      }
+      if (!hasWin) {
+        const front = box(frontW, h, 0.2, wallMat);
+        front.position.set(frontCenter, h / 2, d / 2 + 0.1);
+        group.add(front);
+      }
     }
     const lintel = box(doorW, h - 2.2, 0.2, wallMat);
     lintel.position.set(0, 2.2 + (h - 2.2) / 2, d / 2 + 0.1);
@@ -185,22 +235,17 @@ export function createInteriors(scene) {
     const group = new THREE.Group();
     const origin = new THREE.Vector3(0, 0, -100);
     group.position.copy(origin);
-    makeRoom(group, 10, 8, 3.4, mat(0x7a5a36, 1), mat(0x75512c, 1), 1.4);
+    makeRoom(group, 10, 8, 3.4, mat(0x7a5a36, 1), mat(0x75512c, 1), 1.4, [-2.8, 2.8]);
 
     for (const sx of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.position.set(sx * 0.62, 1.05, 4.14);
       const door = box(0.55, 1.15, 0.05, woodLight);
-      door.position.set(sx * 0.33, 1.05, 4.14);
-      door.rotation.y = sx * 0.55;
-      group.add(door);
-    }
-    for (const sx of [-1, 1]) {
-      const winGlow = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.9, 1),
-        new THREE.MeshStandardMaterial({ color: 0xffe9b8, emissive: 0xffdf9a, emissiveIntensity: 0.55, roughness: 1 })
-      );
-      winGlow.position.set(sx * 2.6, 1.7, 4.19);
-      winGlow.rotation.y = Math.PI;
-      group.add(winGlow);
+      door.position.set(sx * -0.275, 0, 0);
+      pivot.add(door);
+      pivot.rotation.y = sx * 0.18;
+      group.add(pivot);
+      saloonDoorAnim.push({ pivot: pivot, side: sx, rest: sx * 0.18, t: -1 });
     }
 
     const barBody = box(0.75, 1.02, 4.5, woodDark);
@@ -306,7 +351,6 @@ export function createInteriors(scene) {
     pianist.group.rotation.y = Math.PI;
     addAmbient(group, "patron1", -0.35, SEAT_Y, -1.7, Math.PI / 2, true, false);
     addAmbient(group, "patron2", 1.55, SEAT_Y, -1.7, -Math.PI / 2, true, true);
-    addAmbient(group, "patron3", -2.65, SEAT_Y, 0.4, -Math.PI / 2, true, false);
 
     group.visible = false;
     scene.add(group);
@@ -330,7 +374,7 @@ export function createInteriors(scene) {
     const group = new THREE.Group();
     const origin = new THREE.Vector3(40, 0, -100);
     group.position.copy(origin);
-    makeRoom(group, 8, 6, 3.2, mat(0x7a5c38, 1), mat(0x5f3f22, 1), 1.1);
+    makeRoom(group, 8, 6, 3.2, mat(0x7a5c38, 1), mat(0x5f3f22, 1), 1.1, [-2.1, 2.1]);
 
     const deskTop = box(1.6, 0.08, 0.85, woodLight);
     deskTop.position.set(-0.4, 0.78, -0.7);
@@ -403,8 +447,7 @@ export function createInteriors(scene) {
       group.add(rifle);
     }
 
-    const star = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.04, 5), mat(0xe8b64c, 0.4));
-    star.rotation.x = Math.PI / 2;
+    const star = makeStarMesh(0.22, 0.04, mat(0xe8b64c, 0.4));
     star.position.set(0.9, 2.3, -2.86);
     group.add(star);
 
@@ -451,7 +494,7 @@ export function createInteriors(scene) {
     const group = new THREE.Group();
     const origin = new THREE.Vector3(80, 0, -100);
     group.position.copy(origin);
-    makeRoom(group, 10, 7, 3.4, mat(0x9a8468, 1), mat(0x7a6a52, 1), 1.3);
+    makeRoom(group, 10, 7, 3.4, mat(0x9a8468, 1), mat(0x7a6a52, 1), 1.3, [-2.8, 2.8]);
 
     const counter = box(7, 1.05, 0.55, woodDark);
     counter.position.set(0, 0.525, -0.5);
@@ -461,16 +504,18 @@ export function createInteriors(scene) {
     group.add(counterTop);
     for (let i = 0; i < 30; i++) {
       const x = -3.4 + i * 0.235;
-      if (Math.abs(x + 1.6) < 0.4 || Math.abs(x - 1.6) < 0.4) {
+      if (Math.abs(x) < 2.9) {
         continue;
       }
       const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 1.25, 5), mat(0xd8b13c, 0.45));
       bar.position.set(x, 1.75, -0.5);
       group.add(bar);
     }
-    const barsTop = box(7.2, 0.08, 0.1, woodDark);
-    barsTop.position.set(0, 2.4, -0.5);
-    group.add(barsTop);
+    for (const bx of [-3.15, 3.15]) {
+      const barsTop = box(0.6, 0.08, 0.1, woodDark);
+      barsTop.position.set(bx, 2.4, -0.5);
+      group.add(barsTop);
+    }
 
     const vault = box(2.1, 2.5, 0.8, mat(0x4a4a52, 0.45));
     vault.position.set(0, 1.25, -3.05);
@@ -527,8 +572,6 @@ export function createInteriors(scene) {
     group.add(lamp(0, 2.6, 2.4, 0xffe2b8, 1.4, 16));
     group.add(lamp(0, 2.2, -2.2, 0xffc98a, 1.6, 10));
 
-    addAmbient(group, "clerk", -1.6, 0, -1.15, 0, false, false);
-
     group.visible = false;
     scene.add(group);
     sets.bank = {
@@ -563,7 +606,7 @@ export function createInteriors(scene) {
     group.position.copy(origin);
 
     const dirt = box(15, 0.12, 13, mat(0x4a3b2a, 1));
-    dirt.position.y = -0.06;
+    dirt.position.y = -0.03;
     group.add(dirt);
 
     const fenceMat = mat(0x3a2a18, 1);
@@ -631,27 +674,19 @@ export function createInteriors(scene) {
         group.add(stone);
       }
       const mound = box(0.6, 0.1, 1.1, mat(0x54432e, 1));
-      mound.position.set(spot[0], 0.05, spot[1] + 0.8);
+      mound.position.set(spot[0], 0.08, spot[1] + 0.8);
       group.add(mound);
     }
 
     const hole = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 2), new THREE.MeshBasicMaterial({ color: 0x0a0805 }));
     hole.rotation.x = -Math.PI / 2;
-    hole.position.set(1.4, 0.005, 0.8);
+    hole.position.set(1.4, 0.036, 0.8);
     group.add(hole);
     const digMound = box(0.8, 0.34, 1.6, mat(0x54432e, 1));
-    digMound.position.set(2.4, 0.17, 0.8);
+    digMound.position.set(2.8, 0.17, 0.8);
     group.add(digMound);
-    const shovelStick = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.3, 6), wood);
-    shovelStick.position.set(2.5, 0.75, 0.3);
-    shovelStick.rotation.z = -0.3;
-    group.add(shovelStick);
-    const shovelBlade = box(0.16, 0.22, 0.03, iron);
-    shovelBlade.position.set(2.7, 0.18, 0.3);
-    shovelBlade.rotation.z = -0.3;
-    group.add(shovelBlade);
     const coffin = box(0.55, 1.85, 0.32, woodDark);
-    coffin.position.set(3.5, 0.9, 1.4);
+    coffin.position.set(3.9, 0.9, 1.4);
     coffin.rotation.z = 0.18;
     coffin.rotation.x = -0.12;
     group.add(coffin);
@@ -724,10 +759,36 @@ export function createInteriors(scene) {
     return new THREE.Vector3(local[0] + set.origin.x, local[1], local[2] + set.origin.z);
   }
 
+  let saloonDoorsOpen = false;
+  function setSaloonDoors(open) {
+    saloonDoorsOpen = open;
+    if (!open) {
+      for (const d of saloonDoorAnim) {
+        d.t = 0;
+      }
+    }
+  }
+
   function update(dt) {
     for (const entry of ambients) {
       if (entry.set.visible) {
         entry.body.update(dt);
+      }
+    }
+    if (sets.saloon !== undefined && sets.saloon.group.visible) {
+      for (const d of saloonDoorAnim) {
+        if (saloonDoorsOpen) {
+          const target = d.rest - d.side * 1.6;
+          d.pivot.rotation.y += (target - d.pivot.rotation.y) * Math.min(1, dt * 7);
+        } else if (d.t >= 0) {
+          d.t += dt;
+          const decay = Math.max(0, 1 - d.t / 1.5);
+          d.pivot.rotation.y = d.rest - d.side * Math.sin(d.t * 8.5) * 1.2 * decay;
+          if (d.t >= 1.5) {
+            d.pivot.rotation.y = d.rest;
+            d.t = -1;
+          }
+        }
       }
     }
   }
@@ -737,6 +798,8 @@ export function createInteriors(scene) {
     show: show,
     hideAll: hideAll,
     spot: spot,
+    setSaloonDoors: setSaloonDoors,
+    setAmbientVisible: setAmbientVisible,
     update: update
   };
 }

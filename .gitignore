@@ -3,3 +3,5 @@ dist
 crazygames-upload
 .DS_Store
 *.zip
+.env
+.env.*
