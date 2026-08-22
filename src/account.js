@@ -243,6 +243,9 @@ function mapProfileError(error) {
   if (error.message.indexOf("duplicate key") !== -1 || error.code === "23505") {
     return "taken";
   }
+  if (error.message.indexOf("pseudo_profane") !== -1) {
+    return "profane";
+  }
   if (error.message.indexOf("pseudo_format") !== -1 || error.code === "23514") {
     return "invalid";
   }

@@ -15,9 +15,10 @@ import { createRng, randomSeed } from "./rng.js";
 import { netAvailable, getClient, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineState, setOnlineState, listenChallenges, listenEvents, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
 import { getLang, setLang, t, applyStatic, autoTranslate } from "./i18n.js";
 import { getMouseSensPct, setMouseSensPct } from "./settings.js";
+import { isProfane } from "./profanity.js";
 import { COMMUNITY_URL } from "./config.js";
 import { initSdk, isCrazyGames, isRealCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer, showCgAuthPrompt, submitCgScore, isCgAuthenticated, maybeAccountLink, onCgAuthChange, cgAudioMuted, onCgSettingsChange, reportProgress, updateCgRoom, leftCgRoom, onCgRoomJoin, cgLocale } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, wasProfileCreated, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, isItemUnseen, markItemSeen, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved, seasonInfo, passStateFetch, claimPassLevel, adState, adCase, adWatchItem, eventState, eventClaim, storyXp, storyReward, freeDraws, playerLevel, playerLevelProgress, bumpPlaytime } from "./account.js";
+import { initAccount, getProfile, ensureAccount, renamePseudo, wasProfileCreated, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, isItemUnseen, markItemSeen, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved, seasonInfo, passStateFetch, claimPassLevel, adState, adCase, adWatchItem, eventState, eventClaim, storyXp, storyReward, freeDraws, playerLevel, playerLevelProgress, bumpPlaytime } from "./account.js";
 import { SKINS, skinById, portraitDataUrl, aiSkinFor, rarityOf, skinRarity } from "./skins.js";
 import { ACCESSORIES, accessoryById, accessoryIconDataUrl, accessoryRarity, seasonBadgeInfo, seasonTitleInfo } from "./accessories.js";
 import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
@@ -314,6 +315,132 @@ el("settings-close").addEventListener("click", function () {
 el("settings-panel").addEventListener("click", function (e) {
   if (e.target === el("settings-panel")) {
     el("settings-panel").classList.add("hidden");
+  }
+});
+
+const PSEUDO_RE = /^[A-Za-z0-9_ .-]{3,16}$/;
+
+function showPseudoMsg(text, ok) {
+  const node = el("pseudo-msg");
+  node.textContent = text;
+  node.className = ok ? "pseudo-msg ok-text" : "pseudo-msg";
+}
+
+function hidePseudoMsg() {
+  el("pseudo-msg").className = "pseudo-msg hidden";
+}
+
+function closePseudoEdit() {
+  el("pseudo-edit-row").classList.add("hidden");
+  el("profile-name-row").classList.remove("hidden");
+  hidePseudoMsg();
+}
+
+function refreshPseudoEdit() {
+  const pencil = el("btn-pseudo-edit");
+  const profile = getProfile();
+  closePseudoEdit();
+  if (profile === null || viewingFriend) {
+    pencil.classList.add("hidden");
+    return;
+  }
+  if (!isCrazyGames()) {
+    pencil.classList.remove("hidden");
+    return;
+  }
+  isCgAuthenticated().then(function (auth) {
+    if (auth) {
+      pencil.classList.add("hidden");
+    } else {
+      pencil.classList.remove("hidden");
+    }
+  });
+}
+
+function openPseudoEdit() {
+  const profile = getProfile();
+  if (profile === null) {
+    return;
+  }
+  el("pseudo-input").value = profile.pseudo;
+  el("profile-name-row").classList.add("hidden");
+  el("pseudo-edit-row").classList.remove("hidden");
+  hidePseudoMsg();
+  el("pseudo-input").focus();
+  el("pseudo-input").select();
+}
+
+async function savePseudo() {
+  const profile = getProfile();
+  if (profile === null) {
+    return;
+  }
+  const value = el("pseudo-input").value.trim();
+  if (value === profile.pseudo) {
+    closePseudoEdit();
+    return;
+  }
+  if (!PSEUDO_RE.test(value)) {
+    showPseudoMsg(t("pseudoInvalid"), false);
+    return;
+  }
+  if (isProfane(value)) {
+    showPseudoMsg(t("pseudoProfane"), false);
+    return;
+  }
+  const btn = el("btn-pseudo-save");
+  btn.disabled = true;
+  const result = await renamePseudo(value);
+  btn.disabled = false;
+  if (result.ok) {
+    el("profile-name").textContent = value;
+    closePseudoEdit();
+    showPseudoMsg(t("pseudoOk"), true);
+    renderWantedPosterEl(el("profile-poster"), {
+      pseudo: value,
+      title: profile.prime + " $",
+      skin: profile.skin,
+      acc: profile.accessories,
+      weapon: profile.weapon,
+      width: 250
+    });
+    renderProfileChip();
+    return;
+  }
+  if (result.reason === "taken") {
+    showPseudoMsg(t("pseudoTaken"), false);
+    return;
+  }
+  if (result.reason === "profane") {
+    showPseudoMsg(t("pseudoProfane"), false);
+    return;
+  }
+  if (result.reason === "invalid") {
+    showPseudoMsg(t("pseudoInvalid"), false);
+    return;
+  }
+  showPseudoMsg(t("pseudoError"), false);
+}
+
+el("btn-pseudo-edit").addEventListener("click", function () {
+  audio.uiClick();
+  openPseudoEdit();
+});
+el("btn-pseudo-save").addEventListener("click", function () {
+  audio.uiClick();
+  savePseudo();
+});
+el("btn-pseudo-cancel").addEventListener("click", function () {
+  audio.uiClick();
+  closePseudoEdit();
+});
+el("pseudo-input").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") {
+    savePseudo();
+  }
+  if (e.key === "Escape") {
+    e.stopPropagation();
+    closePseudoEdit();
   }
 });
 
@@ -1349,6 +1476,7 @@ async function openProfile() {
   viewingFriend = false;
   el("screen-profile").classList.remove("viewing-friend");
   el("profile-name").textContent = profile.pseudo;
+  refreshPseudoEdit();
   renderWantedPosterEl(el("profile-poster"), {
     pseudo: profile.pseudo,
     title: profile.prime + " $",
@@ -1424,6 +1552,7 @@ function openFriendProfile(entry) {
   viewingFriend = true;
   el("friends-bar").classList.remove("open");
   el("profile-name").textContent = entry.pseudo;
+  refreshPseudoEdit();
   renderWantedPosterEl(el("profile-poster"), {
     pseudo: entry.pseudo,
     title: (entry.prime != null ? entry.prime : 0) + " $",
@@ -2302,7 +2431,9 @@ function renderFriends() {
           inviteAnyFriend();
         }));
       }
-      row.appendChild(cgBadge());
+      if (isCrazyGames()) {
+        row.appendChild(cgBadge());
+      }
     } else if (entry.status === "pending") {
       sub.textContent = t("friendsPending");
       if (entry.incoming) {
@@ -2945,7 +3076,7 @@ function startSearch() {
   ui.showScreen("screen-search");
   ui.searchTick(0);
   let seconds = 0;
-  const botMatchSeconds = 10 + Math.floor(Math.random() * 11);
+  const botMatchSeconds = 5 + Math.floor(Math.random() * 4);
   let myPid = null;
   const searchProfile = getProfile();
   if (searchProfile !== null) {
@@ -2956,11 +3087,11 @@ function startSearch() {
     seconds += 1;
     ui.searchTick(seconds);
     updateTrainingBadge(seconds);
-    if (seconds >= botMatchSeconds) {
+    if (seconds >= botMatchSeconds && (matchmaker === null || !matchmaker.isPairing())) {
       startRankedBotDuel();
     }
   }, 1000);
-  matchmaker.search({
+  const searchCallbacks = {
     onMatched: function (room) {
       stopSearch();
       const wasTraining = trainingActive;
@@ -2980,7 +3111,14 @@ function startSearch() {
         startNetDuel(room, true, false);
       }, 2000);
     },
-    onPairFailed: function () {},
+    onPairFailed: function () {
+      if (matchmaker === null) {
+        return;
+      }
+      matchmaker.cancel();
+      matchmaker = createMatchmaker(myPid);
+      matchmaker.search(searchCallbacks);
+    },
     onError: function () {
       const wasTraining = trainingActive;
       stopSearch();
@@ -2990,7 +3128,8 @@ function startSearch() {
         alert(t("connectError"));
       }
     }
-  });
+  };
+  matchmaker.search(searchCallbacks);
 }
 
 function updateTrainingBadge(seconds) {
@@ -4119,8 +4258,19 @@ async function syncCgAccount() {
   updateNotifs();
 }
 
+const BOOT_STEP_TIMEOUT = 8000;
+
+function bootStep(promise) {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise(function (resolve) {
+      setTimeout(resolve, BOOT_STEP_TIMEOUT);
+    })
+  ]);
+}
+
 async function boot() {
-  await initSdk();
+  await bootStep(initSdk());
   restoreStoryBackup();
   loadingStart();
   audio.setMuted(cgAudioMuted());
@@ -4159,6 +4309,11 @@ async function boot() {
     }
     el("friend-code").classList.add("hidden");
     el("btn-home-reward").classList.remove("hidden");
+    const logo = el("cg-login-logo");
+    if (logo !== null) {
+      logo.src = "https://www.google.com/s2/favicons?domain=crazygames.com&sz=64";
+      logo.style.display = "";
+    }
   }
   if (netAvailable()) {
     el("profile-chip").classList.remove("hidden");
@@ -4167,10 +4322,12 @@ async function boot() {
     el("chip-head").src = portraitDataUrl("drifter", 128);
   }
   try {
-    await initAccount();
+    await bootStep(initAccount());
   } catch (err) {}
   if (netAvailable() && getProfile() === null) {
-    await ensureAccount();
+    try {
+      await bootStep(ensureAccount());
+    } catch (err) {}
   }
   el("profile-chip").classList.remove("loading");
   const bootProfile = getProfile();
@@ -4185,7 +4342,9 @@ async function boot() {
     el("challenges-toggle").classList.remove("hidden");
     renderFriends();
     renderChallenges();
-    await initSocial();
+    try {
+      await bootStep(initSocial());
+    } catch (err) {}
   }
 
   loadingStop();

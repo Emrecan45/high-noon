@@ -10,7 +10,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Rye&family=Special+Elite&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./src/style.css" />
-  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 </head>
 <body>
   <div id="boot-loading">
@@ -153,7 +152,7 @@
       </div>
     <div style="position: absolute; bottom: 20px; left: max(var(--edge), calc(env(safe-area-inset-left))); z-index: 20;">
       <button id="btn-cg-login" class="btn btn-cg-login hidden" style="margin: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-        <img src="https://www.google.com/s2/favicons?domain=crazygames.com&sz=64" alt="CG" style="width: 52px; height: 52px; vertical-align: middle; margin-left: 24px; margin-right: 12px; border-radius: 10px;">
+        <img id="cg-login-logo" alt="" style="width: 52px; height: 52px; vertical-align: middle; margin-left: 24px; margin-right: 12px; border-radius: 10px; display: none;">
         <span data-i18n="cgLogin" style="vertical-align: middle;">Se Connecter</span>
       </button>
     </div>
@@ -191,7 +190,16 @@
 
   <div id="screen-profile" class="screen docked hidden">
     <div id="profile-left-area">
-      <h2 id="profile-name"></h2>
+      <div id="profile-name-row">
+        <h2 id="profile-name"></h2>
+        <button id="btn-pseudo-edit" class="pseudo-pencil hidden" aria-label="Edit nickname">✏️</button>
+      </div>
+      <div id="pseudo-edit-row" class="hidden">
+        <input id="pseudo-input" type="text" maxlength="16" autocomplete="off" spellcheck="false" />
+        <button id="btn-pseudo-save" class="btn btn-small" data-i18n="pseudoSave"></button>
+        <button id="btn-pseudo-cancel" class="btn btn-small" data-i18n="back"></button>
+      </div>
+      <p id="pseudo-msg" class="pseudo-msg hidden"></p>
       <div id="profile-id-row">
         <span id="profile-id"></span>
         <button id="btn-copy-id" class="btn btn-small" data-i18n="copyId"></button>

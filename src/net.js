@@ -240,9 +240,14 @@ export function createMatchmaker(myProfileId, lobbyName) {
     leaveLobby();
   }
 
+  function isPairing() {
+    return pairing;
+  }
+
   return {
     search: search,
-    cancel: cancel
+    cancel: cancel,
+    isPairing: isPairing
   };
 }
 

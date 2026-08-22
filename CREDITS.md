@@ -38,6 +38,12 @@ L'audio utilise des enregistrements sous licences libres (CC0 ou Domaine Public)
 | Bruitages divers (portes, cloches) | rubberduck | https://opengameart.org/content/100-cc0-sfx |
 | Impacts, pas, interface | Kenney | https://kenney.nl/assets |
 
+### Données
+
+| Ressource | Auteur | Licence | Source |
+|-----------|--------|---------|--------|
+| Listes de mots interdits (7 langues) | Shutterstock (LDNOOBW) | CC BY 4.0 | https://github.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words |
+
 ## 🛠️ Outils & bibliothèques
 
 | Outil | Usage |

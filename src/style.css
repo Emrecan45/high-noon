@@ -236,6 +236,67 @@ body.ui-scaled #backdrop {
   flex: 1 0 100%;
 }
 
+#profile-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pseudo-pencil {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 4px;
+  opacity: 0.75;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.pseudo-pencil:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+#pseudo-edit-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+#pseudo-edit-row .btn-small {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+  font-size: 11px;
+  padding: 6px 12px;
+}
+
+#pseudo-input {
+  width: 180px;
+  font-family: "Special Elite", Georgia, serif;
+  font-size: 14px;
+  color: #f3e4c2;
+  background: rgba(20, 12, 6, 0.85);
+  border: 2px solid #7a4c15;
+  border-radius: 4px;
+  padding: 6px 8px;
+  outline: none;
+}
+
+.pseudo-msg {
+  font-size: 13px;
+  color: #ff9a7c;
+  margin: 0;
+  text-align: center;
+}
+
+.pseudo-msg.ok-text {
+  color: #8fd48a;
+}
+
 #sens-value,
 #music-value,
 #sfx-value {
