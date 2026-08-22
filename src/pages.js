@@ -292,7 +292,7 @@ const LEGAL = {
     privacy: { title: "Privacy", body:
       "<p>An anonymous account is created to save your name, rank, coins and outfits.</p>" +
       "<p>No personal data is requested or sold.</p>" +
-      "<p>Preferences (volume, language) are stored locally in your browser.</p>" },
+      "<p>Preferences (volume, language, aim sensitivity) are stored locally in your browser.</p>" },
     contact: { title: "Contact", body:
       "<p>A bug, an idea, a question?</p>" +
       "<p>Reach the developer through the portfolio: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -305,7 +305,7 @@ const LEGAL = {
     privacy: { title: "Confidentialité", body:
       "<p>Un compte anonyme est créé pour sauvegarder ton pseudo, ton rang, tes pièces et tes tenues.</p>" +
       "<p>Aucune donnée personnelle n'est demandée ni revendue.</p>" +
-      "<p>Les préférences (volume, langue) sont stockées localement dans ton navigateur.</p>" },
+      "<p>Les préférences (volume, langue, sensibilité de visée) sont stockées localement dans ton navigateur.</p>" },
     contact: { title: "Contact", body:
       "<p>Un bug, une idée, une question ?</p>" +
       "<p>Écris au développeur via son portfolio : <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -318,7 +318,7 @@ const LEGAL = {
     privacy: { title: "Privacidad", body:
       "<p>Se crea una cuenta anónima para guardar tu nombre, rango, monedas y atuendos.</p>" +
       "<p>No se pide ni se vende ningún dato personal.</p>" +
-      "<p>Las preferencias (volumen, idioma) se guardan localmente en tu navegador.</p>" },
+      "<p>Las preferencias (volumen, idioma, sensibilidad de puntería) se guardan localmente en tu navegador.</p>" },
     contact: { title: "Contacto", body:
       "<p>¿Un error, una idea, una pregunta?</p>" +
       "<p>Contacta al desarrollador en su portfolio: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -331,7 +331,7 @@ const LEGAL = {
     privacy: { title: "Datenschutz", body:
       "<p>Ein anonymes Konto wird erstellt, um Name, Rang, Münzen und Outfits zu speichern.</p>" +
       "<p>Es werden keine persönlichen Daten abgefragt oder verkauft.</p>" +
-      "<p>Einstellungen (Lautstärke, Sprache) werden lokal in deinem Browser gespeichert.</p>" },
+      "<p>Einstellungen (Lautstärke, Sprache, Zielempfindlichkeit) werden lokal in deinem Browser gespeichert.</p>" },
     contact: { title: "Kontakt", body:
       "<p>Ein Fehler, eine Idee, eine Frage?</p>" +
       "<p>Erreiche den Entwickler über sein Portfolio: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -344,7 +344,7 @@ const LEGAL = {
     privacy: { title: "Privacidade", body:
       "<p>Uma conta anónima é criada para guardar o teu nome, patente, moedas e trajes.</p>" +
       "<p>Nenhum dado pessoal é pedido ou vendido.</p>" +
-      "<p>As preferências (volume, idioma) ficam guardadas localmente no teu navegador.</p>" },
+      "<p>As preferências (volume, idioma, sensibilidade de mira) ficam guardadas localmente no teu navegador.</p>" },
     contact: { title: "Contato", body:
       "<p>Um bug, uma ideia, uma pergunta?</p>" +
       "<p>Fala com o desenvolvedor pelo portfólio: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -357,7 +357,7 @@ const LEGAL = {
     privacy: { title: "Конфиденциальность", body:
       "<p>Создаётся анонимный аккаунт для сохранения имени, ранга, монет и нарядов.</p>" +
       "<p>Личные данные не запрашиваются и не продаются.</p>" +
-      "<p>Настройки (громкость, язык) хранятся локально в браузере.</p>" },
+      "<p>Настройки (громкость, язык, чувствительность прицела) хранятся локально в браузере.</p>" },
     contact: { title: "Контакт", body:
       "<p>Баг, идея, вопрос?</p>" +
       "<p>Свяжись с разработчиком через портфолио: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -370,7 +370,7 @@ const LEGAL = {
     privacy: { title: "Gizlilik", body:
       "<p>Adını, rütbeni, altınlarını ve kıyafetlerini kaydetmek için anonim bir hesap oluşturulur.</p>" +
       "<p>Kişisel veri istenmez veya satılmaz.</p>" +
-      "<p>Tercihler (ses, dil) tarayıcında yerel olarak saklanır.</p>" },
+      "<p>Tercihler (ses, dil, nişan hassasiyeti) tarayıcında yerel olarak saklanır.</p>" },
     contact: { title: "İletişim", body:
       "<p>Bir hata, bir fikir, bir soru mu?</p>" +
       "<p>Geliştiriciye portfolyosundan ulaş: <a href=\"https://emrecan45.github.io\" target=\"_blank\">emrecan45.github.io</a></p>" }
@@ -393,6 +393,7 @@ const CREDITS_BODY =
   "<p><strong>🎵</strong> Desert Theme - Umplix - Western ShowDown - HoliznaCC0 - Maple Leaf Rag - Scott Joplin - No Country For Old Alex - Pro Sensory - Spaghetti Western - Spring Spring - Un désert - Komiku - Miniature Saloon - Zane Little Music - Gone with the Wind - Graciano Choc</p>" +
   "<p><strong>🔊</strong> The Free Firearm Sound Library - rubberduck - Kenney</p>" +
   "<p><strong>🔤</strong> Rye - Special Elite (Google Fonts)</p>" +
+  "<p><strong>🛡️</strong> List of Dirty, Naughty, Obscene and Otherwise Bad Words - Shutterstock (LDNOOBW) - CC BY 4.0</p>" +
   "<p>All Rights Reserved - CC0 / Public Domain</p>";
 
 export function creditsPage(lang) {

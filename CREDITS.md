@@ -57,4 +57,4 @@ L'audio utilise des enregistrements sous licences libres (CC0 ou Domaine Public)
 
 **Emrecan45** - Conception, programmation, level design, et intégration de tous les assets.
 
-Les assets tiers sont utilisés conformément à leurs licences respectives (libre de droits / CC0 / Domaine Public). Le code source de High Noon est distribué sous licence Tous droits réservés (voir LICENSE).
+Les assets tiers sont utilisés conformément à leurs licences respectives (libre de droits / CC0 / Domaine Public). Le code source de High Noon est distribué sous licence Tous droits réservés (voir [`LICENSE`](LICENSE)).

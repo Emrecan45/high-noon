@@ -255,14 +255,66 @@ let onlineChannel = null;
 let onlineIds = new Set();
 let onlineStates = new Map();
 let onlineHandler = function () {};
+let onlineLastState = "menu";
+let sessionOwner = null;
+let sessionClaim = 0;
+let sessionActive = true;
+let sessionConflictHandler = null;
+
+function trackPresence(state) {
+  if (onlineChannel === null) {
+    return;
+  }
+  onlineLastState = state;
+  onlineChannel.track({ at: Date.now(), state: state, claim: sessionClaim });
+}
+
+function checkSessionOwnership(state) {
+  if (sessionOwner === null || sessionConflictHandler === null) {
+    return;
+  }
+  const metas = state[sessionOwner];
+  if (!Array.isArray(metas) || metas.length < 2) {
+    if (!sessionActive) {
+      sessionActive = true;
+      sessionConflictHandler(false);
+    }
+    return;
+  }
+  let newest = 0;
+  for (const meta of metas) {
+    const claim = Number(meta && meta.claim);
+    if (Number.isFinite(claim) && claim > newest) {
+      newest = claim;
+    }
+  }
+  const active = sessionClaim >= newest;
+  if (active !== sessionActive) {
+    sessionActive = active;
+    sessionConflictHandler(!active);
+  }
+}
+
+export function reclaimSession() {
+  if (onlineChannel === null) {
+    return;
+  }
+  sessionClaim = Date.now();
+  sessionActive = true;
+  trackPresence(onlineLastState);
+}
 let personalChannel = null;
 
-export function goOnline(profileId, onSync, onFriendUpdate, onBan) {
+export function goOnline(profileId, onSync, onFriendUpdate, onBan, onSessionConflict) {
   if (onlineChannel !== null) {
     return;
   }
   const supabase = getClient();
   onlineHandler = onSync;
+  sessionOwner = profileId;
+  sessionClaim = Date.now();
+  sessionConflictHandler = typeof onSessionConflict === "function" ? onSessionConflict : null;
+  sessionActive = true;
   onlineChannel = supabase.channel("hn-online", {
     config: { presence: { key: profileId } }
   });
@@ -275,11 +327,12 @@ export function goOnline(profileId, onSync, onFriendUpdate, onBan) {
       const meta = metas && metas.length > 0 ? metas[0] : null;
       onlineStates.set(id, meta && typeof meta.state === "string" ? meta.state : "menu");
     }
+    checkSessionOwnership(state);
     onlineHandler();
   });
   onlineChannel.subscribe(function (status) {
     if (status === "SUBSCRIBED") {
-      onlineChannel.track({ at: Date.now(), state: "menu" });
+      trackPresence("menu");
     }
   });
 
@@ -303,6 +356,22 @@ export function goOnline(profileId, onSync, onFriendUpdate, onBan) {
       })
       .subscribe();
   }
+}
+
+export function goOffline() {
+  if (onlineChannel === null) {
+    return;
+  }
+  try {
+    getClient().removeChannel(onlineChannel);
+  } catch (err) {}
+  onlineChannel = null;
+  onlineHandler = function () {};
+  onlineIds = new Set();
+  onlineStates = new Map();
+  sessionOwner = null;
+  sessionConflictHandler = null;
+  sessionActive = true;
 }
 
 let eventsChannel = null;
@@ -331,10 +400,7 @@ export function onlineState(profileId) {
 }
 
 export function setOnlineState(state) {
-  if (onlineChannel === null) {
-    return;
-  }
-  onlineChannel.track({ at: Date.now(), state: state });
+  trackPresence(state);
 }
 
 export function listenChallenges(profileId, handler, replyHandler, friendsHandler) {

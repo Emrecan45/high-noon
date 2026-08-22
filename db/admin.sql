@@ -111,10 +111,10 @@ begin
   from (
     select id, pseudo, prime, coins, wins, losses, ranked_wins, ranked_losses,
            shots_fired, shots_hit, headshots, win_streak, best_streak,
-           skin, weapon, friend_code, cg_username, banned, ban_reason,
+           skin, weapon, friend_code, cg_username, y8_nickname, banned, ban_reason,
            created_at, last_result_at, last_seen
     from profiles
-    where pseudo ilike q or friend_code ilike q or cg_username ilike q or id::text ilike q
+    where pseudo ilike q or friend_code ilike q or cg_username ilike q or y8_nickname ilike q or id::text ilike q
     order by created_at desc
     offset greatest(coalesce(p_offset, 0), 0)
     limit least(greatest(coalesce(p_limit, 25), 1), 100)
@@ -137,7 +137,7 @@ begin
   from (
     select id, pseudo, prime, coins, wins, losses, ranked_wins, ranked_losses,
            shots_fired, shots_hit, headshots, win_streak, best_streak,
-           skin, weapon, friend_code, cg_username, banned, ban_reason,
+           skin, weapon, friend_code, cg_username, y8_nickname, banned, ban_reason,
            created_at, last_result_at, last_seen
     from profiles
     where banned = true
@@ -159,6 +159,22 @@ begin
 end;
 $$;
 
+create or replace function public.admin_delete_player(p_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform assert_admin();
+  if p_id = auth.uid() then
+    raise exception 'cannot delete self';
+  end if;
+  delete from auth.users where id = p_id;
+  delete from profiles where id = p_id;
+end;
+$$;
+
 create or replace function public.admin_stats()
 returns json
 language plpgsql
@@ -172,6 +188,7 @@ begin
   select json_build_object(
     'players_total', (select count(*) from profiles),
     'players_cg', (select count(*) from profiles where cg_username is not null and cg_username !~ '^User[0-9]+$'),
+    'players_y8', (select count(*) from profiles where y8_pid is not null),
     'players_banned', (select count(*) from profiles where banned),
     'new_today', (select count(*) from profiles where created_at >= date_trunc('day', now())),
     'new_7d', (select count(*) from profiles where created_at >= now() - interval '7 days'),
@@ -219,4 +236,5 @@ grant execute on function public.admin_delete_event(text) to authenticated;
 grant execute on function public.admin_search_players(text, integer, integer) to authenticated;
 grant execute on function public.admin_list_banned() to authenticated;
 grant execute on function public.admin_set_ban(uuid, boolean, text) to authenticated;
+grant execute on function public.admin_delete_player(uuid) to authenticated;
 grant execute on function public.admin_stats() to authenticated;

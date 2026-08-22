@@ -1,9 +1,9 @@
 node_modules
 dist
-dist-gd
-dist-standalone
+dist-y8
 crazygames-upload
 .DS_Store
 *.zip
 .env
 .env.*
+!.env.example

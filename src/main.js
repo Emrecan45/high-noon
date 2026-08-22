@@ -12,15 +12,14 @@ import { createStoryMode } from "./storymode.js";
 import { Gallery } from "./gallery.js";
 import { Duel } from "./duel.js";
 import { createRng, randomSeed } from "./rng.js";
-import { netAvailable, getClient, createMatchmaker, createPrivateRoom, goOnline, isOnline, onlineState, setOnlineState, listenChallenges, listenEvents, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
+import { netAvailable, getClient, createMatchmaker, createPrivateRoom, goOnline, goOffline, reclaimSession, isOnline, onlineState, setOnlineState, listenChallenges, listenEvents, sendChallenge, sendChallengeReply, notifyFriendsChange } from "./net.js";
 import { getLang, setLang, t, applyStatic, autoTranslate } from "./i18n.js";
 import { getMouseSensPct, setMouseSensPct } from "./settings.js";
-import { isProfane } from "./profanity.js";
 import { COMMUNITY_URL } from "./config.js";
-import { initSdk, isCrazyGames, isRealCrazyGames, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer, showCgAuthPrompt, submitCgScore, isCgAuthenticated, maybeAccountLink, onCgAuthChange, cgAudioMuted, onCgSettingsChange, reportProgress, updateCgRoom, leftCgRoom, onCgRoomJoin, cgLocale } from "./sdk.js";
-import { initAccount, getProfile, ensureAccount, renamePseudo, wasProfileCreated, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, isItemUnseen, markItemSeen, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved, seasonInfo, passStateFetch, claimPassLevel, adState, adCase, adWatchItem, eventState, eventClaim, storyXp, storyReward, freeDraws, playerLevel, playerLevelProgress, bumpPlaytime } from "./account.js";
+import { initSdk, platformName, isCrazyGames, isRealCrazyGames, isPortal, accountAvailable, authBrand, rewardedAvailable, loadingStart, loadingStop, requestMidgameAd, requestRewardedAd, getCgUser, getInviteParam, inviteLink, showInviteButton, hideInviteButton, isInstantMultiplayer, showCgAuthPrompt, submitCgScore, isCgAuthenticated, maybeAccountLink, onCgAuthChange, cgAudioMuted, onCgSettingsChange, reportProgress, updateCgRoom, leftCgRoom, onCgRoomJoin, cgLocale } from "./sdk.js";
+import { initAccount, getProfile, ensureAccount, wasProfileCreated, localPseudo, ownedSkins, ownedAccessories, ownedWeaponsSet, isItemUnseen, markItemSeen, equipSkin, equipAccessories, equipWeapon, spinWheel, reportResult, recordStats, claimAdReward, challengeState, claimChallenge, fetchLeaderboard, listFriends, sendFriendRequest, respondFriendRequest, removeFriend, cgFriendsResolved, seasonInfo, passStateFetch, claimPassLevel, adState, adCase, adWatchItem, eventState, eventClaim, storyXp, storyReward, freeDraws, playerLevel, playerLevelProgress, bumpPlaytime } from "./account.js";
 import { SKINS, skinById, portraitDataUrl, aiSkinFor, rarityOf, skinRarity } from "./skins.js";
-import { ACCESSORIES, accessoryById, accessoryIconDataUrl, accessoryRarity, seasonBadgeInfo, seasonTitleInfo } from "./accessories.js";
+import { ACCESSORIES, accessoryById, accessoryIconDataUrl, accessoryRarity, seasonBadgeInfo, seasonTitleInfo, seasonTitleLabel } from "./accessories.js";
 import { WEAPONS, weaponById, weaponIconDataUrl } from "./weapons.js";
 import { patchNotes, legalPage, creditsPage, LATEST_VERSION } from "./pages.js";
 import { renderWantedPosterEl } from "./wanted.js";
@@ -92,6 +91,8 @@ let activeMinigame = null;
 let copyTimer = null;
 let addMsgTimer = null;
 let socialReady = false;
+let socialProfileId = null;
+let socialTimer = null;
 let friendsCache = [];
 let toastTimer = null;
 let spinning = false;
@@ -255,6 +256,7 @@ const langSelect = el("lang-select");
 langSelect.value = getLang();
 langSelect.addEventListener("change", function () {
   setLang(langSelect.value);
+  localStorage.setItem("hn-lang-manual", "1");
   applyStatic();
   refreshTownTexts();
   renderProfileChip();
@@ -318,131 +320,21 @@ el("settings-panel").addEventListener("click", function (e) {
   }
 });
 
-const PSEUDO_RE = /^[A-Za-z0-9_ .-]{3,16}$/;
-
-function showPseudoMsg(text, ok) {
-  const node = el("pseudo-msg");
-  node.textContent = text;
-  node.className = ok ? "pseudo-msg ok-text" : "pseudo-msg";
+function applyAuthBrand() {
+  const brand = authBrand();
+  if (brand === null) {
+    return;
+  }
+  const btn = el("btn-cg-login");
+  btn.style.setProperty("--brand", brand.color);
+  btn.style.setProperty("--brand-shade", brand.shade);
+  btn.style.setProperty("--brand-edge", brand.edge);
+  btn.style.setProperty("--brand-text", brand.text);
+  el("cg-login-label").textContent = t("cgLogin");
+  const logo = el("cg-login-logo");
+  logo.src = brand.logo;
+  logo.style.display = "";
 }
-
-function hidePseudoMsg() {
-  el("pseudo-msg").className = "pseudo-msg hidden";
-}
-
-function closePseudoEdit() {
-  el("pseudo-edit-row").classList.add("hidden");
-  el("profile-name-row").classList.remove("hidden");
-  hidePseudoMsg();
-}
-
-function refreshPseudoEdit() {
-  const pencil = el("btn-pseudo-edit");
-  const profile = getProfile();
-  closePseudoEdit();
-  if (profile === null || viewingFriend) {
-    pencil.classList.add("hidden");
-    return;
-  }
-  if (!isCrazyGames()) {
-    pencil.classList.remove("hidden");
-    return;
-  }
-  isCgAuthenticated().then(function (auth) {
-    if (auth) {
-      pencil.classList.add("hidden");
-    } else {
-      pencil.classList.remove("hidden");
-    }
-  });
-}
-
-function openPseudoEdit() {
-  const profile = getProfile();
-  if (profile === null) {
-    return;
-  }
-  el("pseudo-input").value = profile.pseudo;
-  el("profile-name-row").classList.add("hidden");
-  el("pseudo-edit-row").classList.remove("hidden");
-  hidePseudoMsg();
-  el("pseudo-input").focus();
-  el("pseudo-input").select();
-}
-
-async function savePseudo() {
-  const profile = getProfile();
-  if (profile === null) {
-    return;
-  }
-  const value = el("pseudo-input").value.trim();
-  if (value === profile.pseudo) {
-    closePseudoEdit();
-    return;
-  }
-  if (!PSEUDO_RE.test(value)) {
-    showPseudoMsg(t("pseudoInvalid"), false);
-    return;
-  }
-  if (isProfane(value)) {
-    showPseudoMsg(t("pseudoProfane"), false);
-    return;
-  }
-  const btn = el("btn-pseudo-save");
-  btn.disabled = true;
-  const result = await renamePseudo(value);
-  btn.disabled = false;
-  if (result.ok) {
-    el("profile-name").textContent = value;
-    closePseudoEdit();
-    showPseudoMsg(t("pseudoOk"), true);
-    renderWantedPosterEl(el("profile-poster"), {
-      pseudo: value,
-      title: profile.prime + " $",
-      skin: profile.skin,
-      acc: profile.accessories,
-      weapon: profile.weapon,
-      width: 250
-    });
-    renderProfileChip();
-    return;
-  }
-  if (result.reason === "taken") {
-    showPseudoMsg(t("pseudoTaken"), false);
-    return;
-  }
-  if (result.reason === "profane") {
-    showPseudoMsg(t("pseudoProfane"), false);
-    return;
-  }
-  if (result.reason === "invalid") {
-    showPseudoMsg(t("pseudoInvalid"), false);
-    return;
-  }
-  showPseudoMsg(t("pseudoError"), false);
-}
-
-el("btn-pseudo-edit").addEventListener("click", function () {
-  audio.uiClick();
-  openPseudoEdit();
-});
-el("btn-pseudo-save").addEventListener("click", function () {
-  audio.uiClick();
-  savePseudo();
-});
-el("btn-pseudo-cancel").addEventListener("click", function () {
-  audio.uiClick();
-  closePseudoEdit();
-});
-el("pseudo-input").addEventListener("keydown", function (e) {
-  if (e.key === "Enter") {
-    savePseudo();
-  }
-  if (e.key === "Escape") {
-    e.stopPropagation();
-    closePseudoEdit();
-  }
-});
 
 let audioBooted = false;
 let menuMusicAllowed = false;
@@ -509,6 +401,47 @@ function adMuteOff() {
   if (audio.ctx !== null) {
     audio.ctx.resume();
   }
+}
+
+function legacyCopy(text) {
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.setAttribute("readonly", "");
+  area.style.position = "fixed";
+  area.style.top = "0";
+  area.style.left = "0";
+  area.style.opacity = "0";
+  document.body.appendChild(area);
+  area.focus();
+  area.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy") === true;
+  } catch (err) {
+    ok = false;
+  }
+  area.remove();
+  return ok;
+}
+
+function copyText(text, onDone) {
+  let pending = null;
+  try {
+    if (navigator.clipboard !== undefined && typeof navigator.clipboard.writeText === "function") {
+      pending = navigator.clipboard.writeText(text);
+    }
+  } catch (err) {
+    pending = null;
+  }
+  if (pending === null || pending === undefined || typeof pending.then !== "function") {
+    onDone(legacyCopy(text));
+    return;
+  }
+  pending.then(function () {
+    onDone(true);
+  }).catch(function () {
+    onDone(legacyCopy(text));
+  });
 }
 
 function showToast(text, onAccept, onDecline, durationMs = 6000, onTimeout = null) {
@@ -581,7 +514,6 @@ function nextPopup() {
 
 el("btn-popup-ok").addEventListener("click", function () {
   bootAudio();
-  audio.uiClick();
   nextPopup();
 });
 
@@ -603,6 +535,21 @@ function maybeShowNotesPopup() {
   showPopup(t("notesTitle") + " - v" + entry.version, html);
 }
 
+function resetLocalAccountFlagsForFreshProfile() {
+  const keys = [
+    "hn-onboarded",
+    "hn-guide-seen",
+    "hn-pass-seen",
+    "hn-friendreq-seen",
+    "hn-story-seen",
+    "hn-ad-daily-at",
+    "hn-ad-case-at"
+  ];
+  for (const key of keys) {
+    localStorage.removeItem(key);
+  }
+}
+
 function maybeShowSeasonPopup() {
   if (seasonData === null) {
     return;
@@ -615,7 +562,7 @@ function maybeShowSeasonPopup() {
   }
   if (seasonData.badge) {
     const titleId = "title-s" + seasonData.badge.season + "-r" + seasonData.badge.rank;
-    html += '<img class="popup-badge" src="' + accessoryIconDataUrl(titleId, 96) + '" alt="" />';
+    html += '<div class="popup-award">' + seasonTitleLabel(titleId) + "</div>";
     html += "<p>" + t("badgeCongrats", { r: seasonData.badge.rank, s: seasonData.badge.season }) + "</p>";
   }
   if (html === "") {
@@ -828,6 +775,19 @@ function checkLevelUp(profile) {
   lastLevel = level;
 }
 
+function platformLinked(profile) {
+  if (profile === null) {
+    return false;
+  }
+  if (platformName() === "y8") {
+    return typeof profile.y8_pid === "string" && profile.y8_pid !== "";
+  }
+  if (platformName() === "crazygames") {
+    return typeof profile.cg_username === "string" && profile.cg_username !== "";
+  }
+  return false;
+}
+
 function renderProfileChip() {
   const profile = getProfile();
   refreshTownCharacter();
@@ -836,9 +796,10 @@ function renderProfileChip() {
     el("chip-head").src = portraitDataUrl(profile.skin, 128, profile.accessories, profile.weapon);
     el("chip-pseudo").textContent = profile.pseudo;
     checkLevelUp(profile);
-    if (isCrazyGames()) {
+    if (accountAvailable()) {
       isCgAuthenticated().then(function(auth) {
-        if (!auth) {
+        if (!auth && !platformLinked(profile)) {
+          applyAuthBrand();
           el("btn-cg-login").classList.remove("hidden");
         } else {
           el("btn-cg-login").classList.add("hidden");
@@ -1476,7 +1437,6 @@ async function openProfile() {
   viewingFriend = false;
   el("screen-profile").classList.remove("viewing-friend");
   el("profile-name").textContent = profile.pseudo;
-  refreshPseudoEdit();
   renderWantedPosterEl(el("profile-poster"), {
     pseudo: profile.pseudo,
     title: profile.prime + " $",
@@ -1496,15 +1456,18 @@ async function openProfile() {
 }
 
 el("btn-copy-id").addEventListener("click", function () {
-  audio.uiClick();
   let codeStr = el("profile-id").textContent;
   if (codeStr.startsWith("ID: ")) codeStr = codeStr.substring(4).trim();
   if (!codeStr || codeStr === "----") return;
-  navigator.clipboard.writeText(codeStr).catch(function () {});
-  el("btn-copy-id").textContent = t("copiedId");
-  setTimeout(function () {
-    el("btn-copy-id").textContent = t("copyId");
-  }, 1600);
+  copyText(codeStr, function (ok) {
+    if (!ok) {
+      return;
+    }
+    el("btn-copy-id").textContent = t("copiedId");
+    setTimeout(function () {
+      el("btn-copy-id").textContent = t("copyId");
+    }, 1600);
+  });
 });
 
 let invRotation = -0.5;
@@ -1552,7 +1515,6 @@ function openFriendProfile(entry) {
   viewingFriend = true;
   el("friends-bar").classList.remove("open");
   el("profile-name").textContent = entry.pseudo;
-  refreshPseudoEdit();
   renderWantedPosterEl(el("profile-poster"), {
     pseudo: entry.pseudo,
     title: (entry.prime != null ? entry.prime : 0) + " $",
@@ -1652,7 +1614,6 @@ function renderPosterTabs() {
     }
     btn.addEventListener("click", function () {
       posterCat = cat.slot;
-      audio.uiClick();
       renderPosterTabs();
       renderPosterEditor();
       markPosterCatSeen();
@@ -1904,14 +1865,17 @@ function pad2(n) {
 }
 
 async function refreshHomeAd() {
-  if (!isCrazyGames() || getProfile() === null) {
+  if (!rewardedAvailable() || getProfile() === null) {
+    el("btn-home-reward").classList.add("hidden");
     return;
   }
   const state = await adState();
   if (state === null) {
+    el("btn-home-reward").classList.add("hidden");
     return;
   }
   const btn = el("btn-home-reward");
+  btn.classList.remove("hidden");
   const go = el("home-reward-go");
   el("home-reward-amount").textContent = "+20 🪙";
   if (homeAdTimer !== null) {
@@ -2051,7 +2015,7 @@ function renderAdItems() {
 }
 
 function applyAdShop() {
-  const ok = isCrazyGames();
+  const ok = rewardedAvailable();
   el("reward-crate").classList.toggle("hidden", !ok);
   el("btn-crate-watch").classList.toggle("hidden", !ok);
   if (ok) {
@@ -2060,7 +2024,7 @@ function applyAdShop() {
 }
 
 async function refreshAdShop() {
-  if (!isCrazyGames()) {
+  if (!rewardedAvailable()) {
     applyAdShop();
     return;
   }
@@ -2246,6 +2210,8 @@ async function initSocial() {
         }
       } catch (e) {}
     }
+  }, function (lost) {
+    showSessionGate(lost);
   });
   listenChallenges(profile.id, onChallenge, onChallengeReply, refreshFriends);
   listenEvents(refreshEventBanner);
@@ -2257,7 +2223,7 @@ async function initSocial() {
   refreshHomeAd();
   refreshAdShop();
   fetchBoard();
-  setInterval(refreshFriends, 30000);
+  socialTimer = setInterval(refreshFriends, 30000);
 }
 
 async function refreshFriends() {
@@ -2741,7 +2707,8 @@ function handleResult(ranked) {
         return "";
       }
       if (won) {
-        submitCgScore(result.prime);
+        const me = getProfile();
+        submitCgScore(result.prime, me === null ? 0 : me.season_key);
       }
       maybeAccountLink();
       renderProfileChip();
@@ -2964,12 +2931,12 @@ async function generateRankedBot() {
     acc: accList,
     weapon: weapon.id,
     health: 2,
-    reaction: [250, 350],
-    aim: [300, 450],
-    accHead: 0.25,
-    accBody: 0.6,
-    misfireChance: 0.05,
-    dodgeChance: 0.15,
+    reaction: [275, 380],
+    aim: [320, 470],
+    accHead: 0.22,
+    accBody: 0.53,
+    misfireChance: 0.9,
+    dodgeChance: 0.13,
     patience: 0
   };
 }
@@ -3312,21 +3279,24 @@ function openFriendRoom(rawCode, hosting, isChallenge = false, oppName) {
 }
 
 el("btn-friend-copy").addEventListener("click", function () {
-  audio.uiClick();
   if (friendCode === null) {
     return;
   }
   const link = buildFriendLink(friendCode);
-  navigator.clipboard.writeText(link).catch(function () {});
   const btn = el("btn-friend-copy");
-  btn.textContent = t("friendCopied");
-  if (copyTimer !== null) {
-    clearTimeout(copyTimer);
-  }
-  copyTimer = setTimeout(function () {
-    copyTimer = null;
-    btn.textContent = t("friendCopy");
-  }, 1600);
+  copyText(link, function (ok) {
+    if (!ok) {
+      return;
+    }
+    btn.textContent = t("friendCopied");
+    if (copyTimer !== null) {
+      clearTimeout(copyTimer);
+    }
+    copyTimer = setTimeout(function () {
+      copyTimer = null;
+      btn.textContent = t("friendCopy");
+    }, 1600);
+  });
 });
 
 const storyMode = createStoryMode({
@@ -3809,6 +3779,10 @@ function renderChallenges() {
   el("ch-tab-weekly").classList.toggle("active", challengePeriod === "weekly");
   list.innerHTML = "";
   if (challengeData === null) {
+    if (getProfile() !== null) {
+      msg.classList.add("hidden");
+      return;
+    }
     msg.textContent = t("challengesLogin");
     msg.classList.remove("hidden");
     return;
@@ -4249,6 +4223,48 @@ function runMenuGuide() {
   show();
 }
 
+function showSessionGate(visible) {
+  el("session-gate").classList.toggle("hidden", !visible);
+  if (visible) {
+    audio.setMuted(true);
+    if (document.pointerLockElement !== null) {
+      document.exitPointerLock();
+    }
+  } else {
+    audio.setMuted(cgAudioMuted());
+  }
+}
+
+el("btn-session-reclaim").addEventListener("click", function () {
+  reclaimSession();
+  showSessionGate(false);
+});
+
+async function afterAccountReady() {
+  const profile = getProfile();
+  if (!netAvailable() || profile === null) {
+    return;
+  }
+  if (socialProfileId !== null && socialProfileId !== profile.id) {
+    goOffline();
+    if (socialTimer !== null) {
+      clearInterval(socialTimer);
+      socialTimer = null;
+    }
+    socialReady = false;
+  }
+  socialProfileId = profile.id;
+  restoreStoryFromMask(profile.story_mask);
+  renderProfileChip();
+  refreshChallenges();
+  refreshHomeAd();
+  refreshAdShop();
+  updateNotifs();
+  try {
+    await initSocial();
+  } catch (err) {}
+}
+
 async function syncCgAccount() {
   try {
     await initAccount();
@@ -4256,6 +4272,7 @@ async function syncCgAccount() {
   renderProfileChip();
   refreshCoins();
   updateNotifs();
+  afterAccountReady();
 }
 
 const BOOT_STEP_TIMEOUT = 8000;
@@ -4291,7 +4308,7 @@ async function boot() {
     accountReady();
     openFriendRoom(code, false);
   });
-  if (localStorage.getItem("hn-lang") === null) {
+  if (localStorage.getItem("hn-lang-manual") === null) {
     const locale = cgLocale();
     if (locale !== null) {
       setLang(locale.slice(0, 2).toLowerCase());
@@ -4300,42 +4317,44 @@ async function boot() {
       el("lang-select").value = getLang();
     }
   }
-  if (isCrazyGames()) {
+  if (isPortal()) {
     const credit = document.querySelector(".footer-note a");
     if (credit !== null) {
       const name = document.createElement("span");
       name.textContent = credit.textContent;
       credit.replaceWith(name);
     }
-    el("friend-code").classList.add("hidden");
-    el("btn-home-reward").classList.remove("hidden");
-    const logo = el("cg-login-logo");
-    if (logo !== null) {
-      logo.src = "https://www.google.com/s2/favicons?domain=crazygames.com&sz=64";
-      logo.style.display = "";
-    }
   }
+  if (isPortal()) {
+    el("friend-code").classList.add("hidden");
+  }
+  refreshHomeAd();
+  applyAuthBrand();
   if (netAvailable()) {
     el("profile-chip").classList.remove("hidden");
     el("profile-chip").classList.add("loading");
     el("chip-pseudo").textContent = localPseudo();
     el("chip-head").src = portraitDataUrl("drifter", 128);
   }
-  try {
-    await bootStep(initAccount());
-  } catch (err) {}
-  if (netAvailable() && getProfile() === null) {
-    try {
-      await bootStep(ensureAccount());
-    } catch (err) {}
-  }
-  el("profile-chip").classList.remove("loading");
-  const bootProfile = getProfile();
-  if (bootProfile !== null) {
-    restoreStoryFromMask(bootProfile.story_mask);
-  }
+  const accountPending = initAccount().catch(function () {
+    return null;
+  }).then(async function () {
+    if (netAvailable() && getProfile() === null) {
+      try {
+        await ensureAccount();
+      } catch (err) {}
+    }
+    const ready = getProfile();
+    if (ready !== null) {
+      restoreStoryFromMask(ready.story_mask);
+    }
+    el("profile-chip").classList.remove("loading");
+    renderProfileChip();
+    checkBanned();
+    afterAccountReady();
+  });
+  await bootStep(accountPending);
   renderProfileChip();
-  checkBanned();
   if (netAvailable()) {
     el("friends-bar").classList.remove("hidden");
     el("challenges-bar").classList.remove("hidden");
@@ -4378,7 +4397,8 @@ async function boot() {
     openFriendRoom(makeFriendCode(), true);
     return;
   }
-  if (wasProfileCreated() && !hadAccount && localStorage.getItem("hn-onboarded") === null) {
+  if (wasProfileCreated()) {
+    resetLocalAccountFlagsForFreshProfile();
     localStorage.setItem("hn-onboarded", "1");
     localStorage.setItem("hn-notes-seen", LATEST_VERSION);
     showPopup(t("welcomeTitle"), t("welcomeBody"), function () {

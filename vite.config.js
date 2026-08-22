@@ -5,18 +5,22 @@ import path from "path";
 const root = path.dirname(fileURLToPath(import.meta.url));
 
 const ADAPTERS = {
-  gamedistribution: "gamedistribution.js",
-  gd: "gamedistribution.js",
-  standalone: "none.js",
-  none: "none.js"
+  y8: "y8.js"
+};
+
+const REQUIRED = {
+  "y8.js": ["VITE_Y8_GAME_ID", "VITE_Y8_APP_ID"]
 };
 
 export default defineConfig(function (config) {
   const adapter = ADAPTERS[String(config.mode).toLowerCase()] || "crazygames.js";
-  if (adapter === "gamedistribution.js" && config.command === "build") {
+  const required = REQUIRED[adapter];
+  if (required !== undefined && config.command === "build") {
     const env = loadEnv(config.mode, root, "VITE_");
-    if (!env.VITE_GD_GAME_ID) {
-      throw new Error("VITE_GD_GAME_ID manquant");
+    for (const name of required) {
+      if (!env[name]) {
+        throw new Error(name + " manquant");
+      }
     }
   }
   return {

@@ -243,60 +243,6 @@ body.ui-scaled #backdrop {
   gap: 10px;
 }
 
-.pseudo-pencil {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 20px;
-  line-height: 1;
-  padding: 2px 4px;
-  opacity: 0.75;
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.pseudo-pencil:hover {
-  opacity: 1;
-  transform: scale(1.15);
-}
-
-#pseudo-edit-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-#pseudo-edit-row .btn-small {
-  width: auto;
-  min-width: 0;
-  flex: 0 0 auto;
-  font-size: 11px;
-  padding: 6px 12px;
-}
-
-#pseudo-input {
-  width: 180px;
-  font-family: "Special Elite", Georgia, serif;
-  font-size: 14px;
-  color: #f3e4c2;
-  background: rgba(20, 12, 6, 0.85);
-  border: 2px solid #7a4c15;
-  border-radius: 4px;
-  padding: 6px 8px;
-  outline: none;
-}
-
-.pseudo-msg {
-  font-size: 13px;
-  color: #ff9a7c;
-  margin: 0;
-  text-align: center;
-}
-
-.pseudo-msg.ok-text {
-  color: #8fd48a;
-}
-
 #sens-value,
 #music-value,
 #sfx-value {
@@ -911,6 +857,15 @@ body.touch #gunstate {
   color: #e8b64c;
   letter-spacing: 1px;
   margin: 2px 0 10px;
+}
+
+#popup-body .popup-award {
+  font-family: "Special Elite", serif;
+  font-style: italic;
+  font-size: 19px;
+  color: #e8b64c;
+  letter-spacing: 1px;
+  margin: 10px 0 8px;
 }
 
 #popup-body .popup-badge {
@@ -1680,20 +1635,6 @@ body.touch #gunstate {
   min-width: 0;
 }
 
-#pseudo-input {
-  font-family: "Special Elite", Georgia, serif;
-  font-size: 20px;
-  text-align: center;
-  color: #f3e4c2;
-  background: rgba(20, 12, 6, 0.85);
-  border: 3px solid #7a4c15;
-  border-radius: 6px;
-  padding: 10px 16px;
-  flex: 1;
-  min-width: 0;
-  outline: none;
-}
-
 .ok-text {
   color: #8fd48a;
 }
@@ -1734,10 +1675,6 @@ body.touch #gunstate {
   color: #e8b64c;
   letter-spacing: 6px;
   text-shadow: 0 3px 0 #5a3410;
-}
-
-#pseudo-input:focus {
-  border-color: #e8b64c;
 }
 
 .error-text {
@@ -2537,26 +2474,40 @@ body.touch #gunstate {
 }
 
 .btn-cg-login {
-  background: linear-gradient(#5e30d4, #441ea6);
-  border-color: #2e107a;
-  color: #ffffff;
+  --brand: #5e30d4;
+  --brand-shade: #441ea6;
+  --brand-edge: #2e107a;
+  --brand-text: #ffffff;
+  background: linear-gradient(var(--brand), var(--brand-shade));
+  border-color: var(--brand-edge);
+  border-width: 3px;
+  color: var(--brand-text);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 14px;
   text-transform: none;
   font-family: "Inter", sans-serif;
   font-weight: bold;
   width: 310px;
-  padding: 14px 16px;
+  min-height: 98px;
+  padding: 12px 16px;
   letter-spacing: normal;
   text-shadow: none;
-  box-shadow: 0 4px 0 #2e107a, 0 8px 16px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 0 var(--brand-edge), 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+#cg-login-logo {
+  width: 68px;
+  height: 68px;
+  border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .btn-cg-login:hover {
   transform: translateY(2px);
-  box-shadow: 0 2px 0 #2e107a, 0 4px 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 0 var(--brand-edge), 0 4px 10px rgba(0, 0, 0, 0.5);
 }
 
 .cg-icon {
@@ -3729,6 +3680,45 @@ input[type="range"], .jr-nav:not(:disabled),
 .rarity-epic { border-color: #a04ce8 !important; box-shadow: 0 0 10px rgba(160, 76, 232, 0.4); }
 .rarity-legendary { border-color: #e8b64c !important; box-shadow: 0 0 12px rgba(232, 182, 76, 0.55); }
 .rarity-mythic { border-color: #e83845 !important; box-shadow: 0 0 12px rgba(232, 56, 69, 0.55); }
+
+#session-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: rgba(13, 7, 3, 0.94);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 24px;
+  text-align: center;
+}
+
+#session-gate.hidden {
+  display: none;
+}
+
+#session-gate-title {
+  font-family: "Rye", "Special Elite", serif;
+  color: #e8b64c;
+  font-size: clamp(18px, 4vw, 28px);
+  margin: 0;
+}
+
+#session-gate-body {
+  font-family: "Special Elite", Georgia, serif;
+  color: #cdb491;
+  font-size: clamp(13px, 2.4vw, 17px);
+  max-width: 460px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+#btn-session-reclaim {
+  width: auto;
+  min-width: 220px;
+}
 
 #rotate-gate {
   display: none;

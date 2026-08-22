@@ -6,9 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:gd": "vite build --mode gamedistribution --outDir dist-gd",
-    "build:standalone": "vite build --mode standalone --outDir dist-standalone",
-    "preview": "vite preview"
+    "build:y8": "vite build --mode y8 --outDir dist-y8",
+    "preview": "vite preview",
+    "gen:profanity": "node tools/gen-profanity.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

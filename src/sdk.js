@@ -32,6 +32,32 @@ export function adsAvailable() {
   return platform.isHost();
 }
 
+export function isPortal() {
+  return platform.isHost();
+}
+
+export function accountAvailable() {
+  if (local) {
+    return platform.authBrand() !== null;
+  }
+  return platform.accountAvailable();
+}
+
+export function authBrand() {
+  return platform.authBrand();
+}
+
+export function authEndpoint() {
+  return platform.authEndpoint();
+}
+
+export function rewardedAvailable() {
+  if (platform.rewardedAvailable()) {
+    return true;
+  }
+  return local && platform.name !== "none";
+}
+
 export function loadingStart() {
   platform.loadingStart();
 }
@@ -110,12 +136,12 @@ export async function showCgAuthPrompt() {
   await platform.showAuthPrompt();
 }
 
-export function submitCgScore(score) {
+export function submitCgScore(score, season) {
   const value = Math.round(Number(score));
   if (!Number.isFinite(value)) {
     return;
   }
-  platform.submitScore(value);
+  platform.submitScore(value, season);
 }
 
 export async function showCgAccountLink() {

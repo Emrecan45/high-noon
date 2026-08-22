@@ -1,5 +1,6 @@
 import { getClient, netAvailable } from "./net.js";
-import { cgDataGet, cgDataSet, cgDataRemove, getCgUser, getCgFriends, isCrazyGames, isRealCrazyGames, cgUserToken } from "./sdk.js";
+import { cgDataGet, cgDataSet, cgDataRemove, getCgUser, getCgFriends, isCrazyGames, isRealCrazyGames, cgUserToken, authEndpoint, platformName } from "./sdk.js";
+import { isProfane } from "./profanity.js";
 
 let profile = null;
 let owned = new Set();
@@ -63,7 +64,8 @@ async function restoreFromCg(supabase) {
 }
 
 export async function bindCgAccount() {
-  if (!isRealCrazyGames() || !netAvailable()) {
+  const endpoint = authEndpoint();
+  if (endpoint === null || !netAvailable()) {
     return false;
   }
   const token = await cgUserToken();
@@ -72,7 +74,7 @@ export async function bindCgAccount() {
   }
   const supabase = getClient();
   try {
-    const { data, error } = await supabase.functions.invoke("cg-auth", { body: { token: token } });
+    const { data, error } = await supabase.functions.invoke(endpoint, { body: { token: token } });
     if (error || data === null || data.ok !== true || !data.access_token) {
       return false;
     }
@@ -117,9 +119,13 @@ export async function initAccount() {
   }
   await fetchProfile();
   if (profile !== null) {
-    supabase.rpc("touch_seen").catch(function () {});
+    try {
+      await supabase.rpc("touch_seen");
+    } catch (err) {}
   }
-  await syncCgLink();
+  try {
+    await syncCgLink();
+  } catch (err) {}
   return profile;
 }
 
@@ -217,36 +223,69 @@ async function fetchProfile() {
   }
 }
 
+async function syncPlatformPseudo(name) {
+  if (profile === null || typeof name !== "string") {
+    return;
+  }
+  const clean = sanitizePseudo(name);
+  if (clean.length < 3 || clean === profile.pseudo || isProfane(clean)) {
+    return;
+  }
+  await renamePseudo(clean);
+}
+
 async function syncCgLink() {
-  if (profile === null || !isCrazyGames()) {
+  if (profile === null) {
     return;
   }
-  const cgUser = await getCgUser();
-  if (cgUser === null) {
+  const platform = platformName();
+  if (platform === "crazygames") {
+    if (!isCrazyGames()) {
+      return;
+    }
+    const cgUser = await getCgUser();
+    if (cgUser === null) {
+      return;
+    }
+    if (profile.cg_username !== cgUser.username) {
+      const supabase = getClient();
+      await supabase.rpc("set_cg_username", { p_cg: cgUser.username });
+      profile.cg_username = cgUser.username;
+    }
+    await syncPlatformPseudo(cgUser.username);
     return;
   }
-  if (profile.cg_username !== cgUser.username) {
-    const supabase = getClient();
-    await supabase.rpc("set_cg_username", { p_cg: cgUser.username });
-    profile.cg_username = cgUser.username;
+  if (platform === "y8") {
+    const y8User = await getCgUser();
+    if (y8User !== null && profile.y8_pid !== y8User.pid) {
+      const supabase = getClient();
+      await supabase.rpc("set_y8_link");
+      profile.y8_pid = y8User.pid;
+      profile.y8_nickname = y8User.username;
+    }
+    await syncPlatformPseudo(y8User !== null ? y8User.username : profile.y8_nickname);
   }
 }
 
 function mapProfileError(error) {
-  const details = error.details || "";
-  if (error.message.indexOf("profiles_pkey") !== -1 || details.indexOf("Key (id)=") !== -1) {
+  const message = String(error && error.message ? error.message : "");
+  const details = String(error && error.details ? error.details : "");
+  if (message.indexOf("profiles_pkey") !== -1 || details.indexOf("Key (id)=") !== -1) {
     return "exists";
   }
-  if (error.code === "23503" || error.message.indexOf("violates foreign key") !== -1) {
+  if (error.code === "23503" || message.indexOf("violates foreign key") !== -1) {
     return "stale";
   }
-  if (error.message.indexOf("duplicate key") !== -1 || error.code === "23505") {
+  if (details.indexOf("User from sub claim in JWT does not exist") !== -1 || (message.indexOf("JWT") !== -1 && message.indexOf("does not exist") !== -1)) {
+    return "stale";
+  }
+  if (message.indexOf("duplicate key") !== -1 || error.code === "23505") {
     return "taken";
   }
-  if (error.message.indexOf("pseudo_profane") !== -1) {
+  if (message.indexOf("pseudo_profane") !== -1) {
     return "profane";
   }
-  if (error.message.indexOf("pseudo_format") !== -1 || error.code === "23514") {
+  if (message.indexOf("pseudo_format") !== -1 || error.code === "23514") {
     return "invalid";
   }
   return "network";
@@ -263,13 +302,32 @@ export async function createProfile(pseudo) {
     backupSession(data.session);
   }
   let cg = null;
-  const cgUser = await getCgUser();
-  if (cgUser !== null) {
-    cg = cgUser.username;
+  if (platformName() === "crazygames") {
+    const cgUser = await getCgUser();
+    if (cgUser !== null) {
+      cg = cgUser.username;
+    }
   }
-  const { data, error } = await supabase.rpc("create_profile", { p_pseudo: pseudo, p_cg: cg });
+  let { data, error } = await supabase.rpc("create_profile", { p_pseudo: pseudo, p_cg: cg });
   if (error !== null) {
-    return { ok: false, reason: mapProfileError(error) };
+    let reason = mapProfileError(error);
+    if (reason === "network" && sessionData.session !== null) {
+      const revived = await resetSession();
+      if (revived) {
+        const retry = await supabase.rpc("create_profile", { p_pseudo: pseudo, p_cg: cg });
+        data = retry.data;
+        error = retry.error;
+        if (error === null) {
+          profile = data;
+          owned = new Set(["drifter"]);
+          ownedAcc = new Set(["mustache"]);
+          ownedWeapons = new Set(["iron"]);
+          return { ok: true };
+        }
+        reason = mapProfileError(error);
+      }
+    }
+    return { ok: false, reason: reason };
   }
   profile = data;
   owned = new Set(["drifter"]);

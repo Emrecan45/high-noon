@@ -10,6 +10,15 @@ export function createBase(name) {
     accountAvailable: function () {
       return false;
     },
+    authBrand: function () {
+      return null;
+    },
+    authEndpoint: function () {
+      return null;
+    },
+    rewardedAvailable: function () {
+      return false;
+    },
     loadingStart: function () {},
     loadingStop: function () {},
     gameplayStart: function () {},

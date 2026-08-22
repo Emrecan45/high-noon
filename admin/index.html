@@ -30,6 +30,7 @@
   .tag.ban { background: #6a201a; color: #ffd7cf; }
   .tag.ok { background: #24401f; color: #cfe8c4; }
   .tag.cg { background: #5e30d4; color: #ffffff; }
+  .tag.y8 { background: #e8262c; color: #ffffff; }
   .tag.offline { background: #3a2e1d; color: #a49175; }
   .msg { padding: 10px 12px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
   .msg.err { background: #4a1410; color: #ffc9c0; }
@@ -60,15 +61,17 @@
 
   <div class="card" id="setup">
     <h2>Connexion</h2>
-    <label>Supabase URL</label>
-    <input id="url" placeholder="https://xxxx.supabase.co">
-    <label>Anon key</label>
-    <input id="key" placeholder="eyJ...">
-    <div class="row">
-      <div><label>Email admin</label><input id="email" type="email"></div>
-      <div><label>Mot de passe</label><input id="pass" type="password"></div>
-    </div>
-    <div class="actions"><button id="login">Se connecter</button></div>
+    <form id="loginForm" autocomplete="on">
+      <label for="url">Supabase URL</label>
+      <input id="url" name="url" autocomplete="off" placeholder="https://xxxx.supabase.co">
+      <label for="key">Anon key</label>
+      <input id="key" name="key" autocomplete="off" placeholder="eyJ...">
+      <div class="row">
+        <div><label for="email">Email admin</label><input id="email" name="username" type="email" autocomplete="username"></div>
+        <div><label for="pass">Mot de passe</label><input id="pass" name="password" type="password" autocomplete="current-password"></div>
+      </div>
+      <div class="actions"><button id="login" type="submit">Se connecter</button></div>
+    </form>
     <div id="loginMsg"></div>
   </div>
 
@@ -150,7 +153,7 @@
   <div class="card hidden" id="detailCard">
     <h2>Fiche joueur <button class="ghost" id="pd-close" style="float:right;">Fermer</button></h2>
     <div id="pd-body"></div>
-    <div class="actions"><button id="pd-ban" class="danger">Bannir</button></div>
+    <div class="actions"><button id="pd-ban" class="danger">Bannir</button><button id="pd-delete" class="danger">Supprimer le compte</button></div>
     <div id="pd-msg"></div>
   </div>
 
@@ -182,7 +185,8 @@ $("email").value = localStorage.getItem("hn-admin-email") || "";
   onLoggedIn(localStorage.getItem("hn-admin-email") || data.session.user.email);
 })();
 
-$("login").addEventListener("click", async () => {
+$("loginForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
   const url = $("url").value.trim();
   const key = $("key").value.trim();
   const email = $("email").value.trim();
@@ -358,6 +362,17 @@ async function toggleBan(p) {
   return true;
 }
 
+async function deletePlayer(p) {
+  if (!confirm("Supprimer definitivement le compte \"" + p.pseudo + "\" ?\n\nProfil, progression, skins, amis et compte de connexion seront effaces. Cette action est irreversible.")) return false;
+  if (prompt("Tape SUPPRIMER pour confirmer :", "") !== "SUPPRIMER") return false;
+  const { error } = await sb.rpc("admin_delete_player", { p_id: p.id });
+  if (error) { msg($("pl-msg"), error.message, "err"); return false; }
+  msg($("pl-msg"), "Compte \"" + p.pseudo + "\" supprime.", "ok");
+  $("detailCard").classList.add("hidden");
+  if (lastMode === "banned") loadBanned(); else loadPlayers();
+  return true;
+}
+
 function renderRows(data) {
   if (data) {
     currentPlData = data;
@@ -387,6 +402,9 @@ function renderRows(data) {
       if (p.cg_username && !/^User\d+$/.test(p.cg_username)) {
         pseudoTags += ' <span class="tag cg" title="Compte CrazyGames authentifié">CG</span>';
       }
+      if (p.y8_nickname) {
+        pseudoTags += ' <span class="tag y8" title="Compte Y8 authentifié">Y8</span>';
+      }
       
       tr.innerHTML = "<td>" + pseudoTags + "</td><td>" + p.prime + "</td><td>" + p.wins + "/" + p.losses + "</td><td>" + (p.friend_code || "-") + "</td><td>" + status + "</td>";
     const td = document.createElement("td");
@@ -395,6 +413,12 @@ function renderRows(data) {
     btn.textContent = p.banned ? "Débannir" : "Bannir";
     btn.onclick = (e) => { e.stopPropagation(); toggleBan(p); };
     td.appendChild(btn);
+    const del = document.createElement("button");
+    del.className = "danger";
+    del.textContent = "Supprimer";
+    del.style.marginLeft = "6px";
+    del.onclick = (e) => { e.stopPropagation(); deletePlayer(p); };
+    td.appendChild(del);
     tr.appendChild(td);
     tr.onclick = () => openDetail(p);
     rows.appendChild(tr);
@@ -435,7 +459,7 @@ async function loadBanned() {
 function openDetail(p) {
   $("detailCard").classList.remove("hidden");
   const info = [
-    ["Pseudo", p.pseudo + (p.cg_username ? "  (CG: " + p.cg_username + ")" : "")],
+    ["Pseudo", p.pseudo + (p.cg_username ? "  (CG: " + p.cg_username + ")" : "") + (p.y8_nickname ? "  (Y8: " + p.y8_nickname + ")" : "")],
     ["Code ami (ID)", p.friend_code || "-"],
     ["uid", p.id],
     ["Statut", p.banned ? "BANNI" + (p.ban_reason ? " - " + p.ban_reason : "") : "Actif"],
@@ -459,6 +483,7 @@ function openDetail(p) {
     const ok = await toggleBan(p);
     if (ok) $("detailCard").classList.add("hidden");
   };
+  $("pd-delete").onclick = () => { deletePlayer(p); };
   $("detailCard").scrollIntoView({ behavior: "smooth" });
 }
 </script>

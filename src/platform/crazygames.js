@@ -2,6 +2,8 @@ import { createBase, loadScript } from "./none.js";
 
 const SDK_URL = "https://sdk.crazygames.com/crazygames-sdk-v3.js";
 const LOAD_TIMEOUT = 8000;
+const LOGO_URL = "https://www.google.com/s2/favicons?domain=crazygames.com&sz=64";
+const BRAND = { label: "CrazyGames", logo: LOGO_URL, color: "#5e30d4", shade: "#441ea6", edge: "#2e107a", text: "#ffffff" };
 
 export function createPlatform() {
   return createCrazyGames();
@@ -64,6 +66,18 @@ export function createCrazyGames() {
 
   api.accountAvailable = function () {
     return userReady();
+  };
+
+  api.authBrand = function () {
+    return BRAND;
+  };
+
+  api.authEndpoint = function () {
+    return host && userReady() ? "cg-auth" : null;
+  };
+
+  api.rewardedAvailable = function () {
+    return host;
   };
 
   api.loadingStart = function () {

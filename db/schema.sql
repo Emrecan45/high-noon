@@ -45,6 +45,8 @@ alter table public.profiles add column if not exists ban_reason text;
 alter table public.profiles add column if not exists last_seen timestamptz;
 alter table public.profiles add column if not exists playtime_seconds bigint not null default 0;
 alter table public.profiles add column if not exists cg_user_id text;
+alter table public.profiles add column if not exists y8_pid text;
+alter table public.profiles add column if not exists y8_nickname text;
 
 create or replace function public.touch_seen()
 returns void
@@ -58,7 +60,7 @@ end;
 $$;
 grant execute on function public.touch_seen() to authenticated;
 
-create unique index if not exists profiles_pseudo_unique on public.profiles (lower(pseudo));
+drop index if exists profiles_pseudo_unique;
 create unique index if not exists profiles_friend_code_unique on public.profiles (friend_code);
 create index if not exists profiles_prime_idx on public.profiles (prime desc);
 
@@ -584,6 +586,8 @@ declare
   row_profile profiles;
   cg_verified text;
   cg_id text;
+  y8_name text;
+  y8_id text;
 begin
   uid := auth.uid();
   if uid is null then
@@ -591,8 +595,10 @@ begin
   end if;
   cg_verified := nullif(auth.jwt() -> 'user_metadata' ->> 'cg_username', '');
   cg_id := nullif(auth.jwt() -> 'user_metadata' ->> 'cg_user_id', '');
-  insert into profiles (id, pseudo, cg_username, cg_user_id)
-  values (uid, trim(p_pseudo), coalesce(cg_verified, p_cg), cg_id)
+  y8_name := nullif(auth.jwt() -> 'user_metadata' ->> 'y8_nickname', '');
+  y8_id := nullif(auth.jwt() -> 'user_metadata' ->> 'y8_pid', '');
+  insert into profiles (id, pseudo, cg_username, cg_user_id, y8_nickname, y8_pid)
+  values (uid, trim(p_pseudo), coalesce(cg_verified, p_cg), cg_id, y8_name, y8_id)
   returning * into row_profile;
   insert into profile_skins (profile_id, skin_id, seen) values (uid, 'drifter', true);
   insert into profile_weapons (profile_id, weapon_id, seen) values (uid, 'iron', true);
@@ -603,6 +609,11 @@ begin
   if p_cg is not null and exists (select 1 from profiles where cg_username = p_cg and banned and id <> uid) then
     update profiles set banned = true,
       ban_reason = coalesce((select ban_reason from profiles where cg_username = p_cg and banned and id <> uid limit 1), 'Compte banni')
+    where id = uid;
+  end if;
+  if y8_id is not null and exists (select 1 from profiles where y8_pid = y8_id and banned and id <> uid) then
+    update profiles set banned = true,
+      ban_reason = coalesce((select ban_reason from profiles where y8_pid = y8_id and banned and id <> uid limit 1), 'Compte banni')
     where id = uid;
   end if;
   select * into row_profile from profiles where id = uid;
@@ -639,6 +650,28 @@ begin
   update profiles
   set cg_username = coalesce(cg_verified, p_cg),
       cg_user_id = coalesce(cg_id, cg_user_id)
+  where id = auth.uid();
+end;
+$$;
+
+create or replace function public.set_y8_link()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  y8_name text;
+  y8_id text;
+begin
+  y8_name := nullif(auth.jwt() -> 'user_metadata' ->> 'y8_nickname', '');
+  y8_id := nullif(auth.jwt() -> 'user_metadata' ->> 'y8_pid', '');
+  if y8_id is null then
+    return;
+  end if;
+  update profiles
+  set y8_nickname = coalesce(y8_name, y8_nickname),
+      y8_pid = y8_id
   where id = auth.uid();
 end;
 $$;
@@ -2008,6 +2041,7 @@ $$;
 grant execute on function public.create_profile(text, text) to authenticated;
 grant execute on function public.set_pseudo(text) to authenticated;
 grant execute on function public.set_cg_username(text) to authenticated;
+grant execute on function public.set_y8_link() to authenticated;
 grant execute on function public.equip_skin(text) to authenticated;
 grant execute on function public.equip_weapon(text) to authenticated;
 grant execute on function public.buy_skin(text) to authenticated;

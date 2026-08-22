@@ -1078,8 +1078,8 @@ as $$
     translate(
       replace(replace(replace(replace(lower(coalesce(p_text, '')),
         'ß', 'ss'), 'æ', 'ae'), 'œ', 'oe'), 'þ', 'th'),
-      'àáâãäåçèéêëìíîïñòóôõöùúûüýÿøłđğış',
-      'aaaaaaceeeeiiiinooooouuuuyyoldgis'
+      'àáâãäåçèéêëìíîïñòóôõöùúûüýÿøłđğışйёșțčšžřěůőűāēīōūąęćśźżń',
+      'aaaaaaceeeeiiiinooooouuuuyyoldgisиеstcszreuouaeiouaecszzn'
     ),
     '013456789@$!|+авеѕіјкморстух',
     'oieasgtbgasiitabesijkmopctyx'

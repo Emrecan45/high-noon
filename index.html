@@ -4,7 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>High Noon</title>
-  <meta name="description" content="High Noon: a first-person 1v1 western duel in 3D. Draw faster than your opponent, online or against the AI." />
+  <meta name="description" content="High Noon: 1v1 first-person western duel. Draw faster than your opponent, climb the leaderboard, and experience the story mode." />
+  <script>
+    (function () {
+      const ghHost = "emrecan45.github.io";
+      const blockedPath = "/high-noon";
+      if (window.location.hostname === ghHost && window.location.pathname.startsWith(blockedPath)) {
+        window.location.replace("https://y8.com/games/high_noon");
+        setTimeout(function () {
+          window.location.replace("https://emrecan45.github.io/");
+        }, 1500);
+      }
+    }());
+  </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%232a1706'/%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%237a4c15' stroke-width='3'/%3E%3Ccircle cx='50' cy='50' r='27' fill='none' stroke='%23e8b64c' stroke-width='9'/%3E%3Ccircle cx='50' cy='50' r='8' fill='%23e8b64c'/%3E%3Crect x='45' y='4' width='10' height='16' rx='2' fill='%23e8b64c'/%3E%3Crect x='45' y='80' width='10' height='16' rx='2' fill='%23e8b64c'/%3E%3Crect x='4' y='45' width='16' height='10' rx='2' fill='%23e8b64c'/%3E%3Crect x='80' y='45' width='16' height='10' rx='2' fill='%23e8b64c'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -152,8 +164,8 @@
       </div>
     <div style="position: absolute; bottom: 20px; left: max(var(--edge), calc(env(safe-area-inset-left))); z-index: 20;">
       <button id="btn-cg-login" class="btn btn-cg-login hidden" style="margin: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.5);">
-        <img id="cg-login-logo" alt="" style="width: 52px; height: 52px; vertical-align: middle; margin-left: 24px; margin-right: 12px; border-radius: 10px; display: none;">
-        <span data-i18n="cgLogin" style="vertical-align: middle;">Se Connecter</span>
+        <img id="cg-login-logo" alt="" style="display: none;">
+        <span id="cg-login-label">Se Connecter</span>
       </button>
     </div>
     <div class="home-footer">
@@ -192,14 +204,7 @@
     <div id="profile-left-area">
       <div id="profile-name-row">
         <h2 id="profile-name"></h2>
-        <button id="btn-pseudo-edit" class="pseudo-pencil hidden" aria-label="Edit nickname">✏️</button>
       </div>
-      <div id="pseudo-edit-row" class="hidden">
-        <input id="pseudo-input" type="text" maxlength="16" autocomplete="off" spellcheck="false" />
-        <button id="btn-pseudo-save" class="btn btn-small" data-i18n="pseudoSave"></button>
-        <button id="btn-pseudo-cancel" class="btn btn-small" data-i18n="back"></button>
-      </div>
-      <p id="pseudo-msg" class="pseudo-msg hidden"></p>
       <div id="profile-id-row">
         <span id="profile-id"></span>
         <button id="btn-copy-id" class="btn btn-small" data-i18n="copyId"></button>
@@ -475,6 +480,12 @@
     </div>
   </div>
 
+  <div id="session-gate" class="hidden">
+    <p id="session-gate-title" data-i18n="sessionMovedTitle"></p>
+    <p id="session-gate-body" data-i18n="sessionMovedBody"></p>
+    <button id="btn-session-reclaim" class="btn" data-i18n="sessionMovedBtn"></button>
+  </div>
+
   <div id="rotate-gate">
     <svg class="rot-ico" viewBox="0 0 44 72" aria-hidden="true">
       <rect x="2" y="2" width="40" height="68" rx="7" fill="none" stroke="currentColor" stroke-width="4"/>
@@ -486,3 +497,4 @@
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
+
