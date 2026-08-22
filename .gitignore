@@ -1,5 +1,7 @@
 node_modules
 dist
+dist-gd
+dist-standalone
 crazygames-upload
 .DS_Store
 *.zip

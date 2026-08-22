@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:gd": "vite build --mode gamedistribution --outDir dist-gd",
+    "build:standalone": "vite build --mode standalone --outDir dist-standalone",
     "preview": "vite preview"
   },
   "dependencies": {
